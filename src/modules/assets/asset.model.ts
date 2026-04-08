@@ -48,7 +48,7 @@ export interface IAsset extends Document {
   assetTag: string;
   category: AssetCategory;
   brand?: string;
-  model?: string;
+  modelName?: string;
   serialNumber?: string;
   purchaseDate?: Date;
   purchasePrice?: number;
@@ -122,7 +122,7 @@ const assetSchema = new Schema<IAsset>(
       trim: true,
       maxlength: [100, 'Brand cannot exceed 100 characters'],
     },
-    model: {
+    modelName: {
       type: String,
       trim: true,
       maxlength: [100, 'Model cannot exceed 100 characters'],
@@ -179,7 +179,7 @@ const assetSchema = new Schema<IAsset>(
     timestamps: true,
     toJSON: {
       virtuals: true,
-      transform(_doc, ret) {
+      transform(_doc: any, ret: Record<string, any>) {
         delete ret.__v;
         return ret;
       },

@@ -16,8 +16,8 @@ export class DesignationController {
       sortBy: (req.query.sortBy as string) || 'level',
       sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'asc',
       filters: {
-        department: req.query.department,
-        level: req.query.level,
+        department: req.query.department as string,
+        level: req.query.level as string,
       },
     };
 
@@ -31,7 +31,7 @@ export class DesignationController {
    * GET /:id - Get designation by ID.
    */
   static getById = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const designation = await DesignationService.getById(req.params.id);
+    const designation = await DesignationService.getById(req.params.id as string);
     res.status(200).json(
       buildResponse(true, designation, 'Designation retrieved successfully'),
     );
@@ -51,7 +51,7 @@ export class DesignationController {
    * PUT /:id - Update a designation.
    */
   static update = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const designation = await DesignationService.update(req.params.id, req.body);
+    const designation = await DesignationService.update(req.params.id as string, req.body);
     res.status(200).json(
       buildResponse(true, designation, 'Designation updated successfully'),
     );
@@ -61,7 +61,7 @@ export class DesignationController {
    * DELETE /:id - Soft delete a designation.
    */
   static delete = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const designation = await DesignationService.delete(req.params.id);
+    const designation = await DesignationService.delete(req.params.id as string);
     res.status(200).json(
       buildResponse(true, designation, 'Designation deactivated successfully'),
     );

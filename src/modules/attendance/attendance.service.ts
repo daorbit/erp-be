@@ -102,7 +102,7 @@ export class AttendanceService {
     ]);
 
     return {
-      data: records as IAttendance[],
+      data: records as any as IAttendance[],
       pagination: buildPagination(page, limit, total),
     };
   }
@@ -279,7 +279,7 @@ export class AttendanceService {
       .sort({ date: 1 })
       .lean();
 
-    return records as IAttendance[];
+    return records as any as IAttendance[];
   }
 
   /**
@@ -391,6 +391,6 @@ export class AttendanceService {
       .sort({ 'employee.firstName': 1 })
       .lean();
 
-    return records as IAttendance[];
+    return records as any as IAttendance[];
   }
 }

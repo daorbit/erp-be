@@ -15,7 +15,7 @@ export const createAssetSchema = z.object({
     required_error: 'Category is required',
   }),
   brand: z.string().trim().max(100).optional(),
-  model: z.string().trim().max(100).optional(),
+  modelName: z.string().trim().max(100).optional(),
   serialNumber: z.string().trim().max(100).optional(),
   purchaseDate: z.string().datetime().optional(),
   purchasePrice: z.number().min(0).optional(),

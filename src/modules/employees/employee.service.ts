@@ -140,7 +140,7 @@ export class EmployeeService {
     ]);
 
     return {
-      data: employees as IEmployeeProfile[],
+      data: employees as any as IEmployeeProfile[],
       pagination: buildPagination(page, limit, total),
     };
   }
@@ -316,7 +316,7 @@ export class EmployeeService {
       .populate('reportingManager', 'firstName lastName email')
       .lean();
 
-    return employees as IEmployeeProfile[];
+    return employees as any as IEmployeeProfile[];
   }
 
   /**
@@ -341,6 +341,6 @@ export class EmployeeService {
       })
       .lean();
 
-    return employees as IEmployeeProfile[];
+    return employees as any as IEmployeeProfile[];
   }
 }

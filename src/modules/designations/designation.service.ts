@@ -57,7 +57,7 @@ export class DesignationService {
     ]);
 
     return {
-      data: designations as IDesignation[],
+      data: designations as any as IDesignation[],
       pagination: buildPagination(page, limit, total),
     };
   }

@@ -74,7 +74,7 @@ export const globalErrorHandler: ErrorRequestHandler = (
     message = err.message;
   } else {
     // Mongoose / Mongo specific errors
-    const anyErr = err as Record<string, unknown>;
+    const anyErr = err as unknown as Record<string, unknown>;
     const errName = anyErr['name'] as string | undefined;
     const errCode = anyErr['code'] as number | undefined;
 

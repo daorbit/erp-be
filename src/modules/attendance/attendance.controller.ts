@@ -15,10 +15,10 @@ export class AttendanceController {
       sortBy: (req.query.sortBy as string) || 'date',
       sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'desc',
       filters: {
-        employee: req.query.employee,
-        status: req.query.status,
-        startDate: req.query.startDate,
-        endDate: req.query.endDate,
+        employee: req.query.employee as string,
+        status: req.query.status as string,
+        startDate: req.query.startDate as string,
+        endDate: req.query.endDate as string,
       },
     };
 
@@ -32,7 +32,7 @@ export class AttendanceController {
    * GET /:id - Get attendance record by ID.
    */
   static getById = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const record = await AttendanceService.getById(req.params.id);
+    const record = await AttendanceService.getById(req.params.id as string);
     res.status(200).json(
       buildResponse(true, record, 'Attendance record retrieved successfully'),
     );
@@ -79,7 +79,7 @@ export class AttendanceController {
     const year = parseInt(req.query.year as string) || new Date().getFullYear();
 
     const summary = await AttendanceService.getAttendanceSummary(
-      req.params.employeeId,
+      req.params.employeeId as string,
       month,
       year,
     );

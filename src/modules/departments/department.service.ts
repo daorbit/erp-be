@@ -60,7 +60,7 @@ export class DepartmentService {
     ]);
 
     return {
-      data: departments as IDepartment[],
+      data: departments as any as IDepartment[],
       pagination: buildPagination(page, limit, total),
     };
   }

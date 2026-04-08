@@ -12,9 +12,9 @@ export const getAll = asyncHandler(async (req: Request, res: Response) => {
     sortBy: (req.query.sortBy as string) || 'createdAt',
     sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'desc',
     filters: {
-      category: req.query.category,
-      status: req.query.status,
-      mode: req.query.mode,
+      category: req.query.category as string,
+      status: req.query.status as string,
+      mode: req.query.mode as string,
     },
   };
 
@@ -26,7 +26,7 @@ export const getAll = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const getById = asyncHandler(async (req: Request, res: Response) => {
-  const training = await TrainingService.getById(req.params.id);
+  const training = await TrainingService.getById(req.params.id as string);
 
   res.status(200).json(
     buildResponse(true, training, 'Training program retrieved successfully'),
@@ -46,7 +46,7 @@ export const create = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const update = asyncHandler(async (req: Request, res: Response) => {
-  const training = await TrainingService.update(req.params.id, req.body);
+  const training = await TrainingService.update(req.params.id as string, req.body);
 
   res.status(200).json(
     buildResponse(true, training, 'Training program updated successfully'),
@@ -54,7 +54,7 @@ export const update = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const remove = asyncHandler(async (req: Request, res: Response) => {
-  await TrainingService.delete(req.params.id);
+  await TrainingService.delete(req.params.id as string);
 
   res.status(200).json(
     buildResponse(true, null, 'Training program deleted successfully'),
@@ -63,7 +63,7 @@ export const remove = asyncHandler(async (req: Request, res: Response) => {
 
 export const enrollEmployee = asyncHandler(async (req: Request, res: Response) => {
   const training = await TrainingService.enrollEmployee(
-    req.params.id,
+    req.params.id as string,
     req.body.employeeId,
   );
 
@@ -74,7 +74,7 @@ export const enrollEmployee = asyncHandler(async (req: Request, res: Response) =
 
 export const completeTraining = asyncHandler(async (req: Request, res: Response) => {
   const training = await TrainingService.completeTraining(
-    req.params.id,
+    req.params.id as string,
     req.body.employeeId,
     req.body,
   );
@@ -86,7 +86,7 @@ export const completeTraining = asyncHandler(async (req: Request, res: Response)
 
 export const dropEmployee = asyncHandler(async (req: Request, res: Response) => {
   const training = await TrainingService.dropEmployee(
-    req.params.id,
+    req.params.id as string,
     req.body.employeeId,
   );
 

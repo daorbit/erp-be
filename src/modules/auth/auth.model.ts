@@ -98,7 +98,7 @@ const userSchema = new Schema<IUser>(
   {
     timestamps: true,
     toJSON: {
-      transform(_doc, ret) {
+      transform(_doc: any, ret: Record<string, any>) {
         delete ret.password;
         delete ret.refreshToken;
         delete ret.__v;
@@ -148,7 +148,7 @@ userSchema.methods.generateAuthToken = function (): string {
       role: this.role,
     },
     config.jwt.secret,
-    { expiresIn: config.jwt.expiresIn },
+    { expiresIn: config.jwt.expiresIn } as jwt.SignOptions,
   );
 };
 
@@ -160,7 +160,7 @@ userSchema.methods.generateRefreshToken = function (): string {
       role: this.role,
     },
     config.jwt.secret,
-    { expiresIn: config.jwt.refreshExpiresIn },
+    { expiresIn: config.jwt.refreshExpiresIn } as jwt.SignOptions,
   );
 };
 

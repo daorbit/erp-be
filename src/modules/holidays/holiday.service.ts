@@ -56,7 +56,7 @@ export class HolidayService {
     ]);
 
     return {
-      data: holidays as IHoliday[],
+      data: holidays as any as IHoliday[],
       pagination: buildPagination(page, limit, total),
     };
   }
@@ -147,7 +147,7 @@ export class HolidayService {
       .sort({ date: 1 })
       .lean();
 
-    return holidays as IHoliday[];
+    return holidays as any as IHoliday[];
   }
 
   /**
@@ -164,6 +164,6 @@ export class HolidayService {
       .limit(limit)
       .lean();
 
-    return holidays as IHoliday[];
+    return holidays as any as IHoliday[];
   }
 }

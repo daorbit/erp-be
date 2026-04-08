@@ -14,9 +14,9 @@ export const getAllReviews = asyncHandler(async (req: Request, res: Response) =>
     sortBy: (req.query.sortBy as string) || 'createdAt',
     sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'desc',
     filters: {
-      employee: req.query.employee,
-      status: req.query.status,
-      type: req.query.type,
+      employee: req.query.employee as string,
+      status: req.query.status as string,
+      type: req.query.type as string,
     },
   };
 
@@ -28,7 +28,7 @@ export const getAllReviews = asyncHandler(async (req: Request, res: Response) =>
 });
 
 export const getReviewById = asyncHandler(async (req: Request, res: Response) => {
-  const review = await PerformanceService.getReviewById(req.params.id);
+  const review = await PerformanceService.getReviewById(req.params.id as string);
 
   res.status(200).json(
     buildResponse(true, review, 'Review retrieved successfully'),
@@ -48,7 +48,7 @@ export const createReview = asyncHandler(async (req: Request, res: Response) => 
 });
 
 export const updateReview = asyncHandler(async (req: Request, res: Response) => {
-  const review = await PerformanceService.updateReview(req.params.id, req.body);
+  const review = await PerformanceService.updateReview(req.params.id as string, req.body);
 
   res.status(200).json(
     buildResponse(true, review, 'Review updated successfully'),
@@ -56,7 +56,7 @@ export const updateReview = asyncHandler(async (req: Request, res: Response) => 
 });
 
 export const deleteReview = asyncHandler(async (req: Request, res: Response) => {
-  await PerformanceService.deleteReview(req.params.id);
+  await PerformanceService.deleteReview(req.params.id as string);
 
   res.status(200).json(
     buildResponse(true, null, 'Review deleted successfully'),
@@ -64,7 +64,7 @@ export const deleteReview = asyncHandler(async (req: Request, res: Response) => 
 });
 
 export const submitReview = asyncHandler(async (req: Request, res: Response) => {
-  const review = await PerformanceService.submitReview(req.params.id);
+  const review = await PerformanceService.submitReview(req.params.id as string);
 
   res.status(200).json(
     buildResponse(true, review, 'Review submitted to the next stage successfully'),
@@ -119,10 +119,10 @@ export const getAllGoals = asyncHandler(async (req: Request, res: Response) => {
     sortBy: (req.query.sortBy as string) || 'createdAt',
     sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'desc',
     filters: {
-      employee: req.query.employee,
-      status: req.query.status,
-      priority: req.query.priority,
-      category: req.query.category,
+      employee: req.query.employee as string,
+      status: req.query.status as string,
+      priority: req.query.priority as string,
+      category: req.query.category as string,
     },
   };
 
@@ -134,7 +134,7 @@ export const getAllGoals = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const getGoalById = asyncHandler(async (req: Request, res: Response) => {
-  const goal = await PerformanceService.getGoalById(req.params.id);
+  const goal = await PerformanceService.getGoalById(req.params.id as string);
 
   res.status(200).json(
     buildResponse(true, goal, 'Goal retrieved successfully'),
@@ -154,7 +154,7 @@ export const createGoal = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const updateGoal = asyncHandler(async (req: Request, res: Response) => {
-  const goal = await PerformanceService.updateGoal(req.params.id, req.body);
+  const goal = await PerformanceService.updateGoal(req.params.id as string, req.body);
 
   res.status(200).json(
     buildResponse(true, goal, 'Goal updated successfully'),
@@ -162,7 +162,7 @@ export const updateGoal = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const deleteGoal = asyncHandler(async (req: Request, res: Response) => {
-  await PerformanceService.deleteGoal(req.params.id);
+  await PerformanceService.deleteGoal(req.params.id as string);
 
   res.status(200).json(
     buildResponse(true, null, 'Goal deleted successfully'),
@@ -189,7 +189,7 @@ export const getMyGoals = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const updateGoalProgress = asyncHandler(async (req: Request, res: Response) => {
-  const goal = await PerformanceService.updateGoalProgress(req.params.id, req.body);
+  const goal = await PerformanceService.updateGoalProgress(req.params.id as string, req.body);
 
   res.status(200).json(
     buildResponse(true, goal, 'Goal progress updated successfully'),
@@ -205,7 +205,7 @@ export const getGoalsByEmployee = asyncHandler(async (req: Request, res: Respons
   };
 
   const { goals, pagination } = await PerformanceService.getGoalsByEmployee(
-    req.params.employeeId,
+    req.params.employeeId as string,
     query,
   );
 

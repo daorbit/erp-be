@@ -158,7 +158,7 @@ const jobPostingSchema = new Schema<IJobPosting>(
     timestamps: true,
     toJSON: {
       virtuals: true,
-      transform(_doc, ret) {
+      transform(_doc: any, ret: Record<string, any>) {
         delete ret.__v;
         return ret;
       },
@@ -287,7 +287,7 @@ const jobApplicationSchema = new Schema<IJobApplication>(
     timestamps: true,
     toJSON: {
       virtuals: true,
-      transform(_doc, ret) {
+      transform(_doc: any, ret: Record<string, any>) {
         delete ret.__v;
         return ret;
       },

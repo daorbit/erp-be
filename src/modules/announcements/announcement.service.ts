@@ -61,7 +61,7 @@ export class AnnouncementService {
     ]);
 
     return {
-      data: announcements as IAnnouncement[],
+      data: announcements as any as IAnnouncement[],
       pagination: buildPagination(page, limit, total),
     };
   }
@@ -160,7 +160,7 @@ export class AnnouncementService {
       .sort({ priority: -1, publishDate: -1 })
       .lean();
 
-    return announcements as IAnnouncement[];
+    return announcements as any as IAnnouncement[];
   }
 
   /**
@@ -176,15 +176,13 @@ export class AnnouncementService {
       throw new AppError('Announcement not found.', 404);
     }
 
-    const employeeObjId = new mongoose.Types.ObjectId(employeeId);
-
     // Avoid duplicate entries
     const alreadyRead = announcement.readBy.some(
-      (id) => id.toString() === employeeId,
+      (receipt) => receipt.employee.toString() === employeeId,
     );
 
     if (!alreadyRead) {
-      announcement.readBy.push(employeeObjId);
+      announcement.readBy.push({ employee: new mongoose.Types.ObjectId(employeeId), readAt: new Date() } as any);
       await announcement.save();
     }
 

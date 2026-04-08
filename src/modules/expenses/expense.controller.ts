@@ -12,11 +12,11 @@ export const getAll = asyncHandler(async (req: Request, res: Response) => {
     sortBy: (req.query.sortBy as string) || 'createdAt',
     sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'desc',
     filters: {
-      status: req.query.status,
-      category: req.query.category,
-      employee: req.query.employee,
-      dateFrom: req.query.dateFrom,
-      dateTo: req.query.dateTo,
+      status: req.query.status as string,
+      category: req.query.category as string,
+      employee: req.query.employee as string,
+      dateFrom: req.query.dateFrom as string,
+      dateTo: req.query.dateTo as string,
     },
   };
 
@@ -28,7 +28,7 @@ export const getAll = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const getById = asyncHandler(async (req: Request, res: Response) => {
-  const expense = await ExpenseService.getById(req.params.id);
+  const expense = await ExpenseService.getById(req.params.id as string);
 
   res.status(200).json(
     buildResponse(true, expense, 'Expense retrieved successfully'),
@@ -48,7 +48,7 @@ export const create = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const update = asyncHandler(async (req: Request, res: Response) => {
-  const expense = await ExpenseService.update(req.params.id, req.body);
+  const expense = await ExpenseService.update(req.params.id as string, req.body);
 
   res.status(200).json(
     buildResponse(true, expense, 'Expense updated successfully'),
@@ -56,7 +56,7 @@ export const update = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const remove = asyncHandler(async (req: Request, res: Response) => {
-  await ExpenseService.delete(req.params.id);
+  await ExpenseService.delete(req.params.id as string);
 
   res.status(200).json(
     buildResponse(true, null, 'Expense deleted successfully'),
@@ -65,7 +65,7 @@ export const remove = asyncHandler(async (req: Request, res: Response) => {
 
 export const submit = asyncHandler(async (req: Request, res: Response) => {
   const authReq = req as IAuthRequest;
-  const expense = await ExpenseService.submit(req.params.id, authReq.user.id);
+  const expense = await ExpenseService.submit(req.params.id as string, authReq.user.id);
 
   res.status(200).json(
     buildResponse(true, expense, 'Expense submitted for approval'),
@@ -75,7 +75,7 @@ export const submit = asyncHandler(async (req: Request, res: Response) => {
 export const approve = asyncHandler(async (req: Request, res: Response) => {
   const authReq = req as IAuthRequest;
   const expense = await ExpenseService.approve(
-    req.params.id,
+    req.params.id as string,
     authReq.user.id,
     req.body.remarks,
   );
@@ -88,7 +88,7 @@ export const approve = asyncHandler(async (req: Request, res: Response) => {
 export const reject = asyncHandler(async (req: Request, res: Response) => {
   const authReq = req as IAuthRequest;
   const expense = await ExpenseService.reject(
-    req.params.id,
+    req.params.id as string,
     authReq.user.id,
     req.body.remarks,
   );
@@ -100,7 +100,7 @@ export const reject = asyncHandler(async (req: Request, res: Response) => {
 
 export const reimburse = asyncHandler(async (req: Request, res: Response) => {
   const expense = await ExpenseService.markReimbursed(
-    req.params.id,
+    req.params.id as string,
     req.body.reimbursementRef,
   );
 
@@ -117,7 +117,7 @@ export const getMyExpenses = asyncHandler(async (req: Request, res: Response) =>
     sortBy: (req.query.sortBy as string) || 'createdAt',
     sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'desc',
     filters: {
-      status: req.query.status,
+      status: req.query.status as string,
     },
   };
 

@@ -12,9 +12,9 @@ export const getAll = asyncHandler(async (req: Request, res: Response) => {
     sortBy: (req.query.sortBy as string) || 'createdAt',
     sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'desc',
     filters: {
-      category: req.query.category,
-      status: req.query.status,
-      condition: req.query.condition,
+      category: req.query.category as string,
+      status: req.query.status as string,
+      condition: req.query.condition as string,
     },
   };
 
@@ -26,7 +26,7 @@ export const getAll = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const getById = asyncHandler(async (req: Request, res: Response) => {
-  const asset = await AssetService.getById(req.params.id);
+  const asset = await AssetService.getById(req.params.id as string);
 
   res.status(200).json(
     buildResponse(true, asset, 'Asset retrieved successfully'),
@@ -42,7 +42,7 @@ export const create = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const update = asyncHandler(async (req: Request, res: Response) => {
-  const asset = await AssetService.update(req.params.id, req.body);
+  const asset = await AssetService.update(req.params.id as string, req.body);
 
   res.status(200).json(
     buildResponse(true, asset, 'Asset updated successfully'),
@@ -50,7 +50,7 @@ export const update = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const remove = asyncHandler(async (req: Request, res: Response) => {
-  await AssetService.delete(req.params.id);
+  await AssetService.delete(req.params.id as string);
 
   res.status(200).json(
     buildResponse(true, null, 'Asset deleted successfully'),
@@ -58,7 +58,7 @@ export const remove = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const assignToEmployee = asyncHandler(async (req: Request, res: Response) => {
-  const asset = await AssetService.assignToEmployee(req.params.id, req.body);
+  const asset = await AssetService.assignToEmployee(req.params.id as string, req.body);
 
   res.status(200).json(
     buildResponse(true, asset, 'Asset assigned to employee successfully'),
@@ -66,7 +66,7 @@ export const assignToEmployee = asyncHandler(async (req: Request, res: Response)
 });
 
 export const returnAsset = asyncHandler(async (req: Request, res: Response) => {
-  const asset = await AssetService.returnAsset(req.params.id, req.body);
+  const asset = await AssetService.returnAsset(req.params.id as string, req.body);
 
   res.status(200).json(
     buildResponse(true, asset, 'Asset returned successfully'),
@@ -74,7 +74,7 @@ export const returnAsset = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const getByEmployee = asyncHandler(async (req: Request, res: Response) => {
-  const assets = await AssetService.getByEmployee(req.params.employeeId);
+  const assets = await AssetService.getByEmployee(req.params.employeeId as string);
 
   res.status(200).json(
     buildResponse(true, assets, 'Employee assets retrieved successfully'),

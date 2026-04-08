@@ -12,7 +12,20 @@ import authRoutes from './modules/auth/auth.routes.js';
 import employeeRoutes from './modules/employees/employee.routes.js';
 import departmentRoutes from './modules/departments/department.routes.js';
 import designationRoutes from './modules/designations/designation.routes.js';
+import attendanceRoutes from './modules/attendance/attendance.routes.js';
+import leaveRoutes from './modules/leaves/leave.routes.js';
+import payrollRoutes from './modules/payroll/payroll.routes.js';
 import recruitmentRoutes from './modules/recruitment/recruitment.routes.js';
+import performanceRoutes from './modules/performance/performance.routes.js';
+import trainingRoutes from './modules/training/training.routes.js';
+import documentRoutes from './modules/documents/document.routes.js';
+import holidayRoutes from './modules/holidays/holiday.routes.js';
+import announcementRoutes from './modules/announcements/announcement.routes.js';
+import expenseRoutes from './modules/expenses/expense.routes.js';
+import assetRoutes from './modules/assets/asset.routes.js';
+import helpdeskRoutes from './modules/helpdesk/helpdesk.routes.js';
+import reportRoutes from './modules/reports/report.routes.js';
+import dashboardRoutes from './modules/dashboard/dashboard.routes.js';
 
 // ─── Express app ─────────────────────────────────────────────────────────────
 const app = express();
@@ -69,22 +82,20 @@ app.use(`${API_PREFIX}/auth`, authRoutes);
 app.use(`${API_PREFIX}/employees`, employeeRoutes);
 app.use(`${API_PREFIX}/departments`, departmentRoutes);
 app.use(`${API_PREFIX}/designations`, designationRoutes);
+app.use(`${API_PREFIX}/attendance`, attendanceRoutes);
+app.use(`${API_PREFIX}/leaves`, leaveRoutes);
+app.use(`${API_PREFIX}/payroll`, payrollRoutes);
 app.use(`${API_PREFIX}/recruitment`, recruitmentRoutes);
-
-// Placeholder routes for future modules — uncomment as they are implemented
-// app.use(`${API_PREFIX}/attendance`, attendanceRoutes);
-// app.use(`${API_PREFIX}/leaves`, leaveRoutes);
-// app.use(`${API_PREFIX}/payroll`, payrollRoutes);
-// app.use(`${API_PREFIX}/performance`, performanceRoutes);
-// app.use(`${API_PREFIX}/training`, trainingRoutes);
-// app.use(`${API_PREFIX}/documents`, documentRoutes);
-// app.use(`${API_PREFIX}/holidays`, holidayRoutes);
-// app.use(`${API_PREFIX}/announcements`, announcementRoutes);
-// app.use(`${API_PREFIX}/expenses`, expenseRoutes);
-// app.use(`${API_PREFIX}/assets`, assetRoutes);
-// app.use(`${API_PREFIX}/helpdesk`, helpdeskRoutes);
-// app.use(`${API_PREFIX}/reports`, reportRoutes);
-// app.use(`${API_PREFIX}/dashboard`, dashboardRoutes);
+app.use(`${API_PREFIX}/performance`, performanceRoutes);
+app.use(`${API_PREFIX}/training`, trainingRoutes);
+app.use(`${API_PREFIX}/documents`, documentRoutes);
+app.use(`${API_PREFIX}/holidays`, holidayRoutes);
+app.use(`${API_PREFIX}/announcements`, announcementRoutes);
+app.use(`${API_PREFIX}/expenses`, expenseRoutes);
+app.use(`${API_PREFIX}/assets`, assetRoutes);
+app.use(`${API_PREFIX}/helpdesk`, helpdeskRoutes);
+app.use(`${API_PREFIX}/reports`, reportRoutes);
+app.use(`${API_PREFIX}/dashboard`, dashboardRoutes);
 
 // ─── 404 handler ─────────────────────────────────────────────────────────────
 app.use((req: Request, _res: Response, next) => {

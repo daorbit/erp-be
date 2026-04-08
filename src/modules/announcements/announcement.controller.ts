@@ -16,8 +16,8 @@ export class AnnouncementController {
       sortBy: (req.query.sortBy as string) || 'publishDate',
       sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'desc',
       filters: {
-        category: req.query.category,
-        priority: req.query.priority,
+        category: req.query.category as string,
+        priority: req.query.priority as string,
         isActive: req.query.isActive === 'true' ? true : req.query.isActive === 'false' ? false : undefined,
       },
     };
@@ -42,7 +42,7 @@ export class AnnouncementController {
    * GET /:id - Get announcement by ID.
    */
   static getById = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const announcement = await AnnouncementService.getById(req.params.id);
+    const announcement = await AnnouncementService.getById(req.params.id as string);
     res.status(200).json(
       buildResponse(true, announcement, 'Announcement retrieved successfully'),
     );
@@ -66,7 +66,7 @@ export class AnnouncementController {
    * PUT /:id - Update an announcement.
    */
   static update = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const announcement = await AnnouncementService.update(req.params.id, req.body);
+    const announcement = await AnnouncementService.update(req.params.id as string, req.body);
     res.status(200).json(
       buildResponse(true, announcement, 'Announcement updated successfully'),
     );
@@ -76,7 +76,7 @@ export class AnnouncementController {
    * DELETE /:id - Soft delete an announcement.
    */
   static delete = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const announcement = await AnnouncementService.delete(req.params.id);
+    const announcement = await AnnouncementService.delete(req.params.id as string);
     res.status(200).json(
       buildResponse(true, announcement, 'Announcement deactivated successfully'),
     );
@@ -86,7 +86,7 @@ export class AnnouncementController {
    * PUT /:id/read - Mark announcement as read.
    */
   static markRead = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const announcement = await AnnouncementService.markRead(req.params.id, req.user.id);
+    const announcement = await AnnouncementService.markRead(req.params.id as string, req.user.id);
     res.status(200).json(
       buildResponse(true, announcement, 'Announcement marked as read'),
     );

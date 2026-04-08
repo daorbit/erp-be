@@ -16,8 +16,8 @@ export class HolidayController {
       sortBy: (req.query.sortBy as string) || 'date',
       sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'asc',
       filters: {
-        year: req.query.year,
-        type: req.query.type,
+        year: req.query.year as string,
+        type: req.query.type as string,
       },
     };
 
@@ -42,7 +42,7 @@ export class HolidayController {
    * GET /year/:year - Get holidays by year.
    */
   static getByYear = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const year = parseInt(req.params.year);
+    const year = parseInt(req.params.year as string);
     if (isNaN(year)) {
       res.status(400).json(buildResponse(false, null, 'Invalid year format'));
       return;
@@ -58,7 +58,7 @@ export class HolidayController {
    * GET /:id - Get holiday by ID.
    */
   static getById = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const holiday = await HolidayService.getById(req.params.id);
+    const holiday = await HolidayService.getById(req.params.id as string);
     res.status(200).json(
       buildResponse(true, holiday, 'Holiday retrieved successfully'),
     );
@@ -78,7 +78,7 @@ export class HolidayController {
    * PUT /:id - Update a holiday.
    */
   static update = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const holiday = await HolidayService.update(req.params.id, req.body);
+    const holiday = await HolidayService.update(req.params.id as string, req.body);
     res.status(200).json(
       buildResponse(true, holiday, 'Holiday updated successfully'),
     );
@@ -88,7 +88,7 @@ export class HolidayController {
    * DELETE /:id - Soft delete a holiday.
    */
   static delete = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const holiday = await HolidayService.delete(req.params.id);
+    const holiday = await HolidayService.delete(req.params.id as string);
     res.status(200).json(
       buildResponse(true, holiday, 'Holiday deactivated successfully'),
     );

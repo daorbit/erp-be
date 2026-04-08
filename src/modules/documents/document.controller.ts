@@ -12,8 +12,8 @@ export const getAll = asyncHandler(async (req: Request, res: Response) => {
     sortBy: (req.query.sortBy as string) || 'createdAt',
     sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'desc',
     filters: {
-      category: req.query.category,
-      employee: req.query.employee,
+      category: req.query.category as string,
+      employee: req.query.employee as string,
       isPublic: req.query.isPublic !== undefined
         ? req.query.isPublic === 'true'
         : undefined,
@@ -28,7 +28,7 @@ export const getAll = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const getById = asyncHandler(async (req: Request, res: Response) => {
-  const document = await DocumentService.getById(req.params.id);
+  const document = await DocumentService.getById(req.params.id as string);
 
   res.status(200).json(
     buildResponse(true, document, 'Document retrieved successfully'),
@@ -48,7 +48,7 @@ export const upload = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const update = asyncHandler(async (req: Request, res: Response) => {
-  const document = await DocumentService.update(req.params.id, req.body);
+  const document = await DocumentService.update(req.params.id as string, req.body);
 
   res.status(200).json(
     buildResponse(true, document, 'Document updated successfully'),
@@ -56,7 +56,7 @@ export const update = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const remove = asyncHandler(async (req: Request, res: Response) => {
-  await DocumentService.delete(req.params.id);
+  await DocumentService.delete(req.params.id as string);
 
   res.status(200).json(
     buildResponse(true, null, 'Document deleted successfully'),
@@ -72,7 +72,7 @@ export const getByEmployee = asyncHandler(async (req: Request, res: Response) =>
   };
 
   const { documents, pagination } = await DocumentService.getByEmployee(
-    req.params.employeeId,
+    req.params.employeeId as string,
     query,
   );
 
@@ -105,7 +105,7 @@ export const getByCategory = asyncHandler(async (req: Request, res: Response) =>
   };
 
   const { documents, pagination } = await DocumentService.getByCategory(
-    req.params.category,
+    req.params.category as string,
     query,
   );
 

@@ -14,9 +14,9 @@ export const getAllJobs = asyncHandler(async (req: Request, res: Response) => {
     sortBy: (req.query.sortBy as string) || 'createdAt',
     sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'desc',
     filters: {
-      department: req.query.department,
-      status: req.query.status,
-      employmentType: req.query.employmentType,
+      department: req.query.department as string,
+      status: req.query.status as string,
+      employmentType: req.query.employmentType as string,
     },
   };
 
@@ -28,7 +28,7 @@ export const getAllJobs = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const getJobById = asyncHandler(async (req: Request, res: Response) => {
-  const job = await RecruitmentService.getJobById(req.params.id);
+  const job = await RecruitmentService.getJobById(req.params.id as string);
 
   res.status(200).json(
     buildResponse(true, job, 'Job posting retrieved successfully'),
@@ -48,7 +48,7 @@ export const createJob = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const updateJob = asyncHandler(async (req: Request, res: Response) => {
-  const job = await RecruitmentService.updateJob(req.params.id, req.body);
+  const job = await RecruitmentService.updateJob(req.params.id as string, req.body);
 
   res.status(200).json(
     buildResponse(true, job, 'Job posting updated successfully'),
@@ -56,7 +56,7 @@ export const updateJob = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const deleteJob = asyncHandler(async (req: Request, res: Response) => {
-  await RecruitmentService.deleteJob(req.params.id);
+  await RecruitmentService.deleteJob(req.params.id as string);
 
   res.status(200).json(
     buildResponse(true, null, 'Job posting deleted successfully'),
@@ -64,7 +64,7 @@ export const deleteJob = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const updateJobStatus = asyncHandler(async (req: Request, res: Response) => {
-  const job = await RecruitmentService.updateJobStatus(req.params.id, req.body.status);
+  const job = await RecruitmentService.updateJobStatus(req.params.id as string, req.body.status);
 
   res.status(200).json(
     buildResponse(true, job, 'Job posting status updated successfully'),
@@ -72,7 +72,7 @@ export const updateJobStatus = asyncHandler(async (req: Request, res: Response) 
 });
 
 export const getJobStats = asyncHandler(async (req: Request, res: Response) => {
-  const stats = await RecruitmentService.getJobStats(req.params.jobId);
+  const stats = await RecruitmentService.getJobStats(req.params.jobId as string);
 
   res.status(200).json(
     buildResponse(true, stats, 'Job statistics retrieved successfully'),
@@ -89,8 +89,8 @@ export const getAllApplications = asyncHandler(async (req: Request, res: Respons
     sortBy: (req.query.sortBy as string) || 'createdAt',
     sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'desc',
     filters: {
-      jobPosting: req.query.jobPosting,
-      status: req.query.status,
+      jobPosting: req.query.jobPosting as string,
+      status: req.query.status as string,
     },
   };
 
@@ -102,7 +102,7 @@ export const getAllApplications = asyncHandler(async (req: Request, res: Respons
 });
 
 export const getApplicationById = asyncHandler(async (req: Request, res: Response) => {
-  const application = await RecruitmentService.getApplicationById(req.params.id);
+  const application = await RecruitmentService.getApplicationById(req.params.id as string);
 
   res.status(200).json(
     buildResponse(true, application, 'Application retrieved successfully'),
@@ -119,7 +119,7 @@ export const createApplication = asyncHandler(async (req: Request, res: Response
 
 export const updateApplicationStatus = asyncHandler(async (req: Request, res: Response) => {
   const application = await RecruitmentService.updateApplicationStatus(
-    req.params.id,
+    req.params.id as string,
     req.body,
   );
 
@@ -130,7 +130,7 @@ export const updateApplicationStatus = asyncHandler(async (req: Request, res: Re
 
 export const scheduleInterview = asyncHandler(async (req: Request, res: Response) => {
   const application = await RecruitmentService.scheduleInterview(
-    req.params.id,
+    req.params.id as string,
     req.body,
   );
 
@@ -146,12 +146,12 @@ export const getApplicationsByJob = asyncHandler(async (req: Request, res: Respo
     sortBy: (req.query.sortBy as string) || 'createdAt',
     sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'desc',
     filters: {
-      status: req.query.status,
+      status: req.query.status as string,
     },
   };
 
   const { applications, pagination } = await RecruitmentService.getApplicationsByJob(
-    req.params.jobId,
+    req.params.jobId as string,
     query,
   );
 

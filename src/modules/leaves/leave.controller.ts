@@ -29,7 +29,7 @@ export class LeaveController {
    * GET /types/:id - Get leave type by ID.
    */
   static getTypeById = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const leaveType = await LeaveService.getLeaveTypeById(req.params.id);
+    const leaveType = await LeaveService.getLeaveTypeById(req.params.id as string);
     res.status(200).json(
       buildResponse(true, leaveType, 'Leave type retrieved successfully'),
     );
@@ -49,7 +49,7 @@ export class LeaveController {
    * PUT /types/:id - Update leave type.
    */
   static updateType = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const leaveType = await LeaveService.updateLeaveType(req.params.id, req.body);
+    const leaveType = await LeaveService.updateLeaveType(req.params.id as string, req.body);
     res.status(200).json(
       buildResponse(true, leaveType, 'Leave type updated successfully'),
     );
@@ -59,7 +59,7 @@ export class LeaveController {
    * DELETE /types/:id - Delete leave type.
    */
   static deleteType = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const leaveType = await LeaveService.deleteLeaveType(req.params.id);
+    const leaveType = await LeaveService.deleteLeaveType(req.params.id as string);
     res.status(200).json(
       buildResponse(true, leaveType, 'Leave type deactivated successfully'),
     );
@@ -87,7 +87,7 @@ export class LeaveController {
       sortBy: (req.query.sortBy as string) || 'createdAt',
       sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'desc',
       filters: {
-        status: req.query.status,
+        status: req.query.status as string,
       },
     };
 
@@ -112,7 +112,7 @@ export class LeaveController {
    */
   static approve = asyncHandler(async (req: IAuthRequest, res: Response) => {
     const request = await LeaveService.approve(
-      req.params.id,
+      req.params.id as string,
       req.user.id,
       req.body.remarks,
     );
@@ -126,7 +126,7 @@ export class LeaveController {
    */
   static reject = asyncHandler(async (req: IAuthRequest, res: Response) => {
     const request = await LeaveService.reject(
-      req.params.id,
+      req.params.id as string,
       req.user.id,
       req.body.remarks,
     );
@@ -139,7 +139,7 @@ export class LeaveController {
    * PUT /:id/cancel - Cancel own leave request.
    */
   static cancel = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const request = await LeaveService.cancel(req.params.id, req.user.id);
+    const request = await LeaveService.cancel(req.params.id as string, req.user.id);
     res.status(200).json(
       buildResponse(true, request, 'Leave request cancelled successfully'),
     );
@@ -150,7 +150,7 @@ export class LeaveController {
    */
   static getBalance = asyncHandler(async (req: IAuthRequest, res: Response) => {
     const year = parseInt(req.query.year as string) || new Date().getFullYear();
-    const balances = await LeaveService.getLeaveBalance(req.params.employeeId, year);
+    const balances = await LeaveService.getLeaveBalance(req.params.employeeId as string, year);
     res.status(200).json(
       buildResponse(true, balances, 'Leave balances retrieved successfully'),
     );
@@ -166,9 +166,9 @@ export class LeaveController {
       sortBy: (req.query.sortBy as string) || 'createdAt',
       sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'desc',
       filters: {
-        employee: req.query.employee,
-        status: req.query.status,
-        leaveType: req.query.leaveType,
+        employee: req.query.employee as string,
+        status: req.query.status as string,
+        leaveType: req.query.leaveType as string,
       },
     };
 
@@ -182,7 +182,7 @@ export class LeaveController {
    * GET /:id - Get leave request by ID.
    */
   static getById = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const request = await LeaveService.getRequestById(req.params.id);
+    const request = await LeaveService.getRequestById(req.params.id as string);
     res.status(200).json(
       buildResponse(true, request, 'Leave request retrieved successfully'),
     );

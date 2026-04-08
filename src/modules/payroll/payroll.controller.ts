@@ -31,7 +31,7 @@ export class PayrollController {
    * GET /salary-structure/:id - Get salary structure by ID.
    */
   static getStructureById = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const structure = await PayrollService.getSalaryStructureById(req.params.id);
+    const structure = await PayrollService.getSalaryStructureById(req.params.id as string);
     res.status(200).json(
       buildResponse(true, structure, 'Salary structure retrieved successfully'),
     );
@@ -51,7 +51,7 @@ export class PayrollController {
    * PUT /salary-structure/:id - Update salary structure.
    */
   static updateStructure = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const structure = await PayrollService.updateSalaryStructure(req.params.id, req.body);
+    const structure = await PayrollService.updateSalaryStructure(req.params.id as string, req.body);
     res.status(200).json(
       buildResponse(true, structure, 'Salary structure updated successfully'),
     );
@@ -61,7 +61,7 @@ export class PayrollController {
    * GET /salary-structure/employee/:employeeId - Get by employee.
    */
   static getByEmployee = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const structure = await PayrollService.getByEmployee(req.params.employeeId);
+    const structure = await PayrollService.getByEmployee(req.params.employeeId as string);
     res.status(200).json(
       buildResponse(true, structure, 'Salary structure retrieved successfully'),
     );
@@ -116,7 +116,7 @@ export class PayrollController {
    * PUT /:id/approve - Approve a payslip.
    */
   static approve = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const payslip = await PayrollService.approve(req.params.id, req.user.id);
+    const payslip = await PayrollService.approve(req.params.id as string, req.user.id);
     res.status(200).json(
       buildResponse(true, payslip, 'Payslip approved successfully'),
     );
@@ -126,7 +126,7 @@ export class PayrollController {
    * PUT /:id/mark-paid - Mark payslip as paid.
    */
   static markPaid = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const payslip = await PayrollService.markPaid(req.params.id, req.body);
+    const payslip = await PayrollService.markPaid(req.params.id as string, req.body);
     res.status(200).json(
       buildResponse(true, payslip, 'Payslip marked as paid'),
     );
@@ -155,10 +155,10 @@ export class PayrollController {
       sortBy: (req.query.sortBy as string) || 'createdAt',
       sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'desc',
       filters: {
-        employee: req.query.employee,
-        month: req.query.month,
-        year: req.query.year,
-        status: req.query.status,
+        employee: req.query.employee as string,
+        month: req.query.month as string,
+        year: req.query.year as string,
+        status: req.query.status as string,
       },
     };
 
@@ -172,7 +172,7 @@ export class PayrollController {
    * GET /:id - Get payslip by ID.
    */
   static getById = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const payslip = await PayrollService.getPayslipById(req.params.id);
+    const payslip = await PayrollService.getPayslipById(req.params.id as string);
     res.status(200).json(
       buildResponse(true, payslip, 'Payslip retrieved successfully'),
     );

@@ -12,10 +12,10 @@ export const getAll = asyncHandler(async (req: Request, res: Response) => {
     sortBy: (req.query.sortBy as string) || 'createdAt',
     sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'desc',
     filters: {
-      status: req.query.status,
-      category: req.query.category,
-      priority: req.query.priority,
-      assignedTo: req.query.assignedTo,
+      status: req.query.status as string,
+      category: req.query.category as string,
+      priority: req.query.priority as string,
+      assignedTo: req.query.assignedTo as string,
     },
   };
 
@@ -27,7 +27,7 @@ export const getAll = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const getById = asyncHandler(async (req: Request, res: Response) => {
-  const ticket = await HelpdeskService.getById(req.params.id);
+  const ticket = await HelpdeskService.getById(req.params.id as string);
 
   res.status(200).json(
     buildResponse(true, ticket, 'Ticket retrieved successfully'),
@@ -47,7 +47,7 @@ export const create = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const update = asyncHandler(async (req: Request, res: Response) => {
-  const ticket = await HelpdeskService.update(req.params.id, req.body);
+  const ticket = await HelpdeskService.update(req.params.id as string, req.body);
 
   res.status(200).json(
     buildResponse(true, ticket, 'Ticket updated successfully'),
@@ -55,7 +55,7 @@ export const update = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const assign = asyncHandler(async (req: Request, res: Response) => {
-  const ticket = await HelpdeskService.assign(req.params.id, req.body.assignedTo);
+  const ticket = await HelpdeskService.assign(req.params.id as string, req.body.assignedTo);
 
   res.status(200).json(
     buildResponse(true, ticket, 'Ticket assigned successfully'),
@@ -64,7 +64,7 @@ export const assign = asyncHandler(async (req: Request, res: Response) => {
 
 export const addComment = asyncHandler(async (req: Request, res: Response) => {
   const authReq = req as IAuthRequest;
-  const ticket = await HelpdeskService.addComment(req.params.id, {
+  const ticket = await HelpdeskService.addComment(req.params.id as string, {
     ...req.body,
     userId: authReq.user.id,
   });
@@ -75,7 +75,7 @@ export const addComment = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const updateStatus = asyncHandler(async (req: Request, res: Response) => {
-  const ticket = await HelpdeskService.updateStatus(req.params.id, req.body);
+  const ticket = await HelpdeskService.updateStatus(req.params.id as string, req.body);
 
   res.status(200).json(
     buildResponse(true, ticket, 'Ticket status updated successfully'),
@@ -85,7 +85,7 @@ export const updateStatus = asyncHandler(async (req: Request, res: Response) => 
 export const close = asyncHandler(async (req: Request, res: Response) => {
   const authReq = req as IAuthRequest;
   const ticket = await HelpdeskService.close(
-    req.params.id,
+    req.params.id as string,
     authReq.user.id,
     req.body,
   );
@@ -103,7 +103,7 @@ export const getMyTickets = asyncHandler(async (req: Request, res: Response) => 
     sortBy: (req.query.sortBy as string) || 'createdAt',
     sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'desc',
     filters: {
-      status: req.query.status,
+      status: req.query.status as string,
     },
   };
 
@@ -125,7 +125,7 @@ export const getAssignedTickets = asyncHandler(async (req: Request, res: Respons
     sortBy: (req.query.sortBy as string) || 'createdAt',
     sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'desc',
     filters: {
-      status: req.query.status,
+      status: req.query.status as string,
     },
   };
 

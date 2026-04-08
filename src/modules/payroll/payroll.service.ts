@@ -2,10 +2,10 @@ import mongoose from 'mongoose';
 import { AppError } from '../../middleware/errorHandler.js';
 import { buildPagination } from '../../shared/helpers.js';
 import type { IQueryParams } from '../../shared/types.js';
-import { PayrollStatus } from '../../shared/types.js';
 import {
   SalaryStructure,
   Payslip,
+  PayslipStatus,
   type ISalaryStructure,
   type IPayslip,
 } from './payroll.model.js';
@@ -18,7 +18,7 @@ interface PaginatedResult<T> {
 
 interface PaymentDetails {
   paymentDate: string;
-  paymentMethod: string;
+  paymentMode: string;
   transactionId?: string;
 }
 
@@ -26,10 +26,9 @@ interface SalarySummary {
   month: number;
   year: number;
   totalEmployees: number;
-  totalGrossSalary: number;
-  totalNetSalary: number;
+  totalGrossEarnings: number;
+  totalNetPay: number;
   totalDeductions: number;
-  totalAllowances: number;
   statusBreakdown: Record<string, number>;
 }
 
@@ -76,7 +75,7 @@ export class PayrollService {
     ]);
 
     return {
-      data: structures as ISalaryStructure[],
+      data: structures as any as ISalaryStructure[],
       pagination: buildPagination(page, limit, total),
     };
   }
@@ -112,24 +111,32 @@ export class PayrollService {
     if (data.employee) {
       await SalaryStructure.updateMany(
         { employee: data.employee, isActive: true },
-        { isActive: false, effectiveTo: new Date() },
+        { isActive: false },
       );
     }
 
-    // Calculate gross and net salary
-    const allowances = data.allowances ?? { hra: 0, da: 0, ta: 0, medical: 0, special: 0, other: 0 };
-    const deductions = data.deductions ?? { pf: 0, esi: 0, tax: 0, professionalTax: 0, other: 0 };
-    const basicSalary = data.basicSalary ?? 0;
+    // Calculate gross and net salary from flat fields
+    const basic = data.basic ?? 0;
+    const hra = data.hra ?? 0;
+    const da = data.da ?? 0;
+    const specialAllowance = data.specialAllowance ?? 0;
+    const medicalAllowance = data.medicalAllowance ?? 0;
+    const travelAllowance = data.travelAllowance ?? 0;
 
-    const totalAllowances = Object.values(allowances).reduce((sum, val) => sum + (val || 0), 0);
-    const totalDeductions = Object.values(deductions).reduce((sum, val) => sum + (val || 0), 0);
+    const pf = data.pf ?? 0;
+    const esi = data.esi ?? 0;
+    const professionalTax = data.professionalTax ?? 0;
+    const tds = data.tds ?? 0;
+    const otherDeductions = data.otherDeductions ?? 0;
 
-    const grossSalary = basicSalary + totalAllowances;
+    const grossSalary = basic + hra + da + specialAllowance + medicalAllowance + travelAllowance;
+    const totalDeductions = pf + esi + professionalTax + tds + otherDeductions;
     const netSalary = grossSalary - totalDeductions;
 
     const structure = await SalaryStructure.create({
       ...data,
       grossSalary,
+      totalDeductions,
       netSalary,
     });
 
@@ -152,27 +159,31 @@ export class PayrollService {
     }
 
     // Recalculate if salary components changed
-    if (data.basicSalary || data.allowances || data.deductions) {
+    if (data.basic !== undefined || data.hra !== undefined || data.da !== undefined ||
+        data.specialAllowance !== undefined || data.medicalAllowance !== undefined ||
+        data.travelAllowance !== undefined || data.pf !== undefined || data.esi !== undefined ||
+        data.professionalTax !== undefined || data.tds !== undefined || data.otherDeductions !== undefined) {
       const existing = await SalaryStructure.findById(id);
       if (!existing) {
         throw new AppError('Salary structure not found.', 404);
       }
 
-      const basicSalary = data.basicSalary ?? existing.basicSalary;
-      const allowances = { ...existing.allowances.toJSON?.() ?? existing.allowances, ...data.allowances };
-      const deductions = { ...existing.deductions.toJSON?.() ?? existing.deductions, ...data.deductions };
+      const basic = data.basic ?? existing.basic;
+      const hra = data.hra ?? existing.hra;
+      const da = data.da ?? existing.da;
+      const specialAllowance = data.specialAllowance ?? existing.specialAllowance;
+      const medicalAllowance = data.medicalAllowance ?? existing.medicalAllowance;
+      const travelAllowance = data.travelAllowance ?? existing.travelAllowance;
 
-      const totalAllowances = Object.values(allowances).reduce(
-        (sum: number, val: unknown) => sum + (Number(val) || 0),
-        0,
-      );
-      const totalDeductions = Object.values(deductions).reduce(
-        (sum: number, val: unknown) => sum + (Number(val) || 0),
-        0,
-      );
+      const pf = data.pf ?? existing.pf;
+      const esi = data.esi ?? existing.esi;
+      const professionalTax = data.professionalTax ?? existing.professionalTax;
+      const tds = data.tds ?? existing.tds;
+      const otherDeductions = data.otherDeductions ?? existing.otherDeductions;
 
-      data.grossSalary = basicSalary + totalAllowances;
-      data.netSalary = data.grossSalary - totalDeductions;
+      data.grossSalary = basic + hra + da + specialAllowance + medicalAllowance + travelAllowance;
+      data.totalDeductions = pf + esi + professionalTax + tds + otherDeductions;
+      data.netSalary = data.grossSalary - data.totalDeductions;
     }
 
     const structure = await SalaryStructure.findByIdAndUpdate(
@@ -247,41 +258,40 @@ export class PayrollService {
       throw new AppError('No active salary structure found for this employee.', 404);
     }
 
-    const allowances = salary.allowances;
-    const deductions = salary.deductions;
+    const earnings = {
+      basic: salary.basic,
+      hra: salary.hra,
+      da: salary.da,
+      specialAllowance: salary.specialAllowance,
+      medicalAllowance: salary.medicalAllowance,
+      travelAllowance: salary.travelAllowance,
+      overtime: 0,
+      bonus: 0,
+    };
 
-    const totalAllowances =
-      (allowances.hra || 0) +
-      (allowances.da || 0) +
-      (allowances.ta || 0) +
-      (allowances.medical || 0) +
-      (allowances.special || 0) +
-      (allowances.other || 0);
-
-    const totalDeductions =
-      (deductions.pf || 0) +
-      (deductions.esi || 0) +
-      (deductions.tax || 0) +
-      (deductions.professionalTax || 0) +
-      (deductions.other || 0);
+    const deductions = {
+      pf: salary.pf,
+      esi: salary.esi,
+      professionalTax: salary.professionalTax,
+      tds: salary.tds,
+      lop: 0,
+      otherDeductions: salary.otherDeductions,
+    };
 
     const payslip = await Payslip.create({
       employee: employeeId,
       salaryStructure: salary._id,
       month,
       year,
-      basicSalary: salary.basicSalary,
-      totalAllowances,
-      totalDeductions,
-      grossSalary: salary.grossSalary,
-      netSalary: salary.netSalary,
+      earnings,
+      deductions,
+      grossEarnings: salary.grossSalary,
+      totalDeductions: salary.totalDeductions,
+      netPay: salary.netSalary,
       workingDays: 0,
       presentDays: 0,
-      leaveDays: 0,
-      overtimeHours: 0,
-      overtimePay: 0,
-      bonus: 0,
-      status: PayrollStatus.DRAFT,
+      lopDays: 0,
+      status: PayslipStatus.DRAFT,
       generatedBy: generatedBy ? new mongoose.Types.ObjectId(generatedBy) : undefined,
     });
 
@@ -369,7 +379,7 @@ export class PayrollService {
     ]);
 
     return {
-      data: payslips as IPayslip[],
+      data: payslips as any as IPayslip[],
       pagination: buildPagination(page, limit, total),
     };
   }
@@ -412,11 +422,11 @@ export class PayrollService {
       throw new AppError('Payslip not found.', 404);
     }
 
-    if (payslip.status !== PayrollStatus.DRAFT) {
+    if (payslip.status !== PayslipStatus.DRAFT) {
       throw new AppError(`Cannot approve a payslip with status: ${payslip.status}`, 400);
     }
 
-    payslip.status = PayrollStatus.PROCESSING;
+    payslip.status = PayslipStatus.APPROVED;
     payslip.approvedBy = new mongoose.Types.ObjectId(approverId);
     await payslip.save();
 
@@ -442,13 +452,13 @@ export class PayrollService {
       throw new AppError('Payslip not found.', 404);
     }
 
-    if (payslip.status === PayrollStatus.PAID) {
+    if (payslip.status === PayslipStatus.PAID) {
       throw new AppError('Payslip is already marked as paid.', 409);
     }
 
-    payslip.status = PayrollStatus.PAID;
+    payslip.status = PayslipStatus.PAID;
     payslip.paymentDate = new Date(details.paymentDate);
-    payslip.paymentMethod = details.paymentMethod;
+    payslip.paymentMode = details.paymentMode as any;
     if (details.transactionId) {
       payslip.transactionId = details.transactionId;
     }
@@ -499,7 +509,7 @@ export class PayrollService {
     ]);
 
     return {
-      data: payslips as IPayslip[],
+      data: payslips as any as IPayslip[],
       pagination: buildPagination(page, limit, total),
     };
   }
@@ -511,16 +521,14 @@ export class PayrollService {
     const payslips = await Payslip.find({ month, year }).lean();
 
     const statusBreakdown: Record<string, number> = {};
-    let totalGrossSalary = 0;
-    let totalNetSalary = 0;
+    let totalGrossEarnings = 0;
+    let totalNetPay = 0;
     let totalDeductions = 0;
-    let totalAllowances = 0;
 
     for (const slip of payslips) {
-      totalGrossSalary += slip.grossSalary;
-      totalNetSalary += slip.netSalary;
-      totalDeductions += slip.totalDeductions;
-      totalAllowances += slip.totalAllowances;
+      totalGrossEarnings += (slip as any).grossEarnings ?? 0;
+      totalNetPay += (slip as any).netPay ?? 0;
+      totalDeductions += (slip as any).totalDeductions ?? 0;
 
       const status = slip.status;
       statusBreakdown[status] = (statusBreakdown[status] || 0) + 1;
@@ -530,10 +538,9 @@ export class PayrollService {
       month,
       year,
       totalEmployees: payslips.length,
-      totalGrossSalary,
-      totalNetSalary,
+      totalGrossEarnings,
+      totalNetPay,
       totalDeductions,
-      totalAllowances,
       statusBreakdown,
     };
   }

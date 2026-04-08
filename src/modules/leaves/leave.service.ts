@@ -53,7 +53,7 @@ export class LeaveService {
     ]);
 
     return {
-      data: types as ILeaveType[],
+      data: types as any as ILeaveType[],
       pagination: buildPagination(page, limit, total),
     };
   }
@@ -250,7 +250,7 @@ export class LeaveService {
     ]);
 
     return {
-      data: requests as ILeaveRequest[],
+      data: requests as any as ILeaveRequest[],
       pagination: buildPagination(page, limit, total),
     };
   }
@@ -437,7 +437,7 @@ export class LeaveService {
     ]);
 
     return {
-      data: requests as ILeaveRequest[],
+      data: requests as any as ILeaveRequest[],
       pagination: buildPagination(page, limit, total),
     };
   }
@@ -458,7 +458,9 @@ export class LeaveService {
 
     // In a more sophisticated implementation, we'd filter by the manager's reportees.
     // For now, return all pending requests (to be filtered by controller if needed).
-    return requests as ILeaveRequest[];
+    // Suppress unused parameter warning - managerId filtering to be added later
+    void managerId;
+    return requests as any as ILeaveRequest[];
   }
 
   /**
@@ -479,7 +481,7 @@ export class LeaveService {
       .populate('leaveType', 'name code')
       .lean();
 
-    return balances as ILeaveBalance[];
+    return balances as any as ILeaveBalance[];
   }
 
   /**

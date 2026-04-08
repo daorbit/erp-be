@@ -62,7 +62,7 @@ const designationSchema = new Schema<IDesignation>(
     timestamps: true,
     toJSON: {
       virtuals: true,
-      transform(_doc, ret) {
+      transform(_doc: any, ret: Record<string, any>) {
         delete ret.__v;
         return ret;
       },

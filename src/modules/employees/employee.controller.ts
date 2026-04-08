@@ -16,10 +16,10 @@ export class EmployeeController {
       sortBy: (req.query.sortBy as string) || 'createdAt',
       sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'desc',
       filters: {
-        department: req.query.department,
-        designation: req.query.designation,
-        status: req.query.status,
-        employmentType: req.query.employmentType,
+        department: req.query.department as string,
+        designation: req.query.designation as string,
+        status: req.query.status as string,
+        employmentType: req.query.employmentType as string,
       },
     };
 
@@ -33,7 +33,7 @@ export class EmployeeController {
    * GET /:id - Get employee by ID.
    */
   static getById = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const employee = await EmployeeService.getById(req.params.id);
+    const employee = await EmployeeService.getById(req.params.id as string);
     res.status(200).json(
       buildResponse(true, employee, 'Employee retrieved successfully'),
     );
@@ -53,7 +53,7 @@ export class EmployeeController {
    * PUT /:id - Update an employee profile.
    */
   static update = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const employee = await EmployeeService.update(req.params.id, req.body);
+    const employee = await EmployeeService.update(req.params.id as string, req.body);
     res.status(200).json(
       buildResponse(true, employee, 'Employee updated successfully'),
     );
@@ -63,7 +63,7 @@ export class EmployeeController {
    * DELETE /:id - Soft delete an employee.
    */
   static delete = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const employee = await EmployeeService.delete(req.params.id);
+    const employee = await EmployeeService.delete(req.params.id as string);
     res.status(200).json(
       buildResponse(true, employee, 'Employee deactivated successfully'),
     );
@@ -73,7 +73,7 @@ export class EmployeeController {
    * GET /department/:departmentId - Get employees by department.
    */
   static getByDepartment = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const employees = await EmployeeService.getByDepartment(req.params.departmentId);
+    const employees = await EmployeeService.getByDepartment(req.params.departmentId as string);
     res.status(200).json(
       buildResponse(true, employees, 'Employees retrieved successfully'),
     );
@@ -83,7 +83,7 @@ export class EmployeeController {
    * GET /reportees/:managerId - Get reportees of a manager.
    */
   static getReportees = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const employees = await EmployeeService.getReportees(req.params.managerId);
+    const employees = await EmployeeService.getReportees(req.params.managerId as string);
     res.status(200).json(
       buildResponse(true, employees, 'Reportees retrieved successfully'),
     );

@@ -7,7 +7,7 @@ import { LeaveRequest, LeaveRequestStatus } from '../leaves/leave.model.js';
 import { Payslip } from '../payroll/payroll.model.js';
 import Holiday from '../holidays/holiday.model.js';
 import Announcement from '../announcements/announcement.model.js';
-import { PayrollStatus } from '../../shared/types.js';
+import { PayslipStatus } from '../payroll/payroll.model.js';
 
 interface DashboardStats {
   totalEmployees: number;
@@ -103,7 +103,7 @@ export class DashboardService {
           { expiryDate: { $gte: now } },
         ],
       }),
-      Payslip.countDocuments({ status: PayrollStatus.DRAFT }),
+      Payslip.countDocuments({ status: PayslipStatus.DRAFT }),
     ]);
 
     // Count attendance statuses
