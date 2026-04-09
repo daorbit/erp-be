@@ -4,6 +4,7 @@ import cors from 'cors';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import config from './config/index.js';
+import { connectDB } from './config/database.js';
 import { globalErrorHandler, AppError } from './middleware/errorHandler.js';
 import { buildResponse, buildErrorResponse } from './shared/helpers.js';
 
@@ -29,6 +30,29 @@ import dashboardRoutes from './modules/dashboard/dashboard.routes.js';
 
 // ─── Express app ─────────────────────────────────────────────────────────────
 const app = express();
+
+let mongoConnectionPromise: Promise<void> | null = null;
+const ensureMongoConnection = async (): Promise<void> => {
+  if (!mongoConnectionPromise) {
+    mongoConnectionPromise = connectDB().catch((error) => {
+      mongoConnectionPromise = null;
+      throw error;
+    });
+  }
+  await mongoConnectionPromise;
+};
+
+void ensureMongoConnection();
+
+// Ensure serverless functions wait for DB before processing requests.
+app.use(async (_req, _res, next) => {
+  try {
+    await ensureMongoConnection();
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 
 // ─── Security headers ────────────────────────────────────────────────────────
 app.use(helmet());
