@@ -3,16 +3,16 @@ import mongoose, { Schema, type Document, type Model } from 'mongoose';
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
 export enum PayslipStatus {
-  DRAFT = 'Draft',
-  GENERATED = 'Generated',
-  APPROVED = 'Approved',
-  PAID = 'Paid',
+  DRAFT = 'draft',
+  GENERATED = 'generated',
+  APPROVED = 'approved',
+  PAID = 'paid',
 }
 
 export enum PaymentMode {
-  BANK_TRANSFER = 'BankTransfer',
-  CHEQUE = 'Cheque',
-  CASH = 'Cash',
+  BANK_TRANSFER = 'bank_transfer',
+  CHEQUE = 'cheque',
+  CASH = 'cash',
 }
 
 // ─── SalaryStructure Interface ──────────────────────────────────────────────

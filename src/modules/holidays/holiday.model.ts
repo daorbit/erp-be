@@ -3,15 +3,15 @@ import mongoose, { Schema, type Document, type Model } from 'mongoose';
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
 export enum HolidayType {
-  PUBLIC = 'Public',
-  RELIGIOUS = 'Religious',
-  COMPANY_SPECIFIC = 'CompanySpecific',
-  OPTIONAL = 'Optional',
+  PUBLIC = 'public',
+  RELIGIOUS = 'religious',
+  COMPANY_SPECIFIC = 'company_specific',
+  OPTIONAL = 'optional',
 }
 
 export enum HolidayApplicableFor {
-  ALL = 'All',
-  SPECIFIC_DEPARTMENTS = 'SpecificDepartments',
+  ALL = 'all',
+  SPECIFIC_DEPARTMENTS = 'specific_departments',
 }
 
 // ─── Interface ───────────────────────────────────────────────────────────────

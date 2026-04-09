@@ -69,11 +69,8 @@ export const bulkGenerateSchema = z.object({
 });
 
 export const markPaidSchema = z.object({
-  paymentDate: z.string({ required_error: 'Payment date is required' }),
-  paymentMethod: z
-    .string({ required_error: 'Payment method is required' })
-    .trim()
-    .min(1, 'Payment method is required'),
+  paymentDate: z.string().optional(),
+  paymentMethod: z.string().trim().optional(),
   transactionId: z.string().trim().optional(),
 });
 

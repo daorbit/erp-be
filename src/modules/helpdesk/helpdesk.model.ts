@@ -3,28 +3,28 @@ import mongoose, { Schema, type Document, type Model } from 'mongoose';
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
 export enum TicketCategory {
-  IT = 'IT',
-  HR = 'HR',
-  FINANCE = 'Finance',
-  ADMIN = 'Admin',
-  FACILITIES = 'Facilities',
-  OTHER = 'Other',
+  IT = 'it',
+  HR = 'hr',
+  FINANCE = 'finance',
+  ADMIN = 'admin',
+  FACILITIES = 'facilities',
+  OTHER = 'other',
 }
 
 export enum TicketPriority {
-  LOW = 'Low',
-  MEDIUM = 'Medium',
-  HIGH = 'High',
-  CRITICAL = 'Critical',
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+  CRITICAL = 'critical',
 }
 
 export enum TicketStatus {
-  OPEN = 'Open',
-  IN_PROGRESS = 'InProgress',
-  ON_HOLD = 'OnHold',
-  RESOLVED = 'Resolved',
-  CLOSED = 'Closed',
-  REOPENED = 'Reopened',
+  OPEN = 'open',
+  IN_PROGRESS = 'in_progress',
+  ON_HOLD = 'on_hold',
+  RESOLVED = 'resolved',
+  CLOSED = 'closed',
+  REOPENED = 'reopened',
 }
 
 // ─── Sub-Interfaces ─────────────────────────────────────────────────────────

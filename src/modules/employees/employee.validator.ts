@@ -22,7 +22,7 @@ const bankDetailsSchema = z.object({
   accountNumber: z.string().trim().max(30).optional(),
   ifscCode: z.string().trim().max(20).optional(),
   branchName: z.string().trim().max(100).optional(),
-  accountType: z.enum(['Savings', 'Current', 'Salary']).optional(),
+  accountType: z.enum(['savings', 'current', 'salary']).optional(),
 }).optional();
 
 const identityDocsSchema = z.object({
@@ -62,12 +62,12 @@ export const createEmployeeSchema = z.object({
 
   // Profile fields
   dateOfBirth: z.string().optional(),
-  gender: z.enum(['Male', 'Female', 'Other']).optional(),
-  maritalStatus: z.enum(['Single', 'Married', 'Divorced', 'Widowed']).optional(),
+  gender: z.enum(['male', 'female', 'other']).optional(),
+  maritalStatus: z.enum(['single', 'married', 'divorced', 'widowed']).optional(),
   bloodGroup: z.enum(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']).optional(),
   nationality: z.string().trim().max(50).optional(),
   religion: z.string().trim().max(50).optional(),
-  employmentType: z.enum(['Full-Time', 'Part-Time', 'Contract', 'Intern', 'Freelancer']).optional(),
+  employmentType: z.enum(['full_time', 'part_time', 'contract', 'intern', 'freelancer']).optional(),
   joinDate: z.string().optional(),
   workShift: z.string().trim().max(50).optional(),
   workLocation: z.string().trim().max(100).optional(),
@@ -83,12 +83,12 @@ export const createEmployeeSchema = z.object({
 
 export const updateEmployeeSchema = z.object({
   dateOfBirth: z.string().optional(),
-  gender: z.enum(['Male', 'Female', 'Other']).optional(),
-  maritalStatus: z.enum(['Single', 'Married', 'Divorced', 'Widowed']).optional(),
+  gender: z.enum(['male', 'female', 'other']).optional(),
+  maritalStatus: z.enum(['single', 'married', 'divorced', 'widowed']).optional(),
   bloodGroup: z.enum(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']).optional(),
   nationality: z.string().trim().max(50).optional(),
   religion: z.string().trim().max(50).optional(),
-  employmentType: z.enum(['Full-Time', 'Part-Time', 'Contract', 'Intern', 'Freelancer']).optional(),
+  employmentType: z.enum(['full_time', 'part_time', 'contract', 'intern', 'freelancer']).optional(),
   joinDate: z.string().optional(),
   confirmationDate: z.string().optional(),
   probationEndDate: z.string().optional(),

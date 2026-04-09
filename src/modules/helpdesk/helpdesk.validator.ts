@@ -35,10 +35,17 @@ export const assignTicketSchema = z.object({
 
 export const addCommentSchema = z.object({
   message: z
-    .string({ required_error: 'Message is required' })
+    .string()
     .trim()
     .min(1, 'Message is required')
-    .max(3000, 'Message cannot exceed 3000 characters'),
+    .max(3000, 'Message cannot exceed 3000 characters')
+    .optional(),
+  content: z
+    .string()
+    .trim()
+    .min(1, 'Content is required')
+    .max(3000, 'Content cannot exceed 3000 characters')
+    .optional(),
   attachments: z
     .array(
       z.object({
@@ -48,7 +55,13 @@ export const addCommentSchema = z.object({
     )
     .optional()
     .default([]),
-});
+}).refine(
+  (data) => data.message || data.content,
+  { message: 'Either message or content is required' },
+).transform((data) => ({
+  ...data,
+  message: data.message || data.content || '',
+}));
 
 export const updateTicketStatusSchema = z.object({
   status: z.nativeEnum(TicketStatus, {

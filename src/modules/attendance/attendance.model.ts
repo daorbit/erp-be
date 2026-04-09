@@ -3,14 +3,14 @@ import mongoose, { Schema, type Document, type Model } from 'mongoose';
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
 export enum AttendanceStatus {
-  PRESENT = 'Present',
-  ABSENT = 'Absent',
-  HALF_DAY = 'HalfDay',
-  LATE = 'Late',
-  ON_LEAVE = 'OnLeave',
-  HOLIDAY = 'Holiday',
-  WEEK_OFF = 'WeekOff',
-  WORK_FROM_HOME = 'WorkFromHome',
+  PRESENT = 'present',
+  ABSENT = 'absent',
+  HALF_DAY = 'half_day',
+  LATE = 'late',
+  ON_LEAVE = 'on_leave',
+  HOLIDAY = 'holiday',
+  WEEK_OFF = 'week_off',
+  WORK_FROM_HOME = 'work_from_home',
 }
 
 // ─── Interface ───────────────────────────────────────────────────────────────

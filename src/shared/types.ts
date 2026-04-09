@@ -63,6 +63,8 @@ export enum AttendanceStatus {
   HALF_DAY = 'half_day',
   LATE = 'late',
   ON_LEAVE = 'on_leave',
+  HOLIDAY = 'holiday',
+  WEEK_OFF = 'week_off',
   WORK_FROM_HOME = 'work_from_home',
 }
 
@@ -85,6 +87,7 @@ export enum RecruitmentStatus {
 export enum TicketStatus {
   OPEN = 'open',
   IN_PROGRESS = 'in_progress',
+  ON_HOLD = 'on_hold',
   RESOLVED = 'resolved',
   CLOSED = 'closed',
   REOPENED = 'reopened',
@@ -93,6 +96,7 @@ export enum TicketStatus {
 export enum ExpenseStatus {
   DRAFT = 'draft',
   SUBMITTED = 'submitted',
+  UNDER_REVIEW = 'under_review',
   APPROVED = 'approved',
   REJECTED = 'rejected',
   REIMBURSED = 'reimbursed',

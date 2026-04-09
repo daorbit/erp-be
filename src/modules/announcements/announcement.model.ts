@@ -3,26 +3,26 @@ import mongoose, { Schema, type Document, type Model } from 'mongoose';
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
 export enum AnnouncementCategory {
-  GENERAL = 'General',
-  POLICY = 'Policy',
-  EVENT = 'Event',
-  ACHIEVEMENT = 'Achievement',
-  URGENT = 'Urgent',
-  MAINTENANCE = 'Maintenance',
+  GENERAL = 'general',
+  POLICY = 'policy',
+  EVENT = 'event',
+  ACHIEVEMENT = 'achievement',
+  URGENT = 'urgent',
+  MAINTENANCE = 'maintenance',
 }
 
 export enum AnnouncementPriority {
-  LOW = 'Low',
-  NORMAL = 'Normal',
-  HIGH = 'High',
-  CRITICAL = 'Critical',
+  LOW = 'low',
+  NORMAL = 'normal',
+  HIGH = 'high',
+  CRITICAL = 'critical',
 }
 
 export enum TargetAudience {
-  ALL = 'All',
-  DEPARTMENT = 'Department',
-  DESIGNATION = 'Designation',
-  SPECIFIC = 'Specific',
+  ALL = 'all',
+  DEPARTMENT = 'department',
+  DESIGNATION = 'designation',
+  SPECIFIC = 'specific',
 }
 
 // ─── Sub-Interfaces ─────────────────────────────────────────────────────────

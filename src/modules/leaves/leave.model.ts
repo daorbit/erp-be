@@ -3,21 +3,21 @@ import mongoose, { Schema, type Document, type Model } from 'mongoose';
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
 export enum LeaveRequestStatus {
-  PENDING = 'Pending',
-  APPROVED = 'Approved',
-  REJECTED = 'Rejected',
-  CANCELLED = 'Cancelled',
+  PENDING = 'pending',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
+  CANCELLED = 'cancelled',
 }
 
 export enum HalfDayType {
-  FIRST_HALF = 'FirstHalf',
-  SECOND_HALF = 'SecondHalf',
+  FIRST_HALF = 'first_half',
+  SECOND_HALF = 'second_half',
 }
 
 export enum ApplicableFor {
-  ALL = 'All',
-  MALE = 'Male',
-  FEMALE = 'Female',
+  ALL = 'all',
+  MALE = 'male',
+  FEMALE = 'female',
 }
 
 // ─── LeaveType Interface ────────────────────────────────────────────────────

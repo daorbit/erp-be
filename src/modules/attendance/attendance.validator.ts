@@ -6,14 +6,14 @@ const locationSchema = z.object({
 }).optional();
 
 const attendanceStatusEnum = z.enum([
-  'Present',
-  'Absent',
-  'HalfDay',
-  'Late',
-  'OnLeave',
-  'Holiday',
-  'WeekOff',
-  'WorkFromHome',
+  'present',
+  'absent',
+  'half_day',
+  'late',
+  'on_leave',
+  'holiday',
+  'week_off',
+  'work_from_home',
 ]);
 
 export const checkInSchema = z.object({

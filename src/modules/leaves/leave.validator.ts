@@ -21,7 +21,7 @@ export const createLeaveTypeSchema = z.object({
   carryForward: z.boolean().optional().default(false),
   maxCarryForward: z.number().min(0, 'Max carry forward cannot be negative').optional().default(0),
   isPaid: z.boolean().optional().default(true),
-  applicableFor: z.enum(['All', 'Male', 'Female']).optional().default('All'),
+  applicableFor: z.enum(['all', 'male', 'female']).optional().default('all'),
 });
 
 export const updateLeaveTypeSchema = z.object({
@@ -32,7 +32,7 @@ export const updateLeaveTypeSchema = z.object({
   carryForward: z.boolean().optional(),
   maxCarryForward: z.number().min(0).optional(),
   isPaid: z.boolean().optional(),
-  applicableFor: z.enum(['All', 'Male', 'Female']).optional(),
+  applicableFor: z.enum(['all', 'male', 'female']).optional(),
   isActive: z.boolean().optional(),
 });
 
@@ -48,7 +48,7 @@ export const applyLeaveSchema = z.object({
     .min(1, 'Reason is required')
     .max(1000, 'Reason cannot exceed 1000 characters'),
   isHalfDay: z.boolean().optional().default(false),
-  halfDayType: z.enum(['FirstHalf', 'SecondHalf']).optional(),
+  halfDayType: z.enum(['first_half', 'second_half']).optional(),
 });
 
 export const approveRejectSchema = z.object({

@@ -10,7 +10,7 @@ import { buildErrorResponse } from '../shared/helpers.js';
 export function validate(schema: ZodSchema): RequestHandler {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {
-      const parsed = schema.parse(req.body);
+      const parsed = schema.parse(req.body ?? {});
       // Replace body with the parsed (and potentially transformed) value
       req.body = parsed;
       next();

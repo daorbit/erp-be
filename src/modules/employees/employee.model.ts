@@ -3,30 +3,30 @@ import mongoose, { Schema, type Document, type Model } from 'mongoose';
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
 export enum Gender {
-  MALE = 'Male',
-  FEMALE = 'Female',
-  OTHER = 'Other',
+  MALE = 'male',
+  FEMALE = 'female',
+  OTHER = 'other',
 }
 
 export enum MaritalStatus {
-  SINGLE = 'Single',
-  MARRIED = 'Married',
-  DIVORCED = 'Divorced',
-  WIDOWED = 'Widowed',
+  SINGLE = 'single',
+  MARRIED = 'married',
+  DIVORCED = 'divorced',
+  WIDOWED = 'widowed',
 }
 
 export enum EmploymentType {
-  FULL_TIME = 'Full-Time',
-  PART_TIME = 'Part-Time',
-  CONTRACT = 'Contract',
-  INTERN = 'Intern',
-  FREELANCER = 'Freelancer',
+  FULL_TIME = 'full_time',
+  PART_TIME = 'part_time',
+  CONTRACT = 'contract',
+  INTERN = 'intern',
+  FREELANCER = 'freelancer',
 }
 
 export enum AccountType {
-  SAVINGS = 'Savings',
-  CURRENT = 'Current',
-  SALARY = 'Salary',
+  SAVINGS = 'savings',
+  CURRENT = 'current',
+  SALARY = 'salary',
 }
 
 // ─── Sub-Interfaces ─────────────────────────────────────────────────────────

@@ -3,32 +3,32 @@ import mongoose, { Schema, type Document, type Model } from 'mongoose';
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
 export enum JobPostingStatus {
-  DRAFT = 'Draft',
-  OPEN = 'Open',
-  ON_HOLD = 'OnHold',
-  CLOSED = 'Closed',
-  FILLED = 'Filled',
+  DRAFT = 'draft',
+  OPEN = 'open',
+  ON_HOLD = 'on_hold',
+  CLOSED = 'closed',
+  FILLED = 'filled',
 }
 
 export enum JobEmploymentType {
-  FULL_TIME = 'Full-Time',
-  PART_TIME = 'Part-Time',
-  CONTRACT = 'Contract',
-  INTERN = 'Intern',
-  FREELANCER = 'Freelancer',
+  FULL_TIME = 'full_time',
+  PART_TIME = 'part_time',
+  CONTRACT = 'contract',
+  INTERN = 'intern',
+  FREELANCER = 'freelancer',
 }
 
 export enum ApplicationStatus {
-  APPLIED = 'Applied',
-  SCREENING = 'Screening',
-  SHORTLISTED = 'Shortlisted',
-  INTERVIEW_SCHEDULED = 'InterviewScheduled',
-  INTERVIEWED = 'Interviewed',
-  SELECTED = 'Selected',
-  REJECTED = 'Rejected',
-  OFFERED = 'Offered',
-  HIRED = 'Hired',
-  WITHDRAWN = 'Withdrawn',
+  APPLIED = 'applied',
+  SCREENING = 'screening',
+  SHORTLISTED = 'shortlisted',
+  INTERVIEW_SCHEDULED = 'interview_scheduled',
+  INTERVIEWED = 'interviewed',
+  SELECTED = 'selected',
+  REJECTED = 'rejected',
+  OFFERED = 'offered',
+  HIRED = 'hired',
+  WITHDRAWN = 'withdrawn',
 }
 
 // ─── JobPosting Interface ───────────────────────────────────────────────────

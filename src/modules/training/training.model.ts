@@ -3,36 +3,36 @@ import mongoose, { Schema, type Document, type Model } from 'mongoose';
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
 export enum TrainingCategory {
-  TECHNICAL = 'Technical',
-  SOFT_SKILLS = 'SoftSkills',
-  COMPLIANCE = 'Compliance',
-  LEADERSHIP = 'Leadership',
-  SAFETY = 'Safety',
-  OTHER = 'Other',
+  TECHNICAL = 'technical',
+  SOFT_SKILLS = 'soft_skills',
+  COMPLIANCE = 'compliance',
+  LEADERSHIP = 'leadership',
+  SAFETY = 'safety',
+  OTHER = 'other',
 }
 
 export enum TrainerType {
-  INTERNAL = 'Internal',
-  EXTERNAL = 'External',
+  INTERNAL = 'internal',
+  EXTERNAL = 'external',
 }
 
 export enum TrainingMode {
-  ONLINE = 'Online',
-  OFFLINE = 'Offline',
-  HYBRID = 'Hybrid',
+  ONLINE = 'online',
+  OFFLINE = 'offline',
+  HYBRID = 'hybrid',
 }
 
 export enum TrainingStatus {
-  PLANNED = 'Planned',
-  IN_PROGRESS = 'InProgress',
-  COMPLETED = 'Completed',
-  CANCELLED = 'Cancelled',
+  PLANNED = 'planned',
+  IN_PROGRESS = 'in_progress',
+  COMPLETED = 'completed',
+  CANCELLED = 'cancelled',
 }
 
 export enum ParticipantStatus {
-  ENROLLED = 'Enrolled',
-  COMPLETED = 'Completed',
-  DROPPED = 'Dropped',
+  ENROLLED = 'enrolled',
+  COMPLETED = 'completed',
+  DROPPED = 'dropped',
 }
 
 // ─── Sub-Interfaces ─────────────────────────────────────────────────────────

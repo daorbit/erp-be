@@ -3,15 +3,15 @@ import mongoose, { Schema, type Document, type Model } from 'mongoose';
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
 export enum DocumentCategory {
-  POLICY = 'Policy',
-  TEMPLATE = 'Template',
-  LETTER = 'Letter',
-  CERTIFICATE = 'Certificate',
-  ID_PROOF = 'IDProof',
-  ADDRESS_PROOF = 'AddressProof',
-  EDUCATIONAL = 'Educational',
-  EXPERIENCE = 'Experience',
-  OTHER = 'Other',
+  POLICY = 'policy',
+  TEMPLATE = 'template',
+  LETTER = 'letter',
+  CERTIFICATE = 'certificate',
+  ID_PROOF = 'id_proof',
+  ADDRESS_PROOF = 'address_proof',
+  EDUCATIONAL = 'educational',
+  EXPERIENCE = 'experience',
+  OTHER = 'other',
 }
 
 // ─── Interface ───────────────────────────────────────────────────────────────

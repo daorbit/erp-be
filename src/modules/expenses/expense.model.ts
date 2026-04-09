@@ -3,23 +3,23 @@ import mongoose, { Schema, type Document, type Model } from 'mongoose';
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
 export enum ExpenseCategory {
-  TRAVEL = 'Travel',
-  MEALS = 'Meals',
-  ACCOMMODATION = 'Accommodation',
-  TRANSPORTATION = 'Transportation',
-  OFFICE_SUPPLIES = 'Office Supplies',
-  TRAINING = 'Training',
-  MEDICAL = 'Medical',
-  OTHER = 'Other',
+  TRAVEL = 'travel',
+  MEALS = 'meals',
+  ACCOMMODATION = 'accommodation',
+  TRANSPORTATION = 'transportation',
+  OFFICE_SUPPLIES = 'office_supplies',
+  TRAINING = 'training',
+  MEDICAL = 'medical',
+  OTHER = 'other',
 }
 
 export enum ExpenseStatus {
-  DRAFT = 'Draft',
-  SUBMITTED = 'Submitted',
-  UNDER_REVIEW = 'UnderReview',
-  APPROVED = 'Approved',
-  REJECTED = 'Rejected',
-  REIMBURSED = 'Reimbursed',
+  DRAFT = 'draft',
+  SUBMITTED = 'submitted',
+  UNDER_REVIEW = 'under_review',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
+  REIMBURSED = 'reimbursed',
 }
 
 // ─── Sub-Interface ──────────────────────────────────────────────────────────

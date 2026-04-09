@@ -4,6 +4,7 @@ dotenv.config();
 import config from './config/index.js';
 import { connectDB } from './config/database.js';
 import app from './app.js';
+import { seedAdminUser } from './database/autoSeed.js';
 
 // ─── Unhandled rejection handler ─────────────────────────────────────────────
 process.on('unhandledRejection', (reason: unknown) => {
@@ -37,6 +38,7 @@ let server: ReturnType<typeof app.listen> | undefined;
 async function bootstrap(): Promise<void> {
   try {
     await connectDB();
+    await seedAdminUser();
 
     server = app.listen(config.server.port, () => {
       console.log(

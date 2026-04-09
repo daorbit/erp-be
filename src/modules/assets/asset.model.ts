@@ -3,32 +3,32 @@ import mongoose, { Schema, type Document, type Model } from 'mongoose';
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
 export enum AssetCategory {
-  LAPTOP = 'Laptop',
-  DESKTOP = 'Desktop',
-  MONITOR = 'Monitor',
-  PHONE = 'Phone',
-  TABLET = 'Tablet',
-  FURNITURE = 'Furniture',
-  VEHICLE = 'Vehicle',
-  SOFTWARE = 'Software',
-  OTHER = 'Other',
+  LAPTOP = 'laptop',
+  DESKTOP = 'desktop',
+  MONITOR = 'monitor',
+  PHONE = 'phone',
+  TABLET = 'tablet',
+  FURNITURE = 'furniture',
+  VEHICLE = 'vehicle',
+  SOFTWARE = 'software',
+  OTHER = 'other',
 }
 
 export enum AssetCondition {
-  NEW = 'New',
-  GOOD = 'Good',
-  FAIR = 'Fair',
-  POOR = 'Poor',
-  DAMAGED = 'Damaged',
-  DISPOSED = 'Disposed',
+  NEW = 'new',
+  GOOD = 'good',
+  FAIR = 'fair',
+  POOR = 'poor',
+  DAMAGED = 'damaged',
+  DISPOSED = 'disposed',
 }
 
 export enum AssetStatus {
-  AVAILABLE = 'Available',
-  ASSIGNED = 'Assigned',
-  IN_REPAIR = 'InRepair',
-  DISPOSED = 'Disposed',
-  LOST = 'Lost',
+  AVAILABLE = 'available',
+  ASSIGNED = 'assigned',
+  IN_REPAIR = 'in_repair',
+  DISPOSED = 'disposed',
+  LOST = 'lost',
 }
 
 // ─── Sub-Interface ──────────────────────────────────────────────────────────

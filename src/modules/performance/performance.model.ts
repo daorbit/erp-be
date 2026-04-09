@@ -3,49 +3,49 @@ import mongoose, { Schema, type Document, type Model } from 'mongoose';
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
 export enum ReviewType {
-  MONTHLY = 'Monthly',
-  QUARTERLY = 'Quarterly',
-  HALF_YEARLY = 'HalfYearly',
-  ANNUAL = 'Annual',
-  PROBATION = 'Probation',
+  MONTHLY = 'monthly',
+  QUARTERLY = 'quarterly',
+  HALF_YEARLY = 'half_yearly',
+  ANNUAL = 'annual',
+  PROBATION = 'probation',
 }
 
 export enum OverallRating {
-  OUTSTANDING = 'Outstanding',
-  EXCEEDS_EXPECTATIONS = 'ExceedsExpectations',
-  MEETS_EXPECTATIONS = 'MeetsExpectations',
-  NEEDS_IMPROVEMENT = 'NeedsImprovement',
-  UNSATISFACTORY = 'Unsatisfactory',
+  OUTSTANDING = 'outstanding',
+  EXCEEDS_EXPECTATIONS = 'exceeds_expectations',
+  MEETS_EXPECTATIONS = 'meets_expectations',
+  NEEDS_IMPROVEMENT = 'needs_improvement',
+  UNSATISFACTORY = 'unsatisfactory',
 }
 
 export enum ReviewStatus {
-  DRAFT = 'Draft',
-  SELF_REVIEW = 'SelfReview',
-  MANAGER_REVIEW = 'ManagerReview',
-  HR_REVIEW = 'HRReview',
-  COMPLETED = 'Completed',
+  DRAFT = 'draft',
+  SELF_REVIEW = 'self_review',
+  MANAGER_REVIEW = 'manager_review',
+  HR_REVIEW = 'hr_review',
+  COMPLETED = 'completed',
 }
 
 export enum GoalCategory {
-  PERFORMANCE = 'Performance',
-  LEARNING = 'Learning',
-  PROJECT = 'Project',
-  BEHAVIORAL = 'Behavioral',
+  PERFORMANCE = 'performance',
+  LEARNING = 'learning',
+  PROJECT = 'project',
+  BEHAVIORAL = 'behavioral',
 }
 
 export enum GoalPriority {
-  LOW = 'Low',
-  MEDIUM = 'Medium',
-  HIGH = 'High',
-  CRITICAL = 'Critical',
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+  CRITICAL = 'critical',
 }
 
 export enum GoalStatus {
-  NOT_STARTED = 'NotStarted',
-  IN_PROGRESS = 'InProgress',
-  COMPLETED = 'Completed',
-  DEFERRED = 'Deferred',
-  CANCELLED = 'Cancelled',
+  NOT_STARTED = 'not_started',
+  IN_PROGRESS = 'in_progress',
+  COMPLETED = 'completed',
+  DEFERRED = 'deferred',
+  CANCELLED = 'cancelled',
 }
 
 // ─── PerformanceReview Interface ────────────────────────────────────────────

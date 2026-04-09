@@ -205,7 +205,7 @@ export class EmployeeService {
       bloodGroup: data.bloodGroup,
       nationality: data.nationality,
       religion: data.religion,
-      employmentType: data.employmentType ?? 'Full-Time',
+      employmentType: data.employmentType ?? 'full_time',
       joinDate: data.joinDate ?? new Date(),
       workShift: data.workShift,
       workLocation: data.workLocation,

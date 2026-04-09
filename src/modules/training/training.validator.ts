@@ -40,17 +40,17 @@ export const createTrainingSchema = z.object({
 export const updateTrainingSchema = createTrainingSchema.partial();
 
 export const enrollEmployeeSchema = z.object({
-  employeeId: z.string({ required_error: 'Employee ID is required' }).min(1),
+  employeeId: z.string().min(1).optional(),
 });
 
 export const completeTrainingSchema = z.object({
-  employeeId: z.string({ required_error: 'Employee ID is required' }).min(1),
+  employeeId: z.string().min(1).optional(),
   score: z.number().min(0).max(100).optional(),
   certificate: z.string().trim().optional(),
 });
 
 export const dropEmployeeSchema = z.object({
-  employeeId: z.string({ required_error: 'Employee ID is required' }).min(1),
+  employeeId: z.string().min(1).optional(),
 });
 
 // ─── Types ──────────────────────────────────────────────────────────────────
