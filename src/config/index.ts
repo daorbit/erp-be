@@ -40,7 +40,7 @@ const config = {
     origin: parseCorsOrigin(
       optionalEnv(
         "CORS_ORIGIN",
-        "http://localhost:3000,https://erp-fe-beta.vercel.app,http://localhost:8080,https://lovable.dev,https://lovable.dev/projects/75024a70-623a-4fd1-a4b0-229c36d7644c,https://id-preview--75024a70-623a-4fd1-a4b0-229c36d7644c.lovable.app",
+        "http://localhost:3000,https://erp-fe-beta.vercel.app,http://localhost:8080,https://lovable.dev,https://id-preview--75024a70-623a-4fd1-a4b0-229c36d7644c.lovable.app",
       ),
     ),
   },
