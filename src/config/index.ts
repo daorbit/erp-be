@@ -14,11 +14,24 @@ function optionalEnv(key: string, fallback: string): string {
   return process.env[key] ?? fallback;
 }
 
+function normalizeOrigin(rawOrigin: string): string | null {
+  const origin = rawOrigin.trim();
+  if (!origin) {
+    return null;
+  }
+
+  try {
+    return new URL(origin).origin;
+  } catch {
+    return origin;
+  }
+}
+
 function parseCorsOrigin(value: string): string | string[] {
   const origins = value
     .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean);
+    .map(normalizeOrigin)
+    .filter(Boolean) as string[];
 
   return origins.length === 1 ? origins[0] : origins;
 }
