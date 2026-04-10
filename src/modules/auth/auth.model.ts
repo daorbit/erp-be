@@ -147,12 +147,14 @@ userSchema.methods.comparePassword = async function (
 };
 
 userSchema.methods.generateAuthToken = function (): string {
+  // company may be a populated object or a raw ObjectId — always extract the ID
+  const companyId = this.company?._id?.toString() || this.company?.toString() || null;
   return jwt.sign(
     {
       id: this._id.toString(),
       email: this.email,
       role: this.role,
-      company: this.company?.toString() || null,
+      company: companyId,
     },
     config.jwt.secret,
     { expiresIn: config.jwt.expiresIn } as jwt.SignOptions,
@@ -160,12 +162,13 @@ userSchema.methods.generateAuthToken = function (): string {
 };
 
 userSchema.methods.generateRefreshToken = function (): string {
+  const companyId = this.company?._id?.toString() || this.company?.toString() || null;
   return jwt.sign(
     {
       id: this._id.toString(),
       email: this.email,
       role: this.role,
-      company: this.company?.toString() || null,
+      company: companyId,
     },
     config.jwt.secret,
     { expiresIn: config.jwt.refreshExpiresIn } as jwt.SignOptions,

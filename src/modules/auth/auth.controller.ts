@@ -4,13 +4,27 @@ import { buildResponse } from '../../shared/helpers.js';
 import { AuthService } from './auth.service.js';
 
 export const register = asyncHandler(async (req: Request, res: Response) => {
-  const result = await AuthService.register(req.body);
+  const data = { ...req.body };
+
+  // Company admin can only create users for their own company
+  if (req.user?.role === 'admin' && req.user.company) {
+    data.company = req.user.company;
+  }
+
+  const result = await AuthService.register(data);
 
   res.status(201).json(
     buildResponse(true, {
       user: result.user,
-      tokens: result.tokens,
-    }, 'Registration successful'),
+    }, 'User created successfully'),
+  );
+});
+
+export const getUsers = asyncHandler(async (req: Request, res: Response) => {
+  const users = await AuthService.getUsers(req.user?.company);
+
+  res.status(200).json(
+    buildResponse(true, users, 'Users retrieved successfully'),
   );
 });
 
@@ -45,6 +59,18 @@ export const changePassword = asyncHandler(async (req: Request, res: Response) =
 
   res.status(200).json(
     buildResponse(true, null, 'Password changed successfully'),
+  );
+});
+
+export const getMe = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) {
+    throw new AppError('Authentication required.', 401);
+  }
+
+  const user = await AuthService.getProfile(req.user.id);
+
+  res.status(200).json(
+    buildResponse(true, user, 'User retrieved successfully'),
   );
 });
 

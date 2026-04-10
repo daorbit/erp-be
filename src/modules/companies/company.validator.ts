@@ -17,6 +17,11 @@ export const createCompanySchema = z.object({
   address: addressSchema,
   industry: z.string().max(100).optional(),
   logo: z.string().max(500).optional(),
+  contactPerson: z.string().max(100).optional(),
+  gstNumber: z.string().max(15).optional(),
+  panNumber: z.string().max(10).optional(),
+  maxEmployees: z.number().int().min(1).optional(),
+  subscription: z.enum(['free', 'starter', 'professional', 'enterprise']).optional(),
 });
 
 export const updateCompanySchema = z.object({
@@ -28,6 +33,11 @@ export const updateCompanySchema = z.object({
   address: addressSchema,
   industry: z.string().max(100).optional(),
   logo: z.string().max(500).optional(),
+  contactPerson: z.string().max(100).optional(),
+  gstNumber: z.string().max(15).optional(),
+  panNumber: z.string().max(10).optional(),
+  maxEmployees: z.number().int().min(1).optional(),
+  subscription: z.enum(['free', 'starter', 'professional', 'enterprise']).optional(),
   isActive: z.boolean().optional(),
 });
 

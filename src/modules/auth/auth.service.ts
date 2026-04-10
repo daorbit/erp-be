@@ -153,6 +153,22 @@ export class AuthService {
   }
 
   /**
+   * List users, scoped by company for non-super_admin.
+   */
+  static async getUsers(companyId?: string): Promise<IUser[]> {
+    const filter: Record<string, unknown> = {};
+    if (companyId) filter.company = companyId;
+
+    const users = await User.find(filter)
+      .populate('company', 'name code')
+      .populate('department', 'name')
+      .populate('designation', 'title')
+      .sort({ createdAt: -1 });
+
+    return users;
+  }
+
+  /**
    * Get user profile by ID (with populated department/designation).
    */
   static async getProfile(userId: string): Promise<IUser> {

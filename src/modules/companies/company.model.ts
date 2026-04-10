@@ -19,6 +19,11 @@ export interface ICompany extends Document {
   address?: ICompanyAddress;
   industry?: string;
   logo?: string;
+  contactPerson?: string;
+  gstNumber?: string;
+  panNumber?: string;
+  maxEmployees?: number;
+  subscription?: string;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -71,6 +76,33 @@ const companySchema = new Schema<ICompany>(
     },
     logo: {
       type: String,
+    },
+    contactPerson: {
+      type: String,
+      trim: true,
+      maxlength: [100, 'Contact person name cannot exceed 100 characters'],
+    },
+    gstNumber: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      maxlength: [15, 'GST number cannot exceed 15 characters'],
+    },
+    panNumber: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      maxlength: [10, 'PAN number cannot exceed 10 characters'],
+    },
+    maxEmployees: {
+      type: Number,
+      min: [1, 'Max employees must be at least 1'],
+    },
+    subscription: {
+      type: String,
+      trim: true,
+      enum: ['free', 'starter', 'professional', 'enterprise'],
+      default: 'free',
     },
     isActive: {
       type: Boolean,

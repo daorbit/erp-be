@@ -12,6 +12,7 @@ interface EmployeeCreateData {
   password: string;
   phone?: string;
   role?: string;
+  company?: string;
   department?: string;
   designation?: string;
   dateOfBirth?: string;
@@ -186,7 +187,7 @@ export class EmployeeService {
 
     const employeeId = generateEmployeeId();
 
-    // Create the User
+    // Create the User (with company for company-scoped roles)
     const user = await User.create({
       firstName: data.firstName,
       lastName: data.lastName,
@@ -195,6 +196,7 @@ export class EmployeeService {
       phone: data.phone,
       role: data.role ?? 'employee',
       employeeId,
+      company: data.company,
       department: data.department,
       designation: data.designation,
     });
@@ -203,6 +205,7 @@ export class EmployeeService {
     const profile = await EmployeeProfile.create({
       userId: user._id,
       employeeId,
+      company: data.company,
       dateOfBirth: data.dateOfBirth,
       gender: data.gender,
       maritalStatus: data.maritalStatus,
