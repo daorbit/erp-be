@@ -35,6 +35,8 @@ export interface IAuthUser {
   email: string;
   role: UserRole;
   company?: string;
+  onboardingRequired?: boolean;
+  onboardingCompleted?: boolean;
 }
 
 export interface IAuthRequest extends Request {

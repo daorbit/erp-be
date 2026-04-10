@@ -39,8 +39,10 @@ export const authenticate: RequestHandler = async (
 
     const decoded = jwt.verify(token, config.jwt.secret) as JwtPayload;
 
-    // Verify user still exists and is active
-    const user = await User.findById(decoded.id).select('isActive').lean();
+    // Verify user still exists, is active, and check onboarding status
+    const user = await User.findById(decoded.id)
+      .select('isActive onboardingRequired onboardingCompleted')
+      .lean();
     if (!user) {
       throw new AppError('User no longer exists. Please log in again.', 401);
     }
@@ -53,6 +55,8 @@ export const authenticate: RequestHandler = async (
       email: decoded.email,
       role: decoded.role,
       company: decoded.company || undefined,
+      onboardingRequired: user.onboardingRequired,
+      onboardingCompleted: user.onboardingCompleted,
     };
 
     next();

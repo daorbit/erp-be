@@ -1,21 +1,21 @@
 import type { Request, Response, NextFunction, RequestHandler } from 'express';
 import { AppError } from './errorHandler.js';
 import { UserRole } from '../shared/types.js';
-import User from '../modules/auth/auth.model.js';
 
 // Roles exempt from onboarding gate — they manage others' onboarding
 const ONBOARDING_EXEMPT_ROLES: string[] = [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.HR_MANAGER];
 
 /**
  * Blocks access for users who require onboarding but haven't completed it.
- * Admin and HR Manager roles are exempt — they don't need onboarding.
+ * Reads onboarding status from req.user (set by auth middleware — no extra DB query).
+ * Admin and HR Manager roles are exempt.
  * Must be used after `authenticate`.
  */
-export const requireOnboardingComplete: RequestHandler = async (
+export const requireOnboardingComplete: RequestHandler = (
   req: Request,
   _res: Response,
   next: NextFunction,
-): Promise<void> => {
+): void => {
   if (!req.user) {
     next();
     return;
@@ -27,11 +27,7 @@ export const requireOnboardingComplete: RequestHandler = async (
     return;
   }
 
-  const user = await User.findById(req.user.id)
-    .select('onboardingRequired onboardingCompleted')
-    .lean();
-
-  if (user?.onboardingRequired && !user?.onboardingCompleted) {
+  if (req.user.onboardingRequired && !req.user.onboardingCompleted) {
     next(new AppError('Onboarding is required. Please complete your onboarding to continue.', 428));
     return;
   }

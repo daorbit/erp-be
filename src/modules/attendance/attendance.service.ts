@@ -383,8 +383,11 @@ export class AttendanceService {
         continue; // Skip invalid IDs
       }
 
+      const filter: Record<string, unknown> = { employee: entry.employeeId, date };
+      if (companyId) filter.company = companyId;
+
       const record = await Attendance.findOneAndUpdate(
-        { employee: entry.employeeId, date },
+        filter,
         {
           $set: {
             status: entry.status,

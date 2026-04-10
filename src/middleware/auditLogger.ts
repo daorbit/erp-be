@@ -85,7 +85,7 @@ export function auditLogger(req: Request, res: Response, next: NextFunction): vo
       path: req.originalUrl,
       statusCode: res.statusCode,
       user: req.user?.id || undefined,
-      userName: req.user ? undefined : undefined, // Will be populated if needed
+      userName: req.user?.email || undefined,
       userEmail: req.user?.email,
       userRole: req.user?.role,
       company: req.user?.company || undefined,

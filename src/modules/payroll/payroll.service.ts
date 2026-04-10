@@ -343,6 +343,7 @@ export class PayrollService {
           month,
           year,
           generatedBy,
+          companyId,
         );
         generated++;
       } catch (err) {

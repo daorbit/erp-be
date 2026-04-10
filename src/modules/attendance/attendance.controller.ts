@@ -93,7 +93,7 @@ export class AttendanceController {
    * POST /mark - Admin mark attendance for an employee.
    */
   static markAttendance = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const record = await AttendanceService.markAttendance({ ...req.body, company: req.user.company });
+    const record = await AttendanceService.markAttendance(req.body, req.user.company);
     res.status(201).json(
       buildResponse(true, record, 'Attendance marked successfully'),
     );
