@@ -1,10 +1,20 @@
 import type { Response } from 'express';
-import { asyncHandler } from '../../middleware/errorHandler.js';
+import { asyncHandler, AppError } from '../../middleware/errorHandler.js';
 import { buildResponse } from '../../shared/helpers.js';
 import type { IAuthRequest, IQueryParams } from '../../shared/types.js';
 import { CompanyService } from './company.service.js';
 
 export class CompanyController {
+  static getMyCompany = asyncHandler(async (req: IAuthRequest, res: Response) => {
+    if (!req.user.company) {
+      throw new AppError('No company associated with this account.', 404);
+    }
+    const company = await CompanyService.getById(req.user.company);
+    res.status(200).json(
+      buildResponse(true, company, 'Company retrieved successfully'),
+    );
+  });
+
   static getAll = asyncHandler(async (req: IAuthRequest, res: Response) => {
     const query: IQueryParams = {
       page: parseInt(req.query.page as string) || 1,

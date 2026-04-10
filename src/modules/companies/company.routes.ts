@@ -7,8 +7,12 @@ import { createCompanySchema, updateCompanySchema } from './company.validator.js
 
 const router = Router();
 
-// All company routes require super_admin
 router.use(authenticate);
+
+// Any authenticated user can view their own company
+router.get('/me', CompanyController.getMyCompany);
+
+// All other company routes require super_admin
 router.use(authorize(UserRole.SUPER_ADMIN));
 
 router.get('/', CompanyController.getAll);
