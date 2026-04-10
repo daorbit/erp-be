@@ -177,6 +177,7 @@ export class AttendanceService {
       status: isLate ? AttendanceStatus.LATE : AttendanceStatus.PRESENT,
       location: data.location,
       notes: data.notes,
+      company: companyId,
     });
 
     return record;
@@ -265,6 +266,7 @@ export class AttendanceService {
       checkIn: data.checkIn ? new Date(data.checkIn) : undefined,
       checkOut: data.checkOut ? new Date(data.checkOut) : undefined,
       notes: data.notes,
+      company: companyId,
     });
 
     return record;
@@ -373,8 +375,6 @@ export class AttendanceService {
    * Bulk mark attendance for multiple employees.
    */
   static async bulkMarkAttendance(data: BulkMarkData, companyId?: string): Promise<IAttendance[]> {
-    // companyId is available for future company-scoped bulk operations
-    void companyId;
     const date = dayjs(data.date).startOf('day').toDate();
     const results: IAttendance[] = [];
 
@@ -391,6 +391,7 @@ export class AttendanceService {
             checkIn: entry.checkIn ? new Date(entry.checkIn) : undefined,
             checkOut: entry.checkOut ? new Date(entry.checkOut) : undefined,
             notes: entry.notes,
+            company: companyId,
           },
         },
         { upsert: true, new: true, runValidators: true },

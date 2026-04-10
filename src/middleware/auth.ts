@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import config from '../config/index.js';
 import { UserRole } from '../shared/types.js';
 import { AppError } from './errorHandler.js';
+import User from '../modules/auth/auth.model.js';
 
 interface JwtPayload {
   id: string;
@@ -15,13 +16,14 @@ interface JwtPayload {
 
 /**
  * Authenticate a request by verifying the JWT in the Authorization header.
+ * Checks that the user still exists and is active in the database.
  * Attaches the decoded user payload to `req.user`.
  */
-export const authenticate: RequestHandler = (
+export const authenticate: RequestHandler = async (
   req: Request,
   _res: Response,
   next: NextFunction,
-): void => {
+): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -36,6 +38,15 @@ export const authenticate: RequestHandler = (
     }
 
     const decoded = jwt.verify(token, config.jwt.secret) as JwtPayload;
+
+    // Verify user still exists and is active
+    const user = await User.findById(decoded.id).select('isActive').lean();
+    if (!user) {
+      throw new AppError('User no longer exists. Please log in again.', 401);
+    }
+    if (!user.isActive) {
+      throw new AppError('Your account has been deactivated. Please contact an administrator.', 403);
+    }
 
     req.user = {
       id: decoded.id,

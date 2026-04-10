@@ -309,6 +309,7 @@ export class PayrollService {
       lopDays: 0,
       status: PayslipStatus.DRAFT,
       generatedBy: generatedBy ? new mongoose.Types.ObjectId(generatedBy) : undefined,
+      company: companyId,
     });
 
     return Payslip.findById(payslip._id).populate({

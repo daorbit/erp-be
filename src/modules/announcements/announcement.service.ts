@@ -53,7 +53,7 @@ export class AnnouncementService {
     const [announcements, total] = await Promise.all([
       Announcement.find(filter)
         .populate('createdBy', 'firstName lastName email')
-        .populate('targetDepartments', 'name code')
+        .populate('departments', 'name code')
         .sort(sortOptions)
         .skip(skip)
         .limit(limit)
@@ -80,7 +80,7 @@ export class AnnouncementService {
 
     const announcement = await Announcement.findOne(findFilter)
       .populate('createdBy', 'firstName lastName email')
-      .populate('targetDepartments', 'name code');
+      .populate('departments', 'name code');
 
     if (!announcement) {
       throw new AppError('Announcement not found.', 404);
@@ -97,7 +97,7 @@ export class AnnouncementService {
 
     return Announcement.findById(announcement._id)
       .populate('createdBy', 'firstName lastName email')
-      .populate('targetDepartments', 'name code') as unknown as IAnnouncement;
+      .populate('departments', 'name code') as unknown as IAnnouncement;
   }
 
   /**
@@ -117,7 +117,7 @@ export class AnnouncementService {
       { new: true, runValidators: true },
     )
       .populate('createdBy', 'firstName lastName email')
-      .populate('targetDepartments', 'name code');
+      .populate('departments', 'name code');
 
     if (!announcement) {
       throw new AppError('Announcement not found.', 404);
@@ -169,7 +169,7 @@ export class AnnouncementService {
 
     const announcements = await Announcement.find(activeFilter)
       .populate('createdBy', 'firstName lastName email')
-      .populate('targetDepartments', 'name code')
+      .populate('departments', 'name code')
       .sort({ priority: -1, publishDate: -1 })
       .lean();
 

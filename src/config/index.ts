@@ -57,6 +57,7 @@ const config = {
       ),
     ),
   },
+  frontendUrl: optionalEnv('FRONTEND_URL', 'http://localhost:8080'),
   upload: {
     dir: optionalEnv("UPLOAD_DIR", "./uploads"),
     maxFileSize: parseInt(optionalEnv("MAX_FILE_SIZE", "5242880"), 10),

@@ -28,6 +28,8 @@ import helpdeskRoutes from './modules/helpdesk/helpdesk.routes.js';
 import reportRoutes from './modules/reports/report.routes.js';
 import dashboardRoutes from './modules/dashboard/dashboard.routes.js';
 import companyRoutes from './modules/companies/company.routes.js';
+import invitationRoutes from './modules/invitations/invitation.routes.js';
+import { requireOnboardingComplete } from './middleware/onboardingGate.js';
 
 // ─── Express app ─────────────────────────────────────────────────────────────
 const app = express();
@@ -87,6 +89,10 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
+// ─── Audit logger (logs all non-GET requests) ──────────────────────────────
+import { auditLogger } from './middleware/auditLogger.js';
+app.use(auditLogger);
+
 // ─── API routes ──────────────────────────────────────────────────────────────
 const API_PREFIX = '/api/v1';
 
@@ -102,8 +108,17 @@ app.get(`${API_PREFIX}/health`, (_req: Request, res: Response) => {
   );
 });
 
-// Module routes
+// Auth, invitation & onboarding routes (exempt from onboarding gate)
 app.use(`${API_PREFIX}/auth`, authRoutes);
+app.use(`${API_PREFIX}/invitations`, invitationRoutes);
+
+import onboardingRoutes from './modules/onboarding/onboarding.routes.js';
+app.use(`${API_PREFIX}/onboarding`, onboardingRoutes);
+
+// Onboarding gate — blocks users who haven't completed mandatory onboarding
+app.use(`${API_PREFIX}`, requireOnboardingComplete);
+
+// Module routes (protected by onboarding gate)
 app.use(`${API_PREFIX}/employees`, employeeRoutes);
 app.use(`${API_PREFIX}/departments`, departmentRoutes);
 app.use(`${API_PREFIX}/designations`, designationRoutes);
@@ -122,6 +137,9 @@ app.use(`${API_PREFIX}/helpdesk`, helpdeskRoutes);
 app.use(`${API_PREFIX}/reports`, reportRoutes);
 app.use(`${API_PREFIX}/dashboard`, dashboardRoutes);
 app.use(`${API_PREFIX}/companies`, companyRoutes);
+
+import auditRoutes from './modules/audit/audit.routes.js';
+app.use(`${API_PREFIX}/audit-logs`, auditRoutes);
 
 // ─── 404 handler ─────────────────────────────────────────────────────────────
 app.use((req: Request, _res: Response, next) => {

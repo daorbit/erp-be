@@ -155,9 +155,14 @@ export class AuthService {
   /**
    * List users, scoped by company for non-super_admin.
    */
-  static async getUsers(companyId?: string): Promise<IUser[]> {
+  static async getUsers(companyId?: string, callerRole?: string): Promise<IUser[]> {
     const filter: Record<string, unknown> = {};
     if (companyId) filter.company = companyId;
+
+    // HR Manager can only see users at their level or below
+    if (callerRole === UserRole.HR_MANAGER) {
+      filter.role = { $in: [UserRole.HR_MANAGER, UserRole.MANAGER, UserRole.EMPLOYEE, UserRole.VIEWER] };
+    }
 
     const users = await User.find(filter)
       .populate('company', 'name code')
@@ -166,6 +171,62 @@ export class AuthService {
       .sort({ createdAt: -1 });
 
     return users;
+  }
+
+  /**
+   * Toggle a user's active status (enable/disable).
+   */
+  static async toggleUserStatus(userId: string, companyId?: string): Promise<IUser> {
+    const filter: Record<string, unknown> = { _id: userId };
+    if (companyId) filter.company = companyId;
+
+    const user = await User.findOne(filter);
+    if (!user) {
+      throw new AppError('User not found.', 404);
+    }
+
+    user.isActive = !user.isActive;
+    // Invalidate refresh token when disabling
+    if (!user.isActive) {
+      user.refreshToken = undefined;
+    }
+    await user.save();
+
+    return user;
+  }
+
+  /**
+   * Toggle onboarding requirement for a user (admin action).
+   */
+  static async toggleOnboarding(userId: string, companyId?: string): Promise<IUser> {
+    const filter: Record<string, unknown> = { _id: userId };
+    if (companyId) filter.company = companyId;
+
+    const user = await User.findOne(filter);
+    if (!user) throw new AppError('User not found.', 404);
+
+    user.onboardingRequired = !user.onboardingRequired;
+    if (!user.onboardingRequired) {
+      user.onboardingCompleted = false;
+    }
+    await user.save();
+    return user;
+  }
+
+  /**
+   * Mark own onboarding as complete (self action).
+   */
+  static async completeOnboarding(userId: string): Promise<IUser> {
+    const user = await User.findById(userId);
+    if (!user) throw new AppError('User not found.', 404);
+
+    if (!user.onboardingRequired) {
+      throw new AppError('Onboarding is not required for this account.', 400);
+    }
+
+    user.onboardingCompleted = true;
+    await user.save();
+    return user;
   }
 
   /**

@@ -30,6 +30,7 @@ export const registerSchema = z.object({
   company: z.string().optional(),
   department: z.string().optional(),
   designation: z.string().optional(),
+  onboardingRequired: z.boolean().optional().default(false),
 }).refine(
   (data) => data.role === UserRole.SUPER_ADMIN || !!data.company,
   { message: 'Company is required for non-application-admin users', path: ['company'] },

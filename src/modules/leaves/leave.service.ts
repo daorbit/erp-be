@@ -150,8 +150,6 @@ export class LeaveService {
     },
     companyId?: string,
   ): Promise<ILeaveRequest> {
-    // companyId available for future company-scoped leave application
-    void companyId;
     if (!mongoose.Types.ObjectId.isValid(employeeId)) {
       throw new AppError('Invalid employee ID format.', 400);
     }
@@ -212,6 +210,7 @@ export class LeaveService {
       reason: data.reason,
       isHalfDay: data.isHalfDay ?? false,
       halfDayType: data.halfDayType,
+      company: companyId,
     });
 
     return LeaveRequest.findById(request._id)
@@ -577,6 +576,7 @@ export class LeaveService {
         used: 0,
         remaining: allocated,
         carryForward,
+        company: companyId,
       });
 
       results.push(balance);

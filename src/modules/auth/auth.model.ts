@@ -18,6 +18,8 @@ export interface IUser extends Document {
   department?: mongoose.Types.ObjectId;
   designation?: mongoose.Types.ObjectId;
   avatar?: string;
+  onboardingRequired: boolean;
+  onboardingCompleted: boolean;
   isActive: boolean;
   lastLogin?: Date;
   refreshToken?: string;
@@ -87,6 +89,14 @@ const userSchema = new Schema<IUser>(
     },
     avatar: {
       type: String,
+    },
+    onboardingRequired: {
+      type: Boolean,
+      default: false,
+    },
+    onboardingCompleted: {
+      type: Boolean,
+      default: false,
     },
     isActive: {
       type: Boolean,

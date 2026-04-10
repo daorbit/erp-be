@@ -33,6 +33,29 @@ router.get(
   authController.getUsers,
 );
 
+// Admin-only: enable/disable user
+router.patch(
+  '/users/:id/toggle-status',
+  authenticate,
+  authorize(UserRole.SUPER_ADMIN, UserRole.ADMIN),
+  authController.toggleUserStatus,
+);
+
+// Admin-only: toggle onboarding requirement for a user
+router.patch(
+  '/users/:id/onboarding',
+  authenticate,
+  authorize(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.HR_MANAGER),
+  authController.toggleOnboarding,
+);
+
+// Self: mark own onboarding as complete
+router.patch(
+  '/onboarding/complete',
+  authenticate,
+  authController.completeOnboarding,
+);
+
 // Protected routes
 router.put(
   '/change-password',

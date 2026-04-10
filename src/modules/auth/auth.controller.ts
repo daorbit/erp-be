@@ -20,8 +20,34 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   );
 });
 
+export const toggleUserStatus = asyncHandler(async (req: Request, res: Response) => {
+  const user = await AuthService.toggleUserStatus(req.params.id as string, req.user?.company);
+
+  res.status(200).json(
+    buildResponse(true, user, `User ${user.isActive ? 'enabled' : 'disabled'} successfully`),
+  );
+});
+
+export const toggleOnboarding = asyncHandler(async (req: Request, res: Response) => {
+  const user = await AuthService.toggleOnboarding(req.params.id as string, req.user?.company);
+
+  res.status(200).json(
+    buildResponse(true, user, `Onboarding ${user.onboardingRequired ? 'enabled' : 'disabled'} for user`),
+  );
+});
+
+export const completeOnboarding = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) throw new AppError('Authentication required.', 401);
+
+  const user = await AuthService.completeOnboarding(req.user.id);
+
+  res.status(200).json(
+    buildResponse(true, user, 'Onboarding completed successfully'),
+  );
+});
+
 export const getUsers = asyncHandler(async (req: Request, res: Response) => {
-  const users = await AuthService.getUsers(req.user?.company);
+  const users = await AuthService.getUsers(req.user?.company, req.user?.role);
 
   res.status(200).json(
     buildResponse(true, users, 'Users retrieved successfully'),
