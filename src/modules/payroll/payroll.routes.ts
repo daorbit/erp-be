@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate, authorize } from '../../middleware/auth.js';
+import { requireCompany } from '../../middleware/companyScope.js';
 import { validate } from '../../middleware/validate.js';
 import { UserRole } from '../../shared/types.js';
 import { PayrollController } from './payroll.controller.js';
@@ -15,6 +16,7 @@ const router = Router();
 
 // All routes require authentication
 router.use(authenticate);
+router.use(requireCompany);
 
 // ─── Salary Structure Routes ─────────────────────────────────────────────────
 

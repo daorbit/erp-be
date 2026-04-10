@@ -19,7 +19,7 @@ export class LeaveController {
       sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'asc',
     };
 
-    const result = await LeaveService.getAllLeaveTypes(query);
+    const result = await LeaveService.getAllLeaveTypes(query, req.user.company);
     res.status(200).json(
       buildResponse(true, result.data, 'Leave types retrieved successfully', result.pagination),
     );
@@ -29,7 +29,7 @@ export class LeaveController {
    * GET /types/:id - Get leave type by ID.
    */
   static getTypeById = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const leaveType = await LeaveService.getLeaveTypeById(req.params.id as string);
+    const leaveType = await LeaveService.getLeaveTypeById(req.params.id as string, req.user.company);
     res.status(200).json(
       buildResponse(true, leaveType, 'Leave type retrieved successfully'),
     );
@@ -39,7 +39,7 @@ export class LeaveController {
    * POST /types - Create leave type.
    */
   static createType = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const leaveType = await LeaveService.createLeaveType(req.body);
+    const leaveType = await LeaveService.createLeaveType({ ...req.body, company: req.user.company });
     res.status(201).json(
       buildResponse(true, leaveType, 'Leave type created successfully'),
     );
@@ -49,7 +49,7 @@ export class LeaveController {
    * PUT /types/:id - Update leave type.
    */
   static updateType = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const leaveType = await LeaveService.updateLeaveType(req.params.id as string, req.body);
+    const leaveType = await LeaveService.updateLeaveType(req.params.id as string, req.body, req.user.company);
     res.status(200).json(
       buildResponse(true, leaveType, 'Leave type updated successfully'),
     );
@@ -59,7 +59,7 @@ export class LeaveController {
    * DELETE /types/:id - Delete leave type.
    */
   static deleteType = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const leaveType = await LeaveService.deleteLeaveType(req.params.id as string);
+    const leaveType = await LeaveService.deleteLeaveType(req.params.id as string, req.user.company);
     res.status(200).json(
       buildResponse(true, leaveType, 'Leave type deactivated successfully'),
     );
@@ -71,7 +71,7 @@ export class LeaveController {
    * POST /apply - Apply for leave.
    */
   static apply = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const request = await LeaveService.apply(req.user.id, req.body);
+    const request = await LeaveService.apply(req.user.id, req.body, req.user.company);
     res.status(201).json(
       buildResponse(true, request, 'Leave application submitted successfully'),
     );
@@ -91,7 +91,7 @@ export class LeaveController {
       },
     };
 
-    const result = await LeaveService.getMyLeaves(req.user.id, query);
+    const result = await LeaveService.getMyLeaves(req.user.id, query, req.user.company);
     res.status(200).json(
       buildResponse(true, result.data, 'Leave requests retrieved successfully', result.pagination),
     );
@@ -101,7 +101,7 @@ export class LeaveController {
    * GET /pending-approvals - Get pending approvals for manager.
    */
   static getPendingApprovals = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const requests = await LeaveService.getPendingApprovals(req.user.id);
+    const requests = await LeaveService.getPendingApprovals(req.user.id, req.user.company);
     res.status(200).json(
       buildResponse(true, requests, 'Pending approvals retrieved successfully'),
     );
@@ -115,6 +115,7 @@ export class LeaveController {
       req.params.id as string,
       req.user.id,
       req.body.remarks,
+      req.user.company,
     );
     res.status(200).json(
       buildResponse(true, request, 'Leave request approved successfully'),
@@ -129,6 +130,7 @@ export class LeaveController {
       req.params.id as string,
       req.user.id,
       req.body.remarks,
+      req.user.company,
     );
     res.status(200).json(
       buildResponse(true, request, 'Leave request rejected'),
@@ -139,7 +141,7 @@ export class LeaveController {
    * PUT /:id/cancel - Cancel own leave request.
    */
   static cancel = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const request = await LeaveService.cancel(req.params.id as string, req.user.id);
+    const request = await LeaveService.cancel(req.params.id as string, req.user.id, req.user.company);
     res.status(200).json(
       buildResponse(true, request, 'Leave request cancelled successfully'),
     );
@@ -150,7 +152,7 @@ export class LeaveController {
    */
   static getBalance = asyncHandler(async (req: IAuthRequest, res: Response) => {
     const year = parseInt(req.query.year as string) || new Date().getFullYear();
-    const balances = await LeaveService.getLeaveBalance(req.params.employeeId as string, year);
+    const balances = await LeaveService.getLeaveBalance(req.params.employeeId as string, year, req.user.company);
     res.status(200).json(
       buildResponse(true, balances, 'Leave balances retrieved successfully'),
     );
@@ -172,7 +174,7 @@ export class LeaveController {
       },
     };
 
-    const result = await LeaveService.getAllRequests(query);
+    const result = await LeaveService.getAllRequests(query, req.user.company);
     res.status(200).json(
       buildResponse(true, result.data, 'Leave requests retrieved successfully', result.pagination),
     );
@@ -182,7 +184,7 @@ export class LeaveController {
    * GET /:id - Get leave request by ID.
    */
   static getById = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const request = await LeaveService.getRequestById(req.params.id as string);
+    const request = await LeaveService.getRequestById(req.params.id as string, req.user.company);
     res.status(200).json(
       buildResponse(true, request, 'Leave request retrieved successfully'),
     );

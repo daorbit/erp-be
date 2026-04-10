@@ -14,6 +14,7 @@ export interface IUser extends Document {
   phone?: string;
   role: UserRole;
   employeeId: string;
+  company?: mongoose.Types.ObjectId;
   department?: mongoose.Types.ObjectId;
   designation?: mongoose.Types.ObjectId;
   avatar?: string;
@@ -67,6 +68,10 @@ const userSchema = new Schema<IUser>(
       enum: Object.values(UserRole),
       default: UserRole.EMPLOYEE,
     },
+    company: {
+      type: Schema.Types.ObjectId,
+      ref: 'Company',
+    },
     employeeId: {
       type: String,
       unique: true,
@@ -114,6 +119,7 @@ userSchema.index({ email: 1 });
 userSchema.index({ employeeId: 1 });
 userSchema.index({ department: 1 });
 userSchema.index({ role: 1, isActive: 1 });
+userSchema.index({ company: 1 });
 
 // ─── Pre-save: Hash password ─────────────────────────────────────────────────
 
@@ -146,6 +152,7 @@ userSchema.methods.generateAuthToken = function (): string {
       id: this._id.toString(),
       email: this.email,
       role: this.role,
+      company: this.company?.toString() || null,
     },
     config.jwt.secret,
     { expiresIn: config.jwt.expiresIn } as jwt.SignOptions,
@@ -158,6 +165,7 @@ userSchema.methods.generateRefreshToken = function (): string {
       id: this._id.toString(),
       email: this.email,
       role: this.role,
+      company: this.company?.toString() || null,
     },
     config.jwt.secret,
     { expiresIn: config.jwt.refreshExpiresIn } as jwt.SignOptions,

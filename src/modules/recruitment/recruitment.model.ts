@@ -46,6 +46,7 @@ export interface ISalaryRange {
 
 export interface IJobPosting extends Document {
   title: string;
+  company: mongoose.Types.ObjectId;
   description: string;
   department: mongoose.Types.ObjectId;
   designation?: mongoose.Types.ObjectId;
@@ -89,6 +90,12 @@ const jobPostingSchema = new Schema<IJobPosting>(
       required: [true, 'Job title is required'],
       trim: true,
       maxlength: [200, 'Title cannot exceed 200 characters'],
+    },
+    company: {
+      type: Schema.Types.ObjectId,
+      ref: 'Company',
+      required: [true, 'Company is required'],
+      index: true,
     },
     description: {
       type: String,
@@ -179,6 +186,7 @@ jobPostingSchema.index({ applicationDeadline: 1 });
 
 export interface IJobApplication extends Document {
   jobPosting: mongoose.Types.ObjectId;
+  company: mongoose.Types.ObjectId;
   candidateName: string;
   email: string;
   phone: string;
@@ -206,6 +214,12 @@ const jobApplicationSchema = new Schema<IJobApplication>(
       type: Schema.Types.ObjectId,
       ref: 'JobPosting',
       required: [true, 'Job posting is required'],
+    },
+    company: {
+      type: Schema.Types.ObjectId,
+      ref: 'Company',
+      required: [true, 'Company is required'],
+      index: true,
     },
     candidateName: {
       type: String,

@@ -7,6 +7,7 @@ import { RecruitmentService } from './recruitment.service.js';
 // ─── Job Posting Controllers ────────────────────────────────────────────────
 
 export const getAllJobs = asyncHandler(async (req: Request, res: Response) => {
+  const authReq = req as IAuthRequest;
   const query: IQueryParams = {
     page: Number(req.query.page) || 1,
     limit: Number(req.query.limit) || 10,
@@ -20,7 +21,7 @@ export const getAllJobs = asyncHandler(async (req: Request, res: Response) => {
     },
   };
 
-  const { jobs, pagination } = await RecruitmentService.getAllJobs(query);
+  const { jobs, pagination } = await RecruitmentService.getAllJobs(query, authReq.user.company);
 
   res.status(200).json(
     buildResponse(true, jobs, 'Job postings retrieved successfully', pagination),
@@ -28,7 +29,8 @@ export const getAllJobs = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const getJobById = asyncHandler(async (req: Request, res: Response) => {
-  const job = await RecruitmentService.getJobById(req.params.id as string);
+  const authReq = req as IAuthRequest;
+  const job = await RecruitmentService.getJobById(req.params.id as string, authReq.user.company);
 
   res.status(200).json(
     buildResponse(true, job, 'Job posting retrieved successfully'),
@@ -40,6 +42,7 @@ export const createJob = asyncHandler(async (req: Request, res: Response) => {
   const job = await RecruitmentService.createJob({
     ...req.body,
     postedBy: authReq.user.id,
+    company: authReq.user.company,
   });
 
   res.status(201).json(
@@ -48,7 +51,8 @@ export const createJob = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const updateJob = asyncHandler(async (req: Request, res: Response) => {
-  const job = await RecruitmentService.updateJob(req.params.id as string, req.body);
+  const authReq = req as IAuthRequest;
+  const job = await RecruitmentService.updateJob(req.params.id as string, req.body, authReq.user.company);
 
   res.status(200).json(
     buildResponse(true, job, 'Job posting updated successfully'),
@@ -56,7 +60,8 @@ export const updateJob = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const deleteJob = asyncHandler(async (req: Request, res: Response) => {
-  await RecruitmentService.deleteJob(req.params.id as string);
+  const authReq = req as IAuthRequest;
+  await RecruitmentService.deleteJob(req.params.id as string, authReq.user.company);
 
   res.status(200).json(
     buildResponse(true, null, 'Job posting deleted successfully'),
@@ -64,7 +69,8 @@ export const deleteJob = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const updateJobStatus = asyncHandler(async (req: Request, res: Response) => {
-  const job = await RecruitmentService.updateJobStatus(req.params.id as string, req.body.status);
+  const authReq = req as IAuthRequest;
+  const job = await RecruitmentService.updateJobStatus(req.params.id as string, req.body.status, authReq.user.company);
 
   res.status(200).json(
     buildResponse(true, job, 'Job posting status updated successfully'),
@@ -72,7 +78,8 @@ export const updateJobStatus = asyncHandler(async (req: Request, res: Response) 
 });
 
 export const getJobStats = asyncHandler(async (req: Request, res: Response) => {
-  const stats = await RecruitmentService.getJobStats(req.params.jobId as string);
+  const authReq = req as IAuthRequest;
+  const stats = await RecruitmentService.getJobStats(req.params.jobId as string, authReq.user.company);
 
   res.status(200).json(
     buildResponse(true, stats, 'Job statistics retrieved successfully'),
@@ -82,6 +89,7 @@ export const getJobStats = asyncHandler(async (req: Request, res: Response) => {
 // ─── Application Controllers ────────────────────────────────────────────────
 
 export const getAllApplications = asyncHandler(async (req: Request, res: Response) => {
+  const authReq = req as IAuthRequest;
   const query: IQueryParams = {
     page: Number(req.query.page) || 1,
     limit: Number(req.query.limit) || 10,
@@ -94,7 +102,7 @@ export const getAllApplications = asyncHandler(async (req: Request, res: Respons
     },
   };
 
-  const { applications, pagination } = await RecruitmentService.getAllApplications(query);
+  const { applications, pagination } = await RecruitmentService.getAllApplications(query, authReq.user.company);
 
   res.status(200).json(
     buildResponse(true, applications, 'Applications retrieved successfully', pagination),
@@ -102,7 +110,8 @@ export const getAllApplications = asyncHandler(async (req: Request, res: Respons
 });
 
 export const getApplicationById = asyncHandler(async (req: Request, res: Response) => {
-  const application = await RecruitmentService.getApplicationById(req.params.id as string);
+  const authReq = req as IAuthRequest;
+  const application = await RecruitmentService.getApplicationById(req.params.id as string, authReq.user.company);
 
   res.status(200).json(
     buildResponse(true, application, 'Application retrieved successfully'),
@@ -110,7 +119,8 @@ export const getApplicationById = asyncHandler(async (req: Request, res: Respons
 });
 
 export const createApplication = asyncHandler(async (req: Request, res: Response) => {
-  const application = await RecruitmentService.createApplication(req.body);
+  const authReq = req as IAuthRequest;
+  const application = await RecruitmentService.createApplication({ ...req.body, company: authReq.user.company });
 
   res.status(201).json(
     buildResponse(true, application, 'Application submitted successfully'),
@@ -118,9 +128,11 @@ export const createApplication = asyncHandler(async (req: Request, res: Response
 });
 
 export const updateApplicationStatus = asyncHandler(async (req: Request, res: Response) => {
+  const authReq = req as IAuthRequest;
   const application = await RecruitmentService.updateApplicationStatus(
     req.params.id as string,
     req.body,
+    authReq.user.company,
   );
 
   res.status(200).json(
@@ -129,9 +141,11 @@ export const updateApplicationStatus = asyncHandler(async (req: Request, res: Re
 });
 
 export const scheduleInterview = asyncHandler(async (req: Request, res: Response) => {
+  const authReq = req as IAuthRequest;
   const application = await RecruitmentService.scheduleInterview(
     req.params.id as string,
     req.body,
+    authReq.user.company,
   );
 
   res.status(200).json(
@@ -140,6 +154,7 @@ export const scheduleInterview = asyncHandler(async (req: Request, res: Response
 });
 
 export const getApplicationsByJob = asyncHandler(async (req: Request, res: Response) => {
+  const authReq = req as IAuthRequest;
   const query: IQueryParams = {
     page: Number(req.query.page) || 1,
     limit: Number(req.query.limit) || 10,
@@ -153,6 +168,7 @@ export const getApplicationsByJob = asyncHandler(async (req: Request, res: Respo
   const { applications, pagination } = await RecruitmentService.getApplicationsByJob(
     req.params.jobId as string,
     query,
+    authReq.user.company,
   );
 
   res.status(200).json(

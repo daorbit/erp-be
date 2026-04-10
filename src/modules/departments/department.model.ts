@@ -6,6 +6,7 @@ export interface IDepartment extends Document {
   name: string;
   code: string;
   description?: string;
+  company: mongoose.Types.ObjectId;
   headOfDepartment?: mongoose.Types.ObjectId;
   parentDepartment?: mongoose.Types.ObjectId;
   isActive: boolean;
@@ -23,13 +24,11 @@ const departmentSchema = new Schema<IDepartment>(
     name: {
       type: String,
       required: [true, 'Department name is required'],
-      unique: true,
       trim: true,
       maxlength: [100, 'Department name cannot exceed 100 characters'],
     },
     code: {
       type: String,
-      unique: true,
       required: [true, 'Department code is required'],
       uppercase: true,
       trim: true,
@@ -39,6 +38,12 @@ const departmentSchema = new Schema<IDepartment>(
       type: String,
       trim: true,
       maxlength: [500, 'Description cannot exceed 500 characters'],
+    },
+    company: {
+      type: Schema.Types.ObjectId,
+      ref: 'Company',
+      required: [true, 'Company is required'],
+      index: true,
     },
     headOfDepartment: {
       type: Schema.Types.ObjectId,
@@ -68,6 +73,8 @@ const departmentSchema = new Schema<IDepartment>(
 
 // ─── Indexes ─────────────────────────────────────────────────────────────────
 
+departmentSchema.index({ name: 1, company: 1 }, { unique: true });
+departmentSchema.index({ code: 1, company: 1 }, { unique: true });
 departmentSchema.index({ name: 'text', description: 'text' });
 departmentSchema.index({ parentDepartment: 1 });
 departmentSchema.index({ isActive: 1 });

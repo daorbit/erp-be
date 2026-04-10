@@ -1,4 +1,4 @@
-import type { FilterQuery } from 'mongoose';
+import mongoose, { type FilterQuery } from 'mongoose';
 import { AppError } from '../../middleware/errorHandler.js';
 import { buildPagination } from '../../shared/helpers.js';
 import type { IQueryParams } from '../../shared/types.js';
@@ -9,7 +9,7 @@ import type {
 } from './expense.validator.js';
 
 export class ExpenseService {
-  static async getAll(query: IQueryParams) {
+  static async getAll(query: IQueryParams, companyId?: string) {
     const {
       page = 1,
       limit = 10,
@@ -20,6 +20,7 @@ export class ExpenseService {
     } = query;
 
     const filter: FilterQuery<IExpense> = {};
+    if (companyId) filter.company = companyId;
 
     if (search) {
       filter.$or = [
@@ -55,8 +56,11 @@ export class ExpenseService {
     return { expenses, pagination: buildPagination(page, limit, total) };
   }
 
-  static async getById(id: string) {
-    const expense = await Expense.findById(id)
+  static async getById(id: string, companyId?: string) {
+    const findFilter: Record<string, unknown> = { _id: id };
+    if (companyId) findFilter.company = companyId;
+
+    const expense = await Expense.findOne(findFilter)
       .populate('employee', 'firstName lastName email')
       .populate('approvedBy', 'firstName lastName email');
 
@@ -72,8 +76,11 @@ export class ExpenseService {
     return expense;
   }
 
-  static async update(id: string, data: UpdateExpenseInput) {
-    const expense = await Expense.findById(id);
+  static async update(id: string, data: UpdateExpenseInput, companyId?: string) {
+    const updateFindFilter: Record<string, unknown> = { _id: id };
+    if (companyId) updateFindFilter.company = companyId;
+
+    const expense = await Expense.findOne(updateFindFilter);
     if (!expense) {
       throw new AppError('Expense not found.', 404);
     }
@@ -82,8 +89,8 @@ export class ExpenseService {
       throw new AppError('Only draft expenses can be updated.', 400);
     }
 
-    const updated = await Expense.findByIdAndUpdate(
-      id,
+    const updated = await Expense.findOneAndUpdate(
+      updateFindFilter,
       { $set: data },
       { new: true, runValidators: true },
     )
@@ -93,8 +100,11 @@ export class ExpenseService {
     return updated;
   }
 
-  static async delete(id: string) {
-    const expense = await Expense.findById(id);
+  static async delete(id: string, companyId?: string) {
+    const deleteFindFilter: Record<string, unknown> = { _id: id };
+    if (companyId) deleteFindFilter.company = companyId;
+
+    const expense = await Expense.findOne(deleteFindFilter);
     if (!expense) {
       throw new AppError('Expense not found.', 404);
     }
@@ -107,8 +117,11 @@ export class ExpenseService {
     return expense;
   }
 
-  static async submit(id: string, employeeId: string) {
-    const expense = await Expense.findById(id);
+  static async submit(id: string, employeeId: string, companyId?: string) {
+    const submitFilter: Record<string, unknown> = { _id: id };
+    if (companyId) submitFilter.company = companyId;
+
+    const expense = await Expense.findOne(submitFilter);
     if (!expense) {
       throw new AppError('Expense not found.', 404);
     }
@@ -127,8 +140,11 @@ export class ExpenseService {
     return expense;
   }
 
-  static async approve(id: string, approverId: string, remarks?: string) {
-    const expense = await Expense.findById(id);
+  static async approve(id: string, approverId: string, remarks?: string, companyId?: string) {
+    const approveFilter: Record<string, unknown> = { _id: id };
+    if (companyId) approveFilter.company = companyId;
+
+    const expense = await Expense.findOne(approveFilter);
     if (!expense) {
       throw new AppError('Expense not found.', 404);
     }
@@ -146,8 +162,11 @@ export class ExpenseService {
     return expense;
   }
 
-  static async reject(id: string, approverId: string, remarks?: string) {
-    const expense = await Expense.findById(id);
+  static async reject(id: string, approverId: string, remarks?: string, companyId?: string) {
+    const rejectFilter: Record<string, unknown> = { _id: id };
+    if (companyId) rejectFilter.company = companyId;
+
+    const expense = await Expense.findOne(rejectFilter);
     if (!expense) {
       throw new AppError('Expense not found.', 404);
     }
@@ -165,8 +184,11 @@ export class ExpenseService {
     return expense;
   }
 
-  static async markReimbursed(id: string, reimbursementRef?: string) {
-    const expense = await Expense.findById(id);
+  static async markReimbursed(id: string, reimbursementRef?: string, companyId?: string) {
+    const reimburseFilter: Record<string, unknown> = { _id: id };
+    if (companyId) reimburseFilter.company = companyId;
+
+    const expense = await Expense.findOne(reimburseFilter);
     if (!expense) {
       throw new AppError('Expense not found.', 404);
     }
@@ -183,7 +205,7 @@ export class ExpenseService {
     return expense;
   }
 
-  static async getMyExpenses(employeeId: string, query: IQueryParams) {
+  static async getMyExpenses(employeeId: string, query: IQueryParams, companyId?: string) {
     const {
       page = 1,
       limit = 10,
@@ -193,6 +215,7 @@ export class ExpenseService {
     } = query;
 
     const filter: FilterQuery<IExpense> = { employee: employeeId };
+    if (companyId) filter.company = companyId;
     if (filters?.status) filter.status = filters.status;
 
     const skip = (page - 1) * limit;
@@ -211,12 +234,13 @@ export class ExpenseService {
     return { expenses, pagination: buildPagination(page, limit, total) };
   }
 
-  static async getPendingApprovals(managerId: string, query: IQueryParams) {
+  static async getPendingApprovals(managerId: string, query: IQueryParams, companyId?: string) {
     const { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc' } = query;
 
     const filter: FilterQuery<IExpense> = {
       status: { $in: [ExpenseStatus.SUBMITTED, ExpenseStatus.UNDER_REVIEW] },
     };
+    if (companyId) filter.company = companyId;
 
     // Managers see expenses from employees they manage; for now return all pending
     // A full implementation would filter by reporting relationship
@@ -240,16 +264,19 @@ export class ExpenseService {
     return { expenses, pagination: buildPagination(page, limit, total) };
   }
 
-  static async getSummary(month: number, year: number) {
+  static async getSummary(month: number, year: number, companyId?: string) {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59);
 
+    const summaryMatch: Record<string, unknown> = {
+      date: { $gte: startDate, $lte: endDate },
+      status: { $in: [ExpenseStatus.APPROVED, ExpenseStatus.REIMBURSED] },
+    };
+    if (companyId) summaryMatch.company = new mongoose.Types.ObjectId(companyId);
+
     const summary = await Expense.aggregate([
       {
-        $match: {
-          date: { $gte: startDate, $lte: endDate },
-          status: { $in: [ExpenseStatus.APPROVED, ExpenseStatus.REIMBURSED] },
-        },
+        $match: summaryMatch,
       },
       {
         $group: {

@@ -22,7 +22,7 @@ export class AttendanceController {
       },
     };
 
-    const result = await AttendanceService.getAll(query);
+    const result = await AttendanceService.getAll(query, req.user.company);
     res.status(200).json(
       buildResponse(true, result.data, 'Attendance records retrieved successfully', result.pagination),
     );
@@ -32,7 +32,7 @@ export class AttendanceController {
    * GET /:id - Get attendance record by ID.
    */
   static getById = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const record = await AttendanceService.getById(req.params.id as string);
+    const record = await AttendanceService.getById(req.params.id as string, req.user.company);
     res.status(200).json(
       buildResponse(true, record, 'Attendance record retrieved successfully'),
     );
@@ -42,7 +42,7 @@ export class AttendanceController {
    * POST /check-in - Employee check in.
    */
   static checkIn = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const record = await AttendanceService.checkIn(req.user.id, req.body);
+    const record = await AttendanceService.checkIn(req.user.id, req.body, req.user.company);
     res.status(201).json(
       buildResponse(true, record, 'Checked in successfully'),
     );
@@ -52,7 +52,7 @@ export class AttendanceController {
    * POST /check-out - Employee check out.
    */
   static checkOut = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const record = await AttendanceService.checkOut(req.user.id, req.body);
+    const record = await AttendanceService.checkOut(req.user.id, req.body, req.user.company);
     res.status(200).json(
       buildResponse(true, record, 'Checked out successfully'),
     );
@@ -65,7 +65,7 @@ export class AttendanceController {
     const month = parseInt(req.query.month as string) || new Date().getMonth() + 1;
     const year = parseInt(req.query.year as string) || new Date().getFullYear();
 
-    const records = await AttendanceService.getMyAttendance(req.user.id, month, year);
+    const records = await AttendanceService.getMyAttendance(req.user.id, month, year, req.user.company);
     res.status(200).json(
       buildResponse(true, records, 'Attendance records retrieved successfully'),
     );
@@ -82,6 +82,7 @@ export class AttendanceController {
       req.params.employeeId as string,
       month,
       year,
+      req.user.company,
     );
     res.status(200).json(
       buildResponse(true, summary, 'Attendance summary retrieved successfully'),
@@ -92,7 +93,7 @@ export class AttendanceController {
    * POST /mark - Admin mark attendance for an employee.
    */
   static markAttendance = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const record = await AttendanceService.markAttendance(req.body);
+    const record = await AttendanceService.markAttendance({ ...req.body, company: req.user.company });
     res.status(201).json(
       buildResponse(true, record, 'Attendance marked successfully'),
     );
@@ -102,7 +103,7 @@ export class AttendanceController {
    * POST /bulk-mark - Bulk mark attendance.
    */
   static bulkMarkAttendance = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const records = await AttendanceService.bulkMarkAttendance(req.body);
+    const records = await AttendanceService.bulkMarkAttendance(req.body, req.user.company);
     res.status(201).json(
       buildResponse(true, records, `Attendance marked for ${records.length} employees`),
     );
@@ -113,7 +114,7 @@ export class AttendanceController {
    */
   static getDailyReport = asyncHandler(async (req: IAuthRequest, res: Response) => {
     const date = (req.query.date as string) || new Date().toISOString().split('T')[0];
-    const records = await AttendanceService.getDailyReport(date);
+    const records = await AttendanceService.getDailyReport(date, req.user.company);
     res.status(200).json(
       buildResponse(true, records, 'Daily report retrieved successfully'),
     );

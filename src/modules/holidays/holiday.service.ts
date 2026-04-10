@@ -14,7 +14,7 @@ export class HolidayService {
   /**
    * Get all holidays with filter by year/type, sorted by date.
    */
-  static async getAll(query: IQueryParams): Promise<PaginatedResult<IHoliday>> {
+  static async getAll(query: IQueryParams, companyId?: string): Promise<PaginatedResult<IHoliday>> {
     const {
       page = 1,
       limit = 50,
@@ -25,6 +25,7 @@ export class HolidayService {
     } = query;
 
     const filter: Record<string, unknown> = { isActive: true };
+    if (companyId) filter.company = companyId;
 
     if (search) {
       filter.$or = [
@@ -64,12 +65,15 @@ export class HolidayService {
   /**
    * Get a holiday by ID.
    */
-  static async getById(id: string): Promise<IHoliday> {
+  static async getById(id: string, companyId?: string): Promise<IHoliday> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new AppError('Invalid holiday ID format.', 400);
     }
 
-    const holiday = await Holiday.findById(id);
+    const findFilter: Record<string, unknown> = { _id: id };
+    if (companyId) findFilter.company = companyId;
+
+    const holiday = await Holiday.findOne(findFilter);
     if (!holiday) {
       throw new AppError('Holiday not found.', 404);
     }
@@ -92,7 +96,7 @@ export class HolidayService {
   /**
    * Update a holiday.
    */
-  static async update(id: string, data: Partial<IHoliday>): Promise<IHoliday> {
+  static async update(id: string, data: Partial<IHoliday>, companyId?: string): Promise<IHoliday> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new AppError('Invalid holiday ID format.', 400);
     }
@@ -102,8 +106,11 @@ export class HolidayService {
       data.year = dayjs(data.date).year();
     }
 
-    const holiday = await Holiday.findByIdAndUpdate(
-      id,
+    const updateFilter: Record<string, unknown> = { _id: id };
+    if (companyId) updateFilter.company = companyId;
+
+    const holiday = await Holiday.findOneAndUpdate(
+      updateFilter,
       { $set: data },
       { new: true, runValidators: true },
     );
@@ -118,13 +125,16 @@ export class HolidayService {
   /**
    * Soft delete a holiday.
    */
-  static async delete(id: string): Promise<IHoliday> {
+  static async delete(id: string, companyId?: string): Promise<IHoliday> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new AppError('Invalid holiday ID format.', 400);
     }
 
-    const holiday = await Holiday.findByIdAndUpdate(
-      id,
+    const deleteFilter: Record<string, unknown> = { _id: id };
+    if (companyId) deleteFilter.company = companyId;
+
+    const holiday = await Holiday.findOneAndUpdate(
+      deleteFilter,
       { isActive: false },
       { new: true },
     );
@@ -139,11 +149,14 @@ export class HolidayService {
   /**
    * Get all holidays for a specific year.
    */
-  static async getByYear(year: number): Promise<IHoliday[]> {
-    const holidays = await Holiday.find({
+  static async getByYear(year: number, companyId?: string): Promise<IHoliday[]> {
+    const yearFilter: Record<string, unknown> = {
       year,
       isActive: true,
-    })
+    };
+    if (companyId) yearFilter.company = companyId;
+
+    const holidays = await Holiday.find(yearFilter)
       .sort({ date: 1 })
       .lean();
 
@@ -153,13 +166,16 @@ export class HolidayService {
   /**
    * Get the next N upcoming holidays from today.
    */
-  static async getUpcoming(limit: number = 5): Promise<IHoliday[]> {
+  static async getUpcoming(limit: number = 5, companyId?: string): Promise<IHoliday[]> {
     const today = dayjs().startOf('day').toDate();
 
-    const holidays = await Holiday.find({
+    const upcomingFilter: Record<string, unknown> = {
       date: { $gte: today },
       isActive: true,
-    })
+    };
+    if (companyId) upcomingFilter.company = companyId;
+
+    const holidays = await Holiday.find(upcomingFilter)
       .sort({ date: 1 })
       .limit(limit)
       .lean();

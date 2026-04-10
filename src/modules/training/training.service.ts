@@ -14,7 +14,7 @@ import type {
 } from './training.validator.js';
 
 export class TrainingService {
-  static async getAll(query: IQueryParams) {
+  static async getAll(query: IQueryParams, companyId?: string) {
     const {
       page = 1,
       limit = 10,
@@ -25,6 +25,7 @@ export class TrainingService {
     } = query;
 
     const filter: FilterQuery<ITrainingProgram> = {};
+    if (companyId) filter.company = companyId;
 
     if (search) {
       filter.$or = [
@@ -54,8 +55,11 @@ export class TrainingService {
     return { trainings, pagination: buildPagination(page, limit, total) };
   }
 
-  static async getById(id: string) {
-    const training = await TrainingProgram.findById(id)
+  static async getById(id: string, companyId?: string) {
+    const findFilter: Record<string, unknown> = { _id: id };
+    if (companyId) findFilter.company = companyId;
+
+    const training = await TrainingProgram.findOne(findFilter)
       .populate('createdBy', 'firstName lastName email')
       .populate('participants.employee', 'firstName lastName email');
 
@@ -71,9 +75,12 @@ export class TrainingService {
     return training;
   }
 
-  static async update(id: string, data: UpdateTrainingInput) {
-    const training = await TrainingProgram.findByIdAndUpdate(
-      id,
+  static async update(id: string, data: UpdateTrainingInput, companyId?: string) {
+    const updateFilter: Record<string, unknown> = { _id: id };
+    if (companyId) updateFilter.company = companyId;
+
+    const training = await TrainingProgram.findOneAndUpdate(
+      updateFilter,
       { $set: data },
       { new: true, runValidators: true },
     )
@@ -87,16 +94,22 @@ export class TrainingService {
     return training;
   }
 
-  static async delete(id: string) {
-    const training = await TrainingProgram.findByIdAndDelete(id);
+  static async delete(id: string, companyId?: string) {
+    const deleteFilter: Record<string, unknown> = { _id: id };
+    if (companyId) deleteFilter.company = companyId;
+
+    const training = await TrainingProgram.findOneAndDelete(deleteFilter);
     if (!training) {
       throw new AppError('Training program not found.', 404);
     }
     return training;
   }
 
-  static async enrollEmployee(trainingId: string, employeeId: string) {
-    const training = await TrainingProgram.findById(trainingId);
+  static async enrollEmployee(trainingId: string, employeeId: string, companyId?: string) {
+    const enrollFilter: Record<string, unknown> = { _id: trainingId };
+    if (companyId) enrollFilter.company = companyId;
+
+    const training = await TrainingProgram.findOne(enrollFilter);
     if (!training) {
       throw new AppError('Training program not found.', 404);
     }
@@ -138,8 +151,12 @@ export class TrainingService {
     trainingId: string,
     employeeId: string,
     data: CompleteTrainingInput,
+    companyId?: string,
   ) {
-    const training = await TrainingProgram.findById(trainingId);
+    const completeFilter: Record<string, unknown> = { _id: trainingId };
+    if (companyId) completeFilter.company = companyId;
+
+    const training = await TrainingProgram.findOne(completeFilter);
     if (!training) {
       throw new AppError('Training program not found.', 404);
     }
@@ -167,8 +184,11 @@ export class TrainingService {
     return training;
   }
 
-  static async dropEmployee(trainingId: string, employeeId: string) {
-    const training = await TrainingProgram.findById(trainingId);
+  static async dropEmployee(trainingId: string, employeeId: string, companyId?: string) {
+    const dropFilter: Record<string, unknown> = { _id: trainingId };
+    if (companyId) dropFilter.company = companyId;
+
+    const training = await TrainingProgram.findOne(dropFilter);
     if (!training) {
       throw new AppError('Training program not found.', 404);
     }
@@ -188,13 +208,14 @@ export class TrainingService {
     return training;
   }
 
-  static async getMyTrainings(employeeId: string, query: IQueryParams) {
+  static async getMyTrainings(employeeId: string, query: IQueryParams, companyId?: string) {
     const { page = 1, limit = 10, sortBy = 'startDate', sortOrder = 'desc' } = query;
 
     const filter: FilterQuery<ITrainingProgram> = {
       'participants.employee': employeeId,
       'participants.status': { $ne: ParticipantStatus.DROPPED },
     };
+    if (companyId) filter.company = companyId;
 
     const skip = (page - 1) * limit;
     const sort: Record<string, 1 | -1> = { [sortBy]: sortOrder === 'asc' ? 1 : -1 };
@@ -212,12 +233,15 @@ export class TrainingService {
     return { trainings, pagination: buildPagination(page, limit, total) };
   }
 
-  static async getUpcoming() {
+  static async getUpcoming(companyId?: string) {
     const now = new Date();
-    const trainings = await TrainingProgram.find({
+    const upcomingFilter: Record<string, unknown> = {
       startDate: { $gt: now },
       status: { $in: [TrainingStatus.PLANNED] },
-    })
+    };
+    if (companyId) upcomingFilter.company = companyId;
+
+    const trainings = await TrainingProgram.find(upcomingFilter)
       .populate('createdBy', 'firstName lastName')
       .sort({ startDate: 1 })
       .lean();

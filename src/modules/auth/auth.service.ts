@@ -55,7 +55,7 @@ export class AuthService {
    * Authenticate a user by email/password, issue new tokens.
    */
   static async login(email: string, password: string): Promise<LoginResult> {
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne({ email }).select('+password').populate('company', 'name code logo');
     if (!user) {
       throw new AppError('Invalid email or password.', 401);
     }
@@ -157,6 +157,7 @@ export class AuthService {
    */
   static async getProfile(userId: string): Promise<IUser> {
     const user = await User.findById(userId)
+      .populate('company', 'name code logo')
       .populate('department', 'name')
       .populate('designation', 'title');
 

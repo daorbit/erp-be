@@ -27,9 +27,13 @@ export const registerSchema = z.object({
     ),
   phone: z.string().trim().optional(),
   role: z.nativeEnum(UserRole).optional().default(UserRole.EMPLOYEE),
+  company: z.string().optional(),
   department: z.string().optional(),
   designation: z.string().optional(),
-});
+}).refine(
+  (data) => data.role === UserRole.SUPER_ADMIN || !!data.company,
+  { message: 'Company is required for non-application-admin users', path: ['company'] },
+);
 
 export const loginSchema = z.object({
   email: z

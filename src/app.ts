@@ -27,6 +27,7 @@ import assetRoutes from './modules/assets/asset.routes.js';
 import helpdeskRoutes from './modules/helpdesk/helpdesk.routes.js';
 import reportRoutes from './modules/reports/report.routes.js';
 import dashboardRoutes from './modules/dashboard/dashboard.routes.js';
+import companyRoutes from './modules/companies/company.routes.js';
 
 // ─── Express app ─────────────────────────────────────────────────────────────
 const app = express();
@@ -120,6 +121,7 @@ app.use(`${API_PREFIX}/assets`, assetRoutes);
 app.use(`${API_PREFIX}/helpdesk`, helpdeskRoutes);
 app.use(`${API_PREFIX}/reports`, reportRoutes);
 app.use(`${API_PREFIX}/dashboard`, dashboardRoutes);
+app.use(`${API_PREFIX}/companies`, companyRoutes);
 
 // ─── 404 handler ─────────────────────────────────────────────────────────────
 app.use((req: Request, _res: Response, next) => {

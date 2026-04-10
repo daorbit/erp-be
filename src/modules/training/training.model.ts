@@ -54,6 +54,7 @@ export interface ITrainingMaterial {
 
 export interface ITrainingProgram extends Document {
   title: string;
+  company: mongoose.Types.ObjectId;
   description?: string;
   category: TrainingCategory;
   trainer?: string;
@@ -127,6 +128,12 @@ const trainingProgramSchema = new Schema<ITrainingProgram>(
       required: [true, 'Training title is required'],
       trim: true,
       maxlength: [200, 'Title cannot exceed 200 characters'],
+    },
+    company: {
+      type: Schema.Types.ObjectId,
+      ref: 'Company',
+      required: [true, 'Company is required'],
+      index: true,
     },
     description: {
       type: String,

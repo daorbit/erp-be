@@ -13,7 +13,7 @@ export class DesignationService {
   /**
    * Get all designations with search, filtering, and pagination.
    */
-  static async getAll(query: IQueryParams): Promise<PaginatedResult<IDesignation>> {
+  static async getAll(query: IQueryParams, companyId?: string): Promise<PaginatedResult<IDesignation>> {
     const {
       page = 1,
       limit = 10,
@@ -24,6 +24,7 @@ export class DesignationService {
     } = query;
 
     const filter: Record<string, unknown> = { isActive: true };
+    if (companyId) filter.company = companyId;
 
     if (search) {
       filter.$or = [
@@ -65,12 +66,15 @@ export class DesignationService {
   /**
    * Get a designation by ID.
    */
-  static async getById(id: string): Promise<IDesignation> {
+  static async getById(id: string, companyId?: string): Promise<IDesignation> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new AppError('Invalid designation ID format.', 400);
     }
 
-    const designation = await Designation.findById(id)
+    const filter: Record<string, unknown> = { _id: id };
+    if (companyId) filter.company = companyId;
+
+    const designation = await Designation.findOne(filter)
       .populate('department', 'name code');
 
     if (!designation) {
@@ -93,13 +97,16 @@ export class DesignationService {
   /**
    * Update a designation.
    */
-  static async update(id: string, data: Partial<IDesignation>): Promise<IDesignation> {
+  static async update(id: string, data: Partial<IDesignation>, companyId?: string): Promise<IDesignation> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new AppError('Invalid designation ID format.', 400);
     }
 
-    const designation = await Designation.findByIdAndUpdate(
-      id,
+    const filter: Record<string, unknown> = { _id: id };
+    if (companyId) filter.company = companyId;
+
+    const designation = await Designation.findOneAndUpdate(
+      filter,
       { $set: data },
       { new: true, runValidators: true },
     ).populate('department', 'name code');
@@ -114,13 +121,16 @@ export class DesignationService {
   /**
    * Soft delete a designation.
    */
-  static async delete(id: string): Promise<IDesignation> {
+  static async delete(id: string, companyId?: string): Promise<IDesignation> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new AppError('Invalid designation ID format.', 400);
     }
 
-    const designation = await Designation.findByIdAndUpdate(
-      id,
+    const filter: Record<string, unknown> = { _id: id };
+    if (companyId) filter.company = companyId;
+
+    const designation = await Designation.findOneAndUpdate(
+      filter,
       { isActive: false },
       { new: true },
     );

@@ -21,8 +21,9 @@ export class ReportService {
     designation?: string;
     status?: string;
     employmentType?: string;
-  }) {
+  }, companyId?: string) {
     const filter: Record<string, unknown> = {};
+    if (companyId) filter.company = new mongoose.Types.ObjectId(companyId);
 
     if (filters.department) filter.department = new mongoose.Types.ObjectId(filters.department);
     if (filters.designation) filter.designation = new mongoose.Types.ObjectId(filters.designation);
@@ -49,6 +50,7 @@ export class ReportService {
     month: number,
     year: number,
     departmentId?: string,
+    companyId?: string,
   ) {
     if (month < 1 || month > 12) {
       throw new AppError('Month must be between 1 and 12.', 400);
@@ -60,6 +62,7 @@ export class ReportService {
     const matchStage: Record<string, unknown> = {
       date: { $gte: startDate, $lte: endDate },
     };
+    if (companyId) matchStage.company = new mongoose.Types.ObjectId(companyId);
 
     const pipeline: mongoose.PipelineStage[] = [
       { $match: matchStage },
@@ -120,7 +123,7 @@ export class ReportService {
   /**
    * Leave report: usage summary for a year.
    */
-  static async getLeaveReport(year: number, departmentId?: string) {
+  static async getLeaveReport(year: number, departmentId?: string, companyId?: string) {
     const startDate = new Date(year, 0, 1);
     const endDate = new Date(year, 11, 31, 23, 59, 59);
 
@@ -128,6 +131,7 @@ export class ReportService {
       startDate: { $gte: startDate },
       endDate: { $lte: endDate },
     };
+    if (companyId) matchStage.company = new mongoose.Types.ObjectId(companyId);
 
     void departmentId;
 
@@ -158,13 +162,16 @@ export class ReportService {
   /**
    * Payroll report: monthly payroll summary.
    */
-  static async getPayrollReport(month: number, year: number) {
+  static async getPayrollReport(month: number, year: number, companyId?: string) {
     if (month < 1 || month > 12) {
       throw new AppError('Month must be between 1 and 12.', 400);
     }
 
+    const payrollMatch: Record<string, unknown> = { month, year };
+    if (companyId) payrollMatch.company = new mongoose.Types.ObjectId(companyId);
+
     const pipeline: mongoose.PipelineStage[] = [
-      { $match: { month, year } },
+      { $match: payrollMatch },
       {
         $group: {
           _id: '$status',
@@ -211,8 +218,9 @@ export class ReportService {
   /**
    * Recruitment report: hiring pipeline stats within a date range.
    */
-  static async getRecruitmentReport(dateRange: DateRange) {
+  static async getRecruitmentReport(dateRange: DateRange, companyId?: string) {
     const matchStage: Record<string, unknown> = {};
+    if (companyId) matchStage.company = new mongoose.Types.ObjectId(companyId);
 
     if (dateRange.startDate || dateRange.endDate) {
       matchStage.createdAt = {};
@@ -257,7 +265,7 @@ export class ReportService {
   /**
    * Expense report: summary by category for a month.
    */
-  static async getExpenseReport(month: number, year: number) {
+  static async getExpenseReport(month: number, year: number, companyId?: string) {
     if (month < 1 || month > 12) {
       throw new AppError('Month must be between 1 and 12.', 400);
     }
@@ -265,8 +273,11 @@ export class ReportService {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59);
 
+    const expenseMatch: Record<string, unknown> = { date: { $gte: startDate, $lte: endDate } };
+    if (companyId) expenseMatch.company = new mongoose.Types.ObjectId(companyId);
+
     const pipeline: mongoose.PipelineStage[] = [
-      { $match: { date: { $gte: startDate, $lte: endDate } } },
+      { $match: expenseMatch },
       {
         $group: {
           _id: { category: '$category', status: '$status' },
@@ -299,9 +310,12 @@ export class ReportService {
   /**
    * Headcount report: department-wise breakdown.
    */
-  static async getHeadcountReport() {
+  static async getHeadcountReport(companyId?: string) {
+    const headcountMatch: Record<string, unknown> = { isActive: true };
+    if (companyId) headcountMatch.company = new mongoose.Types.ObjectId(companyId);
+
     const pipeline: mongoose.PipelineStage[] = [
-      { $match: { isActive: true } },
+      { $match: headcountMatch },
       {
         $group: {
           _id: '$department',
@@ -345,16 +359,24 @@ export class ReportService {
   /**
    * Turnover report: joining vs leaving for a year.
    */
-  static async getTurnoverReport(year: number) {
+  static async getTurnoverReport(year: number, companyId?: string) {
     const startDate = new Date(year, 0, 1);
     const endDate = new Date(year, 11, 31, 23, 59, 59);
+
+    const joinedMatch: Record<string, unknown> = {
+      dateOfJoining: { $gte: startDate, $lte: endDate },
+    };
+    if (companyId) joinedMatch.company = new mongoose.Types.ObjectId(companyId);
+
+    const leftMatch: Record<string, unknown> = {
+      lastWorkingDate: { $gte: startDate, $lte: endDate },
+    };
+    if (companyId) leftMatch.company = new mongoose.Types.ObjectId(companyId);
 
     const [joinedPipeline, leftPipeline] = await Promise.all([
       EmployeeProfile.aggregate([
         {
-          $match: {
-            dateOfJoining: { $gte: startDate, $lte: endDate },
-          },
+          $match: joinedMatch,
         },
         {
           $group: {
@@ -366,9 +388,7 @@ export class ReportService {
       ]),
       EmployeeProfile.aggregate([
         {
-          $match: {
-            lastWorkingDate: { $gte: startDate, $lte: endDate },
-          },
+          $match: leftMatch,
         },
         {
           $group: {

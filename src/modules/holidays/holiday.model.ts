@@ -18,6 +18,7 @@ export enum HolidayApplicableFor {
 
 export interface IHoliday extends Document {
   name: string;
+  company: mongoose.Types.ObjectId;
   date: Date;
   type: HolidayType;
   description?: string;
@@ -39,6 +40,12 @@ const holidaySchema = new Schema<IHoliday>(
       required: [true, 'Holiday name is required'],
       trim: true,
       maxlength: [100, 'Name cannot exceed 100 characters'],
+    },
+    company: {
+      type: Schema.Types.ObjectId,
+      ref: 'Company',
+      required: [true, 'Company is required'],
+      index: true,
     },
     date: {
       type: Date,

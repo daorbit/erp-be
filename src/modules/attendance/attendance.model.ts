@@ -22,6 +22,7 @@ export interface ILocation {
 
 export interface IAttendance extends Document {
   employee: mongoose.Types.ObjectId;
+  company: mongoose.Types.ObjectId;
   date: Date;
   checkIn?: Date;
   checkOut?: Date;
@@ -51,6 +52,12 @@ const attendanceSchema = new Schema<IAttendance>(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: [true, 'Employee is required'],
+    },
+    company: {
+      type: Schema.Types.ObjectId,
+      ref: 'Company',
+      required: [true, 'Company is required'],
+      index: true,
     },
     date: {
       type: Date,

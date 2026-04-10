@@ -8,6 +8,7 @@ interface JwtPayload {
   id: string;
   email: string;
   role: UserRole;
+  company?: string;
   iat?: number;
   exp?: number;
 }
@@ -40,6 +41,7 @@ export const authenticate: RequestHandler = (
       id: decoded.id,
       email: decoded.email,
       role: decoded.role,
+      company: decoded.company || undefined,
     };
 
     next();

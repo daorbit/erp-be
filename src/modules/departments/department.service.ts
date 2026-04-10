@@ -23,7 +23,7 @@ export class DepartmentService {
   /**
    * Get all departments with search, pagination, and population.
    */
-  static async getAll(query: IQueryParams): Promise<PaginatedResult<IDepartment>> {
+  static async getAll(query: IQueryParams, companyId?: string): Promise<PaginatedResult<IDepartment>> {
     const {
       page = 1,
       limit = 10,
@@ -33,6 +33,7 @@ export class DepartmentService {
     } = query;
 
     const filter: Record<string, unknown> = { isActive: true };
+    if (companyId) filter.company = companyId;
 
     if (search) {
       filter.$or = [
@@ -68,12 +69,15 @@ export class DepartmentService {
   /**
    * Get a department by ID with employee count.
    */
-  static async getById(id: string): Promise<IDepartment> {
+  static async getById(id: string, companyId?: string): Promise<IDepartment> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new AppError('Invalid department ID format.', 400);
     }
 
-    const department = await Department.findById(id)
+    const filter: Record<string, unknown> = { _id: id };
+    if (companyId) filter.company = companyId;
+
+    const department = await Department.findOne(filter)
       .populate('headOfDepartment', 'firstName lastName email')
       .populate('parentDepartment', 'name code')
       .populate('employeeCount');
@@ -106,7 +110,7 @@ export class DepartmentService {
   /**
    * Update a department.
    */
-  static async update(id: string, data: Partial<IDepartment>): Promise<IDepartment> {
+  static async update(id: string, data: Partial<IDepartment>, companyId?: string): Promise<IDepartment> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new AppError('Invalid department ID format.', 400);
     }
@@ -116,8 +120,11 @@ export class DepartmentService {
       throw new AppError('A department cannot be its own parent.', 400);
     }
 
-    const department = await Department.findByIdAndUpdate(
-      id,
+    const filter: Record<string, unknown> = { _id: id };
+    if (companyId) filter.company = companyId;
+
+    const department = await Department.findOneAndUpdate(
+      filter,
       { $set: data },
       { new: true, runValidators: true },
     )
@@ -134,13 +141,16 @@ export class DepartmentService {
   /**
    * Soft delete a department.
    */
-  static async delete(id: string): Promise<IDepartment> {
+  static async delete(id: string, companyId?: string): Promise<IDepartment> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new AppError('Invalid department ID format.', 400);
     }
 
-    const department = await Department.findByIdAndUpdate(
-      id,
+    const filter: Record<string, unknown> = { _id: id };
+    if (companyId) filter.company = companyId;
+
+    const department = await Department.findOneAndUpdate(
+      filter,
       { isActive: false },
       { new: true },
     );
@@ -155,8 +165,11 @@ export class DepartmentService {
   /**
    * Get the full department tree (hierarchical structure).
    */
-  static async getDepartmentTree(): Promise<DepartmentTreeNode[]> {
-    const departments = await Department.find({ isActive: true })
+  static async getDepartmentTree(companyId?: string): Promise<DepartmentTreeNode[]> {
+    const treeFilter: Record<string, unknown> = { isActive: true };
+    if (companyId) treeFilter.company = companyId;
+
+    const departments = await Department.find(treeFilter)
       .populate('headOfDepartment', 'firstName lastName email')
       .lean();
 

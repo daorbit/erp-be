@@ -5,6 +5,7 @@ import type { IAuthRequest, IQueryParams } from '../../shared/types.js';
 import { ExpenseService } from './expense.service.js';
 
 export const getAll = asyncHandler(async (req: Request, res: Response) => {
+  const authReq = req as IAuthRequest;
   const query: IQueryParams = {
     page: Number(req.query.page) || 1,
     limit: Number(req.query.limit) || 10,
@@ -20,7 +21,7 @@ export const getAll = asyncHandler(async (req: Request, res: Response) => {
     },
   };
 
-  const { expenses, pagination } = await ExpenseService.getAll(query);
+  const { expenses, pagination } = await ExpenseService.getAll(query, authReq.user.company);
 
   res.status(200).json(
     buildResponse(true, expenses, 'Expenses retrieved successfully', pagination),
@@ -28,7 +29,8 @@ export const getAll = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const getById = asyncHandler(async (req: Request, res: Response) => {
-  const expense = await ExpenseService.getById(req.params.id as string);
+  const authReq = req as IAuthRequest;
+  const expense = await ExpenseService.getById(req.params.id as string, authReq.user.company);
 
   res.status(200).json(
     buildResponse(true, expense, 'Expense retrieved successfully'),
@@ -40,6 +42,7 @@ export const create = asyncHandler(async (req: Request, res: Response) => {
   const expense = await ExpenseService.create({
     ...req.body,
     employee: authReq.user.id,
+    company: authReq.user.company,
   });
 
   res.status(201).json(
@@ -48,7 +51,8 @@ export const create = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const update = asyncHandler(async (req: Request, res: Response) => {
-  const expense = await ExpenseService.update(req.params.id as string, req.body);
+  const authReq = req as IAuthRequest;
+  const expense = await ExpenseService.update(req.params.id as string, req.body, authReq.user.company);
 
   res.status(200).json(
     buildResponse(true, expense, 'Expense updated successfully'),
@@ -56,7 +60,8 @@ export const update = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const remove = asyncHandler(async (req: Request, res: Response) => {
-  await ExpenseService.delete(req.params.id as string);
+  const authReq = req as IAuthRequest;
+  await ExpenseService.delete(req.params.id as string, authReq.user.company);
 
   res.status(200).json(
     buildResponse(true, null, 'Expense deleted successfully'),
@@ -65,7 +70,7 @@ export const remove = asyncHandler(async (req: Request, res: Response) => {
 
 export const submit = asyncHandler(async (req: Request, res: Response) => {
   const authReq = req as IAuthRequest;
-  const expense = await ExpenseService.submit(req.params.id as string, authReq.user.id);
+  const expense = await ExpenseService.submit(req.params.id as string, authReq.user.id, authReq.user.company);
 
   res.status(200).json(
     buildResponse(true, expense, 'Expense submitted for approval'),
@@ -78,6 +83,7 @@ export const approve = asyncHandler(async (req: Request, res: Response) => {
     req.params.id as string,
     authReq.user.id,
     req.body.remarks,
+    authReq.user.company,
   );
 
   res.status(200).json(
@@ -91,6 +97,7 @@ export const reject = asyncHandler(async (req: Request, res: Response) => {
     req.params.id as string,
     authReq.user.id,
     req.body.remarks,
+    authReq.user.company,
   );
 
   res.status(200).json(
@@ -99,9 +106,11 @@ export const reject = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const reimburse = asyncHandler(async (req: Request, res: Response) => {
+  const authReq = req as IAuthRequest;
   const expense = await ExpenseService.markReimbursed(
     req.params.id as string,
     req.body.reimbursementRef,
+    authReq.user.company,
   );
 
   res.status(200).json(
@@ -124,6 +133,7 @@ export const getMyExpenses = asyncHandler(async (req: Request, res: Response) =>
   const { expenses, pagination } = await ExpenseService.getMyExpenses(
     authReq.user.id,
     query,
+    authReq.user.company,
   );
 
   res.status(200).json(
@@ -143,6 +153,7 @@ export const getPendingApprovals = asyncHandler(async (req: Request, res: Respon
   const { expenses, pagination } = await ExpenseService.getPendingApprovals(
     authReq.user.id,
     query,
+    authReq.user.company,
   );
 
   res.status(200).json(
@@ -161,7 +172,8 @@ export const getSummary = asyncHandler(async (req: Request, res: Response) => {
     return;
   }
 
-  const summary = await ExpenseService.getSummary(month, year);
+  const authReq = req as IAuthRequest;
+  const summary = await ExpenseService.getSummary(month, year, authReq.user.company);
 
   res.status(200).json(
     buildResponse(true, summary, 'Expense summary retrieved successfully'),

@@ -66,6 +66,7 @@ export interface IReviewPeriod {
 
 export interface IPerformanceReview extends Document {
   employee: mongoose.Types.ObjectId;
+  company: mongoose.Types.ObjectId;
   reviewer: mongoose.Types.ObjectId;
   reviewPeriod: IReviewPeriod;
   type: ReviewType;
@@ -137,6 +138,12 @@ const performanceReviewSchema = new Schema<IPerformanceReview>(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: [true, 'Employee is required'],
+    },
+    company: {
+      type: Schema.Types.ObjectId,
+      ref: 'Company',
+      required: [true, 'Company is required'],
+      index: true,
     },
     reviewer: {
       type: Schema.Types.ObjectId,
@@ -216,6 +223,7 @@ performanceReviewSchema.index({ employee: 1, 'reviewPeriod.startDate': 1 });
 
 export interface IGoal extends Document {
   employee: mongoose.Types.ObjectId;
+  company: mongoose.Types.ObjectId;
   title: string;
   description?: string;
   category: GoalCategory;
@@ -238,6 +246,12 @@ const goalSchema = new Schema<IGoal>(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: [true, 'Employee is required'],
+    },
+    company: {
+      type: Schema.Types.ObjectId,
+      ref: 'Company',
+      required: [true, 'Company is required'],
+      index: true,
     },
     title: {
       type: String,

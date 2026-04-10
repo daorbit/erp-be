@@ -22,7 +22,7 @@ export class AnnouncementController {
       },
     };
 
-    const result = await AnnouncementService.getAll(query);
+    const result = await AnnouncementService.getAll(query, req.user.company);
     res.status(200).json(
       buildResponse(true, result.data, 'Announcements retrieved successfully', result.pagination),
     );
@@ -31,8 +31,8 @@ export class AnnouncementController {
   /**
    * GET /active - Get currently active announcements.
    */
-  static getActive = asyncHandler(async (_req: IAuthRequest, res: Response) => {
-    const announcements = await AnnouncementService.getActive();
+  static getActive = asyncHandler(async (req: IAuthRequest, res: Response) => {
+    const announcements = await AnnouncementService.getActive(req.user.company);
     res.status(200).json(
       buildResponse(true, announcements, 'Active announcements retrieved successfully'),
     );
@@ -42,7 +42,7 @@ export class AnnouncementController {
    * GET /:id - Get announcement by ID.
    */
   static getById = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const announcement = await AnnouncementService.getById(req.params.id as string);
+    const announcement = await AnnouncementService.getById(req.params.id as string, req.user.company);
     res.status(200).json(
       buildResponse(true, announcement, 'Announcement retrieved successfully'),
     );
@@ -55,6 +55,7 @@ export class AnnouncementController {
     const data = {
       ...req.body,
       createdBy: req.user.id,
+      company: req.user.company,
     };
     const announcement = await AnnouncementService.create(data);
     res.status(201).json(
@@ -66,7 +67,7 @@ export class AnnouncementController {
    * PUT /:id - Update an announcement.
    */
   static update = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const announcement = await AnnouncementService.update(req.params.id as string, req.body);
+    const announcement = await AnnouncementService.update(req.params.id as string, req.body, req.user.company);
     res.status(200).json(
       buildResponse(true, announcement, 'Announcement updated successfully'),
     );
@@ -76,7 +77,7 @@ export class AnnouncementController {
    * DELETE /:id - Soft delete an announcement.
    */
   static delete = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const announcement = await AnnouncementService.delete(req.params.id as string);
+    const announcement = await AnnouncementService.delete(req.params.id as string, req.user.company);
     res.status(200).json(
       buildResponse(true, announcement, 'Announcement deactivated successfully'),
     );
@@ -86,7 +87,7 @@ export class AnnouncementController {
    * PUT /:id/read - Mark announcement as read.
    */
   static markRead = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const announcement = await AnnouncementService.markRead(req.params.id as string, req.user.id);
+    const announcement = await AnnouncementService.markRead(req.params.id as string, req.user.id, req.user.company);
     res.status(200).json(
       buildResponse(true, announcement, 'Announcement marked as read'),
     );

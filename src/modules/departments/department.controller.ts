@@ -17,7 +17,7 @@ export class DepartmentController {
       sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'asc',
     };
 
-    const result = await DepartmentService.getAll(query);
+    const result = await DepartmentService.getAll(query, req.user.company);
     res.status(200).json(
       buildResponse(true, result.data, 'Departments retrieved successfully', result.pagination),
     );
@@ -26,8 +26,8 @@ export class DepartmentController {
   /**
    * GET /tree - Get hierarchical department tree.
    */
-  static getTree = asyncHandler(async (_req: IAuthRequest, res: Response) => {
-    const tree = await DepartmentService.getDepartmentTree();
+  static getTree = asyncHandler(async (req: IAuthRequest, res: Response) => {
+    const tree = await DepartmentService.getDepartmentTree(req.user.company);
     res.status(200).json(
       buildResponse(true, tree, 'Department tree retrieved successfully'),
     );
@@ -37,7 +37,7 @@ export class DepartmentController {
    * GET /:id - Get department by ID.
    */
   static getById = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const department = await DepartmentService.getById(req.params.id as string);
+    const department = await DepartmentService.getById(req.params.id as string, req.user.company);
     res.status(200).json(
       buildResponse(true, department, 'Department retrieved successfully'),
     );
@@ -47,7 +47,7 @@ export class DepartmentController {
    * POST / - Create a new department.
    */
   static create = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const department = await DepartmentService.create(req.body);
+    const department = await DepartmentService.create({ ...req.body, company: req.user.company });
     res.status(201).json(
       buildResponse(true, department, 'Department created successfully'),
     );
@@ -57,7 +57,7 @@ export class DepartmentController {
    * PUT /:id - Update a department.
    */
   static update = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const department = await DepartmentService.update(req.params.id as string, req.body);
+    const department = await DepartmentService.update(req.params.id as string, req.body, req.user.company);
     res.status(200).json(
       buildResponse(true, department, 'Department updated successfully'),
     );
@@ -67,7 +67,7 @@ export class DepartmentController {
    * DELETE /:id - Soft delete a department.
    */
   static delete = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const department = await DepartmentService.delete(req.params.id as string);
+    const department = await DepartmentService.delete(req.params.id as string, req.user.company);
     res.status(200).json(
       buildResponse(true, department, 'Department deactivated successfully'),
     );

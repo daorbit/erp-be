@@ -24,6 +24,7 @@ export enum ApplicableFor {
 
 export interface ILeaveType extends Document {
   name: string;
+  company: mongoose.Types.ObjectId;
   code: string;
   description?: string;
   defaultDays: number;
@@ -43,13 +44,17 @@ const leaveTypeSchema = new Schema<ILeaveType>(
     name: {
       type: String,
       required: [true, 'Leave type name is required'],
-      unique: true,
       trim: true,
       maxlength: [100, 'Name cannot exceed 100 characters'],
     },
+    company: {
+      type: Schema.Types.ObjectId,
+      ref: 'Company',
+      required: [true, 'Company is required'],
+      index: true,
+    },
     code: {
       type: String,
-      unique: true,
       required: [true, 'Leave type code is required'],
       uppercase: true,
       trim: true,
@@ -110,6 +115,7 @@ leaveTypeSchema.index({ name: 'text' });
 
 export interface ILeaveRequest extends Document {
   employee: mongoose.Types.ObjectId;
+  company: mongoose.Types.ObjectId;
   leaveType: mongoose.Types.ObjectId;
   startDate: Date;
   endDate: Date;
@@ -133,6 +139,12 @@ const leaveRequestSchema = new Schema<ILeaveRequest>(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: [true, 'Employee is required'],
+    },
+    company: {
+      type: Schema.Types.ObjectId,
+      ref: 'Company',
+      required: [true, 'Company is required'],
+      index: true,
     },
     leaveType: {
       type: Schema.Types.ObjectId,
@@ -220,6 +232,7 @@ leaveRequestSchema.pre<ILeaveRequest>('validate', function (next) {
 
 export interface ILeaveBalance extends Document {
   employee: mongoose.Types.ObjectId;
+  company: mongoose.Types.ObjectId;
   leaveType: mongoose.Types.ObjectId;
   year: number;
   allocated: number;
@@ -238,6 +251,12 @@ const leaveBalanceSchema = new Schema<ILeaveBalance>(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: [true, 'Employee is required'],
+    },
+    company: {
+      type: Schema.Types.ObjectId,
+      ref: 'Company',
+      required: [true, 'Company is required'],
+      index: true,
     },
     leaveType: {
       type: Schema.Types.ObjectId,

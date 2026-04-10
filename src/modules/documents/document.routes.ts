@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate, authorize } from '../../middleware/auth.js';
+import { requireCompany } from '../../middleware/companyScope.js';
 import { validate } from '../../middleware/validate.js';
 import { UserRole } from '../../shared/types.js';
 import * as documentController from './document.controller.js';
@@ -12,6 +13,7 @@ const router = Router();
 
 // All routes require authentication
 router.use(authenticate as never);
+router.use(requireCompany);
 
 // ─── Specific Routes (before /:id) ─────────────────────────────────────────
 

@@ -13,7 +13,7 @@ export class AnnouncementService {
   /**
    * Get all announcements with filters and pagination.
    */
-  static async getAll(query: IQueryParams): Promise<PaginatedResult<IAnnouncement>> {
+  static async getAll(query: IQueryParams, companyId?: string): Promise<PaginatedResult<IAnnouncement>> {
     const {
       page = 1,
       limit = 10,
@@ -24,6 +24,7 @@ export class AnnouncementService {
     } = query;
 
     const filter: Record<string, unknown> = {};
+    if (companyId) filter.company = companyId;
 
     if (search) {
       filter.$or = [
@@ -69,12 +70,15 @@ export class AnnouncementService {
   /**
    * Get an announcement by ID.
    */
-  static async getById(id: string): Promise<IAnnouncement> {
+  static async getById(id: string, companyId?: string): Promise<IAnnouncement> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new AppError('Invalid announcement ID format.', 400);
     }
 
-    const announcement = await Announcement.findById(id)
+    const findFilter: Record<string, unknown> = { _id: id };
+    if (companyId) findFilter.company = companyId;
+
+    const announcement = await Announcement.findOne(findFilter)
       .populate('createdBy', 'firstName lastName email')
       .populate('targetDepartments', 'name code');
 
@@ -99,13 +103,16 @@ export class AnnouncementService {
   /**
    * Update an announcement.
    */
-  static async update(id: string, data: Partial<IAnnouncement>): Promise<IAnnouncement> {
+  static async update(id: string, data: Partial<IAnnouncement>, companyId?: string): Promise<IAnnouncement> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new AppError('Invalid announcement ID format.', 400);
     }
 
-    const announcement = await Announcement.findByIdAndUpdate(
-      id,
+    const updateFilter: Record<string, unknown> = { _id: id };
+    if (companyId) updateFilter.company = companyId;
+
+    const announcement = await Announcement.findOneAndUpdate(
+      updateFilter,
       { $set: data },
       { new: true, runValidators: true },
     )
@@ -122,13 +129,16 @@ export class AnnouncementService {
   /**
    * Soft delete an announcement.
    */
-  static async delete(id: string): Promise<IAnnouncement> {
+  static async delete(id: string, companyId?: string): Promise<IAnnouncement> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new AppError('Invalid announcement ID format.', 400);
     }
 
-    const announcement = await Announcement.findByIdAndUpdate(
-      id,
+    const deleteFilter: Record<string, unknown> = { _id: id };
+    if (companyId) deleteFilter.company = companyId;
+
+    const announcement = await Announcement.findOneAndUpdate(
+      deleteFilter,
       { isActive: false },
       { new: true },
     );
@@ -143,10 +153,10 @@ export class AnnouncementService {
   /**
    * Get all currently active announcements (published and not expired).
    */
-  static async getActive(): Promise<IAnnouncement[]> {
+  static async getActive(companyId?: string): Promise<IAnnouncement[]> {
     const now = new Date();
 
-    const announcements = await Announcement.find({
+    const activeFilter: Record<string, unknown> = {
       isActive: true,
       publishDate: { $lte: now },
       $or: [
@@ -154,7 +164,10 @@ export class AnnouncementService {
         { expiryDate: null },
         { expiryDate: { $gte: now } },
       ],
-    })
+    };
+    if (companyId) activeFilter.company = companyId;
+
+    const announcements = await Announcement.find(activeFilter)
       .populate('createdBy', 'firstName lastName email')
       .populate('targetDepartments', 'name code')
       .sort({ priority: -1, publishDate: -1 })
@@ -166,12 +179,15 @@ export class AnnouncementService {
   /**
    * Mark an announcement as read by an employee.
    */
-  static async markRead(announcementId: string, employeeId: string): Promise<IAnnouncement> {
+  static async markRead(announcementId: string, employeeId: string, companyId?: string): Promise<IAnnouncement> {
     if (!mongoose.Types.ObjectId.isValid(announcementId)) {
       throw new AppError('Invalid announcement ID format.', 400);
     }
 
-    const announcement = await Announcement.findById(announcementId);
+    const readFilter: Record<string, unknown> = { _id: announcementId };
+    if (companyId) readFilter.company = companyId;
+
+    const announcement = await Announcement.findOne(readFilter);
     if (!announcement) {
       throw new AppError('Announcement not found.', 404);
     }

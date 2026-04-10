@@ -45,6 +45,7 @@ export interface ITicketComment {
 
 export interface ITicket extends Document {
   ticketNumber: string;
+  company: mongoose.Types.ObjectId;
   employee: mongoose.Types.ObjectId;
   subject: string;
   description: string;
@@ -111,6 +112,12 @@ const ticketSchema = new Schema<ITicket>(
       required: [true, 'Ticket number is required'],
       trim: true,
       match: [/^TKT-\d{4}-\d{3,}$/, 'Ticket number must follow the format TKT-YYYY-NNN'],
+    },
+    company: {
+      type: Schema.Types.ObjectId,
+      ref: 'Company',
+      required: [true, 'Company is required'],
+      index: true,
     },
     employee: {
       type: Schema.Types.ObjectId,

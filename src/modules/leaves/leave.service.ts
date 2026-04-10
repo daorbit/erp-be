@@ -24,7 +24,7 @@ export class LeaveService {
   /**
    * Get all leave types.
    */
-  static async getAllLeaveTypes(query: IQueryParams): Promise<PaginatedResult<ILeaveType>> {
+  static async getAllLeaveTypes(query: IQueryParams, companyId?: string): Promise<PaginatedResult<ILeaveType>> {
     const {
       page = 1,
       limit = 10,
@@ -34,6 +34,7 @@ export class LeaveService {
     } = query;
 
     const filter: Record<string, unknown> = { isActive: true };
+    if (companyId) filter.company = companyId;
 
     if (search) {
       filter.$or = [
@@ -61,12 +62,15 @@ export class LeaveService {
   /**
    * Get a leave type by ID.
    */
-  static async getLeaveTypeById(id: string): Promise<ILeaveType> {
+  static async getLeaveTypeById(id: string, companyId?: string): Promise<ILeaveType> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new AppError('Invalid leave type ID format.', 400);
     }
 
-    const leaveType = await LeaveType.findById(id);
+    const findFilter: Record<string, unknown> = { _id: id };
+    if (companyId) findFilter.company = companyId;
+
+    const leaveType = await LeaveType.findOne(findFilter);
     if (!leaveType) {
       throw new AppError('Leave type not found.', 404);
     }
@@ -84,13 +88,16 @@ export class LeaveService {
   /**
    * Update a leave type.
    */
-  static async updateLeaveType(id: string, data: Partial<ILeaveType>): Promise<ILeaveType> {
+  static async updateLeaveType(id: string, data: Partial<ILeaveType>, companyId?: string): Promise<ILeaveType> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new AppError('Invalid leave type ID format.', 400);
     }
 
-    const leaveType = await LeaveType.findByIdAndUpdate(
-      id,
+    const filter: Record<string, unknown> = { _id: id };
+    if (companyId) filter.company = companyId;
+
+    const leaveType = await LeaveType.findOneAndUpdate(
+      filter,
       { $set: data },
       { new: true, runValidators: true },
     );
@@ -105,13 +112,16 @@ export class LeaveService {
   /**
    * Soft delete a leave type.
    */
-  static async deleteLeaveType(id: string): Promise<ILeaveType> {
+  static async deleteLeaveType(id: string, companyId?: string): Promise<ILeaveType> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new AppError('Invalid leave type ID format.', 400);
     }
 
-    const leaveType = await LeaveType.findByIdAndUpdate(
-      id,
+    const filter: Record<string, unknown> = { _id: id };
+    if (companyId) filter.company = companyId;
+
+    const leaveType = await LeaveType.findOneAndUpdate(
+      filter,
       { isActive: false },
       { new: true },
     );
@@ -138,7 +148,10 @@ export class LeaveService {
       isHalfDay?: boolean;
       halfDayType?: string;
     },
+    companyId?: string,
   ): Promise<ILeaveRequest> {
+    // companyId available for future company-scoped leave application
+    void companyId;
     if (!mongoose.Types.ObjectId.isValid(employeeId)) {
       throw new AppError('Invalid employee ID format.', 400);
     }
@@ -209,7 +222,7 @@ export class LeaveService {
   /**
    * Get all leave requests with filters and pagination.
    */
-  static async getAllRequests(query: IQueryParams): Promise<PaginatedResult<ILeaveRequest>> {
+  static async getAllRequests(query: IQueryParams, companyId?: string): Promise<PaginatedResult<ILeaveRequest>> {
     const {
       page = 1,
       limit = 10,
@@ -219,6 +232,7 @@ export class LeaveService {
     } = query;
 
     const filter: Record<string, unknown> = {};
+    if (companyId) filter.company = companyId;
 
     if (filters.employee) {
       filter.employee = filters.employee;
@@ -258,12 +272,15 @@ export class LeaveService {
   /**
    * Get a leave request by ID.
    */
-  static async getRequestById(id: string): Promise<ILeaveRequest> {
+  static async getRequestById(id: string, companyId?: string): Promise<ILeaveRequest> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new AppError('Invalid leave request ID format.', 400);
     }
 
-    const request = await LeaveRequest.findById(id)
+    const findFilter: Record<string, unknown> = { _id: id };
+    if (companyId) findFilter.company = companyId;
+
+    const request = await LeaveRequest.findOne(findFilter)
       .populate('employee', 'firstName lastName email')
       .populate('leaveType', 'name code')
       .populate('approvedBy', 'firstName lastName email');
@@ -282,12 +299,16 @@ export class LeaveService {
     id: string,
     approverId: string,
     remarks?: string,
+    companyId?: string,
   ): Promise<ILeaveRequest> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new AppError('Invalid leave request ID format.', 400);
     }
 
-    const request = await LeaveRequest.findById(id);
+    const approveFilter: Record<string, unknown> = { _id: id };
+    if (companyId) approveFilter.company = companyId;
+
+    const request = await LeaveRequest.findOne(approveFilter);
     if (!request) {
       throw new AppError('Leave request not found.', 404);
     }
@@ -327,12 +348,16 @@ export class LeaveService {
     id: string,
     approverId: string,
     remarks?: string,
+    companyId?: string,
   ): Promise<ILeaveRequest> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new AppError('Invalid leave request ID format.', 400);
     }
 
-    const request = await LeaveRequest.findById(id);
+    const rejectFilter: Record<string, unknown> = { _id: id };
+    if (companyId) rejectFilter.company = companyId;
+
+    const request = await LeaveRequest.findOne(rejectFilter);
     if (!request) {
       throw new AppError('Leave request not found.', 404);
     }
@@ -355,12 +380,15 @@ export class LeaveService {
   /**
    * Cancel a leave request (by the employee).
    */
-  static async cancel(id: string, employeeId: string): Promise<ILeaveRequest> {
+  static async cancel(id: string, employeeId: string, companyId?: string): Promise<ILeaveRequest> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new AppError('Invalid leave request ID format.', 400);
     }
 
-    const request = await LeaveRequest.findById(id);
+    const cancelFilter: Record<string, unknown> = { _id: id };
+    if (companyId) cancelFilter.company = companyId;
+
+    const request = await LeaveRequest.findOne(cancelFilter);
     if (!request) {
       throw new AppError('Leave request not found.', 404);
     }
@@ -405,6 +433,7 @@ export class LeaveService {
   static async getMyLeaves(
     employeeId: string,
     query: IQueryParams,
+    companyId?: string,
   ): Promise<PaginatedResult<ILeaveRequest>> {
     const {
       page = 1,
@@ -415,6 +444,7 @@ export class LeaveService {
     } = query;
 
     const filter: Record<string, unknown> = { employee: employeeId };
+    if (companyId) filter.company = companyId;
 
     if (filters.status) {
       filter.status = filters.status;
@@ -445,12 +475,15 @@ export class LeaveService {
   /**
    * Get pending leave approvals for a manager.
    */
-  static async getPendingApprovals(managerId: string): Promise<ILeaveRequest[]> {
+  static async getPendingApprovals(managerId: string, companyId?: string): Promise<ILeaveRequest[]> {
     // Find employees who report to this manager
     // The reporting manager is stored in EmployeeProfile, employee field in LeaveRequest is User ID
-    const requests = await LeaveRequest.find({
+    const pendingFilter: Record<string, unknown> = {
       status: LeaveRequestStatus.PENDING,
-    })
+    };
+    if (companyId) pendingFilter.company = companyId;
+
+    const requests = await LeaveRequest.find(pendingFilter)
       .populate('employee', 'firstName lastName email')
       .populate('leaveType', 'name code')
       .sort({ createdAt: -1 })
@@ -469,15 +502,19 @@ export class LeaveService {
   static async getLeaveBalance(
     employeeId: string,
     year: number,
+    companyId?: string,
   ): Promise<ILeaveBalance[]> {
     if (!mongoose.Types.ObjectId.isValid(employeeId)) {
       throw new AppError('Invalid employee ID format.', 400);
     }
 
-    const balances = await LeaveBalance.find({
+    const balanceFilter: Record<string, unknown> = {
       employee: employeeId,
       year,
-    })
+    };
+    if (companyId) balanceFilter.company = companyId;
+
+    const balances = await LeaveBalance.find(balanceFilter)
       .populate('leaveType', 'name code')
       .lean();
 
@@ -491,12 +528,16 @@ export class LeaveService {
   static async initializeLeaveBalances(
     employeeId: string,
     year: number,
+    companyId?: string,
   ): Promise<ILeaveBalance[]> {
     if (!mongoose.Types.ObjectId.isValid(employeeId)) {
       throw new AppError('Invalid employee ID format.', 400);
     }
 
-    const leaveTypes = await LeaveType.find({ isActive: true });
+    const initFilter: Record<string, unknown> = { isActive: true };
+    if (companyId) initFilter.company = companyId;
+
+    const leaveTypes = await LeaveType.find(initFilter);
     const results: ILeaveBalance[] = [];
 
     for (const lt of leaveTypes) {

@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import dayjs from 'dayjs';
 import User from '../auth/auth.model.js';
 import EmployeeProfile from '../employees/employee.model.js';
@@ -66,11 +67,43 @@ export class DashboardService {
   /**
    * Get high-level statistics for the dashboard.
    */
-  static async getStats(): Promise<DashboardStats> {
+  static async getStats(companyId?: string): Promise<DashboardStats> {
     const today = dayjs().startOf('day').toDate();
     const todayEnd = dayjs().endOf('day').toDate();
     const thirtyDaysAgo = dayjs().subtract(30, 'day').toDate();
     const now = new Date();
+
+    const userFilter: Record<string, unknown> = { isActive: true };
+    if (companyId) userFilter.company = companyId;
+
+    const deptFilter: Record<string, unknown> = { isActive: true };
+    if (companyId) deptFilter.company = companyId;
+
+    const leaveFilter: Record<string, unknown> = { status: LeaveRequestStatus.PENDING };
+    if (companyId) leaveFilter.company = companyId;
+
+    const attendanceFilter: Record<string, unknown> = { date: { $gte: today, $lte: todayEnd } };
+    if (companyId) attendanceFilter.company = companyId;
+
+    const holidayFilter: Record<string, unknown> = { date: { $gte: today }, isActive: true };
+    if (companyId) holidayFilter.company = companyId;
+
+    const hiresFilter: Record<string, unknown> = { joinDate: { $gte: thirtyDaysAgo }, isActive: true };
+    if (companyId) hiresFilter.company = companyId;
+
+    const announcementFilter: Record<string, unknown> = {
+      isActive: true,
+      publishDate: { $lte: now },
+      $or: [
+        { expiryDate: { $exists: false } },
+        { expiryDate: null },
+        { expiryDate: { $gte: now } },
+      ],
+    };
+    if (companyId) announcementFilter.company = companyId;
+
+    const payrollFilter: Record<string, unknown> = { status: PayslipStatus.DRAFT };
+    if (companyId) payrollFilter.company = companyId;
 
     const [
       totalEmployees,
@@ -82,28 +115,14 @@ export class DashboardService {
       activeAnnouncements,
       pendingPayroll,
     ] = await Promise.all([
-      User.countDocuments({ isActive: true }),
-      Department.countDocuments({ isActive: true }),
-      LeaveRequest.countDocuments({ status: LeaveRequestStatus.PENDING }),
-      Attendance.find({ date: { $gte: today, $lte: todayEnd } }).lean(),
-      Holiday.countDocuments({
-        date: { $gte: today },
-        isActive: true,
-      }),
-      EmployeeProfile.countDocuments({
-        joinDate: { $gte: thirtyDaysAgo },
-        isActive: true,
-      }),
-      Announcement.countDocuments({
-        isActive: true,
-        publishDate: { $lte: now },
-        $or: [
-          { expiryDate: { $exists: false } },
-          { expiryDate: null },
-          { expiryDate: { $gte: now } },
-        ],
-      }),
-      Payslip.countDocuments({ status: PayslipStatus.DRAFT }),
+      User.countDocuments(userFilter),
+      Department.countDocuments(deptFilter),
+      LeaveRequest.countDocuments(leaveFilter),
+      Attendance.find(attendanceFilter).lean(),
+      Holiday.countDocuments(holidayFilter),
+      EmployeeProfile.countDocuments(hiresFilter),
+      Announcement.countDocuments(announcementFilter),
+      Payslip.countDocuments(payrollFilter),
     ]);
 
     // Count attendance statuses
@@ -146,13 +165,16 @@ export class DashboardService {
   /**
    * Get attendance overview for a specific date.
    */
-  static async getAttendanceOverview(date: string): Promise<AttendanceOverview> {
+  static async getAttendanceOverview(date: string, companyId?: string): Promise<AttendanceOverview> {
     const targetDate = dayjs(date).startOf('day').toDate();
     const targetDateEnd = dayjs(date).endOf('day').toDate();
 
-    const records = await Attendance.find({
+    const overviewFilter: Record<string, unknown> = {
       date: { $gte: targetDate, $lte: targetDateEnd },
-    }).lean();
+    };
+    if (companyId) overviewFilter.company = companyId;
+
+    const records = await Attendance.find(overviewFilter).lean();
 
     const overview: AttendanceOverview = {
       date,
@@ -194,26 +216,29 @@ export class DashboardService {
   /**
    * Get leave requests overview (counts by status).
    */
-  static async getLeaveOverview(): Promise<LeaveOverview> {
+  static async getLeaveOverview(companyId?: string): Promise<LeaveOverview> {
     const currentYear = new Date().getFullYear();
     const yearStart = new Date(currentYear, 0, 1);
 
+    const baseLF: Record<string, unknown> = { createdAt: { $gte: yearStart } };
+    if (companyId) baseLF.company = companyId;
+
     const [pending, approved, rejected, cancelled] = await Promise.all([
       LeaveRequest.countDocuments({
+        ...baseLF,
         status: LeaveRequestStatus.PENDING,
-        createdAt: { $gte: yearStart },
       }),
       LeaveRequest.countDocuments({
+        ...baseLF,
         status: LeaveRequestStatus.APPROVED,
-        createdAt: { $gte: yearStart },
       }),
       LeaveRequest.countDocuments({
+        ...baseLF,
         status: LeaveRequestStatus.REJECTED,
-        createdAt: { $gte: yearStart },
       }),
       LeaveRequest.countDocuments({
+        ...baseLF,
         status: LeaveRequestStatus.CANCELLED,
-        createdAt: { $gte: yearStart },
       }),
     ]);
 
@@ -223,8 +248,11 @@ export class DashboardService {
   /**
    * Get employee count per department.
    */
-  static async getDepartmentDistribution(): Promise<DepartmentDistribution[]> {
-    const departments = await Department.find({ isActive: true })
+  static async getDepartmentDistribution(companyId?: string): Promise<DepartmentDistribution[]> {
+    const distFilter: Record<string, unknown> = { isActive: true };
+    if (companyId) distFilter.company = companyId;
+
+    const departments = await Department.find(distFilter)
       .populate('employeeCount')
       .lean();
 
@@ -238,11 +266,14 @@ export class DashboardService {
   /**
    * Get recent activities across all modules.
    */
-  static async getRecentActivities(limit: number = 10): Promise<RecentActivity[]> {
+  static async getRecentActivities(limit: number = 10, companyId?: string): Promise<RecentActivity[]> {
     const activities: RecentActivity[] = [];
 
+    const activityFilter: Record<string, unknown> = {};
+    if (companyId) activityFilter.company = companyId;
+
     // Recent leave requests
-    const recentLeaves = await LeaveRequest.find()
+    const recentLeaves = await LeaveRequest.find(activityFilter)
       .populate('employee', 'firstName lastName')
       .sort({ createdAt: -1 })
       .limit(5)
@@ -261,7 +292,7 @@ export class DashboardService {
     }
 
     // Recent attendance
-    const recentAttendance = await Attendance.find()
+    const recentAttendance = await Attendance.find(activityFilter)
       .populate('employee', 'firstName lastName')
       .sort({ createdAt: -1 })
       .limit(5)
@@ -280,7 +311,7 @@ export class DashboardService {
     }
 
     // Recent announcements
-    const recentAnnouncements = await Announcement.find()
+    const recentAnnouncements = await Announcement.find(activityFilter)
       .sort({ createdAt: -1 })
       .limit(3)
       .lean();
@@ -301,19 +332,22 @@ export class DashboardService {
   /**
    * Get employees with birthdays this month.
    */
-  static async getBirthdaysThisMonth(): Promise<EmployeeBirthday[]> {
+  static async getBirthdaysThisMonth(companyId?: string): Promise<EmployeeBirthday[]> {
     const currentMonth = new Date().getMonth() + 1; // 1-based
+
+    const birthdayMatch: Record<string, unknown> = {
+      isActive: true,
+      dateOfBirth: { $exists: true, $ne: null },
+      $expr: {
+        $eq: [{ $month: '$dateOfBirth' }, currentMonth],
+      },
+    };
+    if (companyId) birthdayMatch.company = new mongoose.Types.ObjectId(companyId);
 
     // Use aggregation to match on month of dateOfBirth
     const employees = await EmployeeProfile.aggregate([
       {
-        $match: {
-          isActive: true,
-          dateOfBirth: { $exists: true, $ne: null },
-          $expr: {
-            $eq: [{ $month: '$dateOfBirth' }, currentMonth],
-          },
-        },
+        $match: birthdayMatch,
       },
       {
         $lookup: {
@@ -354,7 +388,7 @@ export class DashboardService {
   /**
    * Get employees with work anniversaries this month.
    */
-  static async getAnniversariesThisMonth(): Promise<Array<{
+  static async getAnniversariesThisMonth(companyId?: string): Promise<Array<{
     name: string;
     email: string;
     joinDate: Date;
@@ -364,18 +398,21 @@ export class DashboardService {
     const currentMonth = new Date().getMonth() + 1;
     const currentYear = new Date().getFullYear();
 
+    const anniversaryMatch: Record<string, unknown> = {
+      isActive: true,
+      joinDate: { $exists: true, $ne: null },
+      $expr: {
+        $and: [
+          { $eq: [{ $month: '$joinDate' }, currentMonth] },
+          { $lt: [{ $year: '$joinDate' }, currentYear] }, // exclude this year's hires
+        ],
+      },
+    };
+    if (companyId) anniversaryMatch.company = new mongoose.Types.ObjectId(companyId);
+
     const employees = await EmployeeProfile.aggregate([
       {
-        $match: {
-          isActive: true,
-          joinDate: { $exists: true, $ne: null },
-          $expr: {
-            $and: [
-              { $eq: [{ $month: '$joinDate' }, currentMonth] },
-              { $lt: [{ $year: '$joinDate' }, currentYear] }, // exclude this year's hires
-            ],
-          },
-        },
+        $match: anniversaryMatch,
       },
       {
         $lookup: {

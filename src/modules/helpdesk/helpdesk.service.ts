@@ -1,4 +1,4 @@
-import type { FilterQuery } from 'mongoose';
+import mongoose, { type FilterQuery } from 'mongoose';
 import { AppError } from '../../middleware/errorHandler.js';
 import { buildPagination } from '../../shared/helpers.js';
 import type { IQueryParams } from '../../shared/types.js';
@@ -34,7 +34,7 @@ export class HelpdeskService {
     return `${prefix}${String(sequence).padStart(3, '0')}`;
   }
 
-  static async getAll(query: IQueryParams) {
+  static async getAll(query: IQueryParams, companyId?: string) {
     const {
       page = 1,
       limit = 10,
@@ -45,6 +45,7 @@ export class HelpdeskService {
     } = query;
 
     const filter: FilterQuery<ITicket> = {};
+    if (companyId) filter.company = companyId;
 
     if (search) {
       filter.$or = [
@@ -77,8 +78,11 @@ export class HelpdeskService {
     return { tickets, pagination: buildPagination(page, limit, total) };
   }
 
-  static async getById(id: string) {
-    const ticket = await Ticket.findById(id)
+  static async getById(id: string, companyId?: string) {
+    const findFilter: Record<string, unknown> = { _id: id };
+    if (companyId) findFilter.company = companyId;
+
+    const ticket = await Ticket.findOne(findFilter)
       .populate('employee', 'firstName lastName email')
       .populate('assignedTo', 'firstName lastName email')
       .populate('comments.user', 'firstName lastName email')
@@ -102,9 +106,12 @@ export class HelpdeskService {
     return ticket;
   }
 
-  static async update(id: string, data: UpdateTicketInput) {
-    const ticket = await Ticket.findByIdAndUpdate(
-      id,
+  static async update(id: string, data: UpdateTicketInput, companyId?: string) {
+    const updateFilter: Record<string, unknown> = { _id: id };
+    if (companyId) updateFilter.company = companyId;
+
+    const ticket = await Ticket.findOneAndUpdate(
+      updateFilter,
       { $set: data },
       { new: true, runValidators: true },
     )
@@ -118,9 +125,12 @@ export class HelpdeskService {
     return ticket;
   }
 
-  static async assign(id: string, assignedToId: string) {
-    const ticket = await Ticket.findByIdAndUpdate(
-      id,
+  static async assign(id: string, assignedToId: string, companyId?: string) {
+    const assignFilter: Record<string, unknown> = { _id: id };
+    if (companyId) assignFilter.company = companyId;
+
+    const ticket = await Ticket.findOneAndUpdate(
+      assignFilter,
       {
         $set: {
           assignedTo: assignedToId,
@@ -139,8 +149,11 @@ export class HelpdeskService {
     return ticket;
   }
 
-  static async addComment(id: string, data: AddCommentInput & { userId: string }) {
-    const ticket = await Ticket.findById(id);
+  static async addComment(id: string, data: AddCommentInput & { userId: string }, companyId?: string) {
+    const commentFilter: Record<string, unknown> = { _id: id };
+    if (companyId) commentFilter.company = companyId;
+
+    const ticket = await Ticket.findOne(commentFilter);
     if (!ticket) {
       throw new AppError('Ticket not found.', 404);
     }
@@ -163,12 +176,15 @@ export class HelpdeskService {
     return populated;
   }
 
-  static async updateStatus(id: string, data: UpdateTicketStatusInput) {
+  static async updateStatus(id: string, data: UpdateTicketStatusInput, companyId?: string) {
     const updateData: Record<string, unknown> = { status: data.status };
     if (data.resolution) updateData.resolution = data.resolution;
 
-    const ticket = await Ticket.findByIdAndUpdate(
-      id,
+    const statusFilter: Record<string, unknown> = { _id: id };
+    if (companyId) statusFilter.company = companyId;
+
+    const ticket = await Ticket.findOneAndUpdate(
+      statusFilter,
       { $set: updateData },
       { new: true, runValidators: true },
     )
@@ -182,8 +198,11 @@ export class HelpdeskService {
     return ticket;
   }
 
-  static async close(id: string, userId: string, data: CloseTicketInput) {
-    const ticket = await Ticket.findById(id);
+  static async close(id: string, userId: string, data: CloseTicketInput, companyId?: string) {
+    const closeFilter: Record<string, unknown> = { _id: id };
+    if (companyId) closeFilter.company = companyId;
+
+    const ticket = await Ticket.findOne(closeFilter);
     if (!ticket) {
       throw new AppError('Ticket not found.', 404);
     }
@@ -197,7 +216,7 @@ export class HelpdeskService {
     return ticket;
   }
 
-  static async getMyTickets(employeeId: string, query: IQueryParams) {
+  static async getMyTickets(employeeId: string, query: IQueryParams, companyId?: string) {
     const {
       page = 1,
       limit = 10,
@@ -207,6 +226,7 @@ export class HelpdeskService {
     } = query;
 
     const filter: FilterQuery<ITicket> = { employee: employeeId };
+    if (companyId) filter.company = companyId;
     if (filters?.status) filter.status = filters.status;
 
     const skip = (page - 1) * limit;
@@ -225,7 +245,7 @@ export class HelpdeskService {
     return { tickets, pagination: buildPagination(page, limit, total) };
   }
 
-  static async getAssignedTickets(userId: string, query: IQueryParams) {
+  static async getAssignedTickets(userId: string, query: IQueryParams, companyId?: string) {
     const {
       page = 1,
       limit = 10,
@@ -235,6 +255,7 @@ export class HelpdeskService {
     } = query;
 
     const filter: FilterQuery<ITicket> = { assignedTo: userId };
+    if (companyId) filter.company = companyId;
     if (filters?.status) filter.status = filters.status;
 
     const skip = (page - 1) * limit;
@@ -253,8 +274,12 @@ export class HelpdeskService {
     return { tickets, pagination: buildPagination(page, limit, total) };
   }
 
-  static async getStats() {
+  static async getStats(companyId?: string) {
+    const statsMatch: Record<string, unknown> = {};
+    if (companyId) statsMatch.company = new mongoose.Types.ObjectId(companyId);
+
     const stats = await Ticket.aggregate([
+      ...(Object.keys(statsMatch).length > 0 ? [{ $match: statsMatch }] : []),
       { $group: { _id: '$status', count: { $sum: 1 } } },
     ]);
 
@@ -266,11 +291,14 @@ export class HelpdeskService {
       totalTickets += stat.count as number;
     }
 
+    const priorityMatch: Record<string, unknown> = {
+      status: { $nin: [TicketStatus.CLOSED, TicketStatus.RESOLVED] },
+    };
+    if (companyId) priorityMatch.company = new mongoose.Types.ObjectId(companyId);
+
     const priorityCounts = await Ticket.aggregate([
       {
-        $match: {
-          status: { $nin: [TicketStatus.CLOSED, TicketStatus.RESOLVED] },
-        },
+        $match: priorityMatch,
       },
       { $group: { _id: '$priority', count: { $sum: 1 } } },
     ]);

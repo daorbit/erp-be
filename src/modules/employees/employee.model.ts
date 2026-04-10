@@ -83,6 +83,7 @@ export interface IEmployeeDocument {
 
 export interface IEmployeeProfile extends Document {
   userId: mongoose.Types.ObjectId;
+  company: mongoose.Types.ObjectId;
   employeeId: string;
   dateOfBirth?: Date;
   gender?: Gender;
@@ -191,6 +192,12 @@ const employeeProfileSchema = new Schema<IEmployeeProfile>(
       ref: 'User',
       required: [true, 'User ID is required'],
       unique: true,
+    },
+    company: {
+      type: Schema.Types.ObjectId,
+      ref: 'Company',
+      required: [true, 'Company is required'],
+      index: true,
     },
     employeeId: {
       type: String,

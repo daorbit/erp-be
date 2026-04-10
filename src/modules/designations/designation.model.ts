@@ -6,6 +6,7 @@ export interface IDesignation extends Document {
   title: string;
   code: string;
   description?: string;
+  company: mongoose.Types.ObjectId;
   department?: mongoose.Types.ObjectId;
   level: number;
   band?: string;
@@ -21,13 +22,11 @@ const designationSchema = new Schema<IDesignation>(
     title: {
       type: String,
       required: [true, 'Designation title is required'],
-      unique: true,
       trim: true,
       maxlength: [100, 'Title cannot exceed 100 characters'],
     },
     code: {
       type: String,
-      unique: true,
       required: [true, 'Designation code is required'],
       uppercase: true,
       trim: true,
@@ -37,6 +36,12 @@ const designationSchema = new Schema<IDesignation>(
       type: String,
       trim: true,
       maxlength: [500, 'Description cannot exceed 500 characters'],
+    },
+    company: {
+      type: Schema.Types.ObjectId,
+      ref: 'Company',
+      required: [true, 'Company is required'],
+      index: true,
     },
     department: {
       type: Schema.Types.ObjectId,
@@ -73,6 +78,8 @@ const designationSchema = new Schema<IDesignation>(
 
 // ─── Indexes ─────────────────────────────────────────────────────────────────
 
+designationSchema.index({ title: 1, company: 1 }, { unique: true });
+designationSchema.index({ code: 1, company: 1 }, { unique: true });
 designationSchema.index({ department: 1 });
 designationSchema.index({ level: 1 });
 designationSchema.index({ isActive: 1 });

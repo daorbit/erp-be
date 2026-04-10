@@ -34,6 +34,7 @@ export interface IAuthUser {
   id: string;
   email: string;
   role: UserRole;
+  company?: string;
 }
 
 export interface IAuthRequest extends Request {

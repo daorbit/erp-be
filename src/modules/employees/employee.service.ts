@@ -41,7 +41,7 @@ export class EmployeeService {
   /**
    * Get all employees with search, filtering, pagination, and sorting.
    */
-  static async getAll(query: IQueryParams): Promise<PaginatedResult<IEmployeeProfile>> {
+  static async getAll(query: IQueryParams, companyId?: string): Promise<PaginatedResult<IEmployeeProfile>> {
     const {
       page = 1,
       limit = 10,
@@ -52,6 +52,7 @@ export class EmployeeService {
     } = query;
 
     const filter: Record<string, unknown> = { isActive: true };
+    if (companyId) filter.company = companyId;
 
     // Search by name in populated user or employeeId
     if (search) {
@@ -148,12 +149,15 @@ export class EmployeeService {
   /**
    * Get a single employee profile by ID with full populated references.
    */
-  static async getById(id: string): Promise<IEmployeeProfile> {
+  static async getById(id: string, companyId?: string): Promise<IEmployeeProfile> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new AppError('Invalid employee ID format.', 400);
     }
 
-    const employee = await EmployeeProfile.findById(id)
+    const findFilter: Record<string, unknown> = { _id: id };
+    if (companyId) findFilter.company = companyId;
+
+    const employee = await EmployeeProfile.findOne(findFilter)
       .populate({
         path: 'userId',
         select: 'firstName lastName email phone role department designation avatar',
@@ -237,13 +241,17 @@ export class EmployeeService {
   static async update(
     id: string,
     data: Partial<IEmployeeProfile>,
+    companyId?: string,
   ): Promise<IEmployeeProfile> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new AppError('Invalid employee ID format.', 400);
     }
 
-    const employee = await EmployeeProfile.findByIdAndUpdate(
-      id,
+    const filter: Record<string, unknown> = { _id: id };
+    if (companyId) filter.company = companyId;
+
+    const employee = await EmployeeProfile.findOneAndUpdate(
+      filter,
       { $set: data },
       { new: true, runValidators: true },
     )
@@ -267,12 +275,15 @@ export class EmployeeService {
   /**
    * Soft delete an employee (set isActive to false).
    */
-  static async delete(id: string): Promise<IEmployeeProfile> {
+  static async delete(id: string, companyId?: string): Promise<IEmployeeProfile> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new AppError('Invalid employee ID format.', 400);
     }
 
-    const employee = await EmployeeProfile.findById(id);
+    const deleteFilter: Record<string, unknown> = { _id: id };
+    if (companyId) deleteFilter.company = companyId;
+
+    const employee = await EmployeeProfile.findOne(deleteFilter);
     if (!employee) {
       throw new AppError('Employee not found.', 404);
     }
@@ -289,7 +300,7 @@ export class EmployeeService {
   /**
    * Get all employees in a specific department.
    */
-  static async getByDepartment(departmentId: string): Promise<IEmployeeProfile[]> {
+  static async getByDepartment(departmentId: string, companyId?: string): Promise<IEmployeeProfile[]> {
     if (!mongoose.Types.ObjectId.isValid(departmentId)) {
       throw new AppError('Invalid department ID format.', 400);
     }
@@ -301,10 +312,13 @@ export class EmployeeService {
     }).select('_id');
     const userIds = users.map((u) => u._id);
 
-    const employees = await EmployeeProfile.find({
+    const deptFilter: Record<string, unknown> = {
       userId: { $in: userIds },
       isActive: true,
-    })
+    };
+    if (companyId) deptFilter.company = companyId;
+
+    const employees = await EmployeeProfile.find(deptFilter)
       .populate({
         path: 'userId',
         select: 'firstName lastName email phone role department designation avatar',
@@ -322,15 +336,18 @@ export class EmployeeService {
   /**
    * Get all direct reportees of a manager.
    */
-  static async getReportees(managerId: string): Promise<IEmployeeProfile[]> {
+  static async getReportees(managerId: string, companyId?: string): Promise<IEmployeeProfile[]> {
     if (!mongoose.Types.ObjectId.isValid(managerId)) {
       throw new AppError('Invalid manager ID format.', 400);
     }
 
-    const employees = await EmployeeProfile.find({
+    const reporteesFilter: Record<string, unknown> = {
       reportingManager: managerId,
       isActive: true,
-    })
+    };
+    if (companyId) reporteesFilter.company = companyId;
+
+    const employees = await EmployeeProfile.find(reporteesFilter)
       .populate({
         path: 'userId',
         select: 'firstName lastName email phone role department designation avatar',

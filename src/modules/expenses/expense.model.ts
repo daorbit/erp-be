@@ -33,6 +33,7 @@ export interface IReceipt {
 
 export interface IExpense extends Document {
   employee: mongoose.Types.ObjectId;
+  company: mongoose.Types.ObjectId;
   title: string;
   category: ExpenseCategory;
   amount: number;
@@ -76,6 +77,12 @@ const expenseSchema = new Schema<IExpense>(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: [true, 'Employee is required'],
+    },
+    company: {
+      type: Schema.Types.ObjectId,
+      ref: 'Company',
+      required: [true, 'Company is required'],
+      index: true,
     },
     title: {
       type: String,

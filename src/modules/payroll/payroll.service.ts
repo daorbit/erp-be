@@ -40,6 +40,7 @@ export class PayrollService {
    */
   static async getAllSalaryStructures(
     query: IQueryParams,
+    companyId?: string,
   ): Promise<PaginatedResult<ISalaryStructure>> {
     const {
       page = 1,
@@ -50,6 +51,7 @@ export class PayrollService {
     } = query;
 
     const filter: Record<string, unknown> = {};
+    if (companyId) filter.company = companyId;
 
     if (filters.isActive !== undefined) {
       filter.isActive = filters.isActive;
@@ -83,12 +85,15 @@ export class PayrollService {
   /**
    * Get salary structure by ID.
    */
-  static async getSalaryStructureById(id: string): Promise<ISalaryStructure> {
+  static async getSalaryStructureById(id: string, companyId?: string): Promise<ISalaryStructure> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new AppError('Invalid salary structure ID format.', 400);
     }
 
-    const structure = await SalaryStructure.findById(id).populate({
+    const findFilter: Record<string, unknown> = { _id: id };
+    if (companyId) findFilter.company = companyId;
+
+    const structure = await SalaryStructure.findOne(findFilter).populate({
       path: 'employee',
       select: 'employeeId userId',
       populate: { path: 'userId', select: 'firstName lastName email' },
@@ -153,17 +158,21 @@ export class PayrollService {
   static async updateSalaryStructure(
     id: string,
     data: Partial<ISalaryStructure>,
+    companyId?: string,
   ): Promise<ISalaryStructure> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new AppError('Invalid salary structure ID format.', 400);
     }
+
+    const updateFilter: Record<string, unknown> = { _id: id };
+    if (companyId) updateFilter.company = companyId;
 
     // Recalculate if salary components changed
     if (data.basic !== undefined || data.hra !== undefined || data.da !== undefined ||
         data.specialAllowance !== undefined || data.medicalAllowance !== undefined ||
         data.travelAllowance !== undefined || data.pf !== undefined || data.esi !== undefined ||
         data.professionalTax !== undefined || data.tds !== undefined || data.otherDeductions !== undefined) {
-      const existing = await SalaryStructure.findById(id);
+      const existing = await SalaryStructure.findOne(updateFilter);
       if (!existing) {
         throw new AppError('Salary structure not found.', 404);
       }
@@ -186,8 +195,8 @@ export class PayrollService {
       data.netSalary = data.grossSalary - data.totalDeductions;
     }
 
-    const structure = await SalaryStructure.findByIdAndUpdate(
-      id,
+    const structure = await SalaryStructure.findOneAndUpdate(
+      updateFilter,
       { $set: data },
       { new: true, runValidators: true },
     ).populate({
@@ -206,15 +215,18 @@ export class PayrollService {
   /**
    * Get salary structure by employee ID.
    */
-  static async getByEmployee(employeeId: string): Promise<ISalaryStructure> {
+  static async getByEmployee(employeeId: string, companyId?: string): Promise<ISalaryStructure> {
     if (!mongoose.Types.ObjectId.isValid(employeeId)) {
       throw new AppError('Invalid employee ID format.', 400);
     }
 
-    const structure = await SalaryStructure.findOne({
+    const empFilter: Record<string, unknown> = {
       employee: employeeId,
       isActive: true,
-    }).populate({
+    };
+    if (companyId) empFilter.company = companyId;
+
+    const structure = await SalaryStructure.findOne(empFilter).populate({
       path: 'employee',
       select: 'employeeId userId',
       populate: { path: 'userId', select: 'firstName lastName email' },
@@ -237,13 +249,17 @@ export class PayrollService {
     month: number,
     year: number,
     generatedBy?: string,
+    companyId?: string,
   ): Promise<IPayslip> {
     if (!mongoose.Types.ObjectId.isValid(employeeId)) {
       throw new AppError('Invalid employee ID format.', 400);
     }
 
     // Check for existing payslip
-    const existing = await Payslip.findOne({ employee: employeeId, month, year });
+    const genFilter: Record<string, unknown> = { employee: employeeId, month, year };
+    if (companyId) genFilter.company = companyId;
+
+    const existing = await Payslip.findOne(genFilter);
     if (existing) {
       throw new AppError(`Payslip already exists for ${month}/${year}.`, 409);
     }
@@ -309,8 +325,12 @@ export class PayrollService {
     month: number,
     year: number,
     generatedBy?: string,
+    companyId?: string,
   ): Promise<{ generated: number; skipped: number; errors: string[] }> {
-    const employees = await EmployeeProfile.find({ isActive: true }).select('_id');
+    const bulkFilter: Record<string, unknown> = { isActive: true };
+    if (companyId) bulkFilter.company = companyId;
+
+    const employees = await EmployeeProfile.find(bulkFilter).select('_id');
     let generated = 0;
     let skipped = 0;
     const errors: string[] = [];
@@ -341,7 +361,7 @@ export class PayrollService {
   /**
    * Get all payslips with filters and pagination.
    */
-  static async getAllPayslips(query: IQueryParams): Promise<PaginatedResult<IPayslip>> {
+  static async getAllPayslips(query: IQueryParams, companyId?: string): Promise<PaginatedResult<IPayslip>> {
     const {
       page = 1,
       limit = 10,
@@ -351,6 +371,7 @@ export class PayrollService {
     } = query;
 
     const filter: Record<string, unknown> = {};
+    if (companyId) filter.company = companyId;
 
     if (filters.employee) filter.employee = filters.employee;
     if (filters.month) filter.month = Number(filters.month);
@@ -387,12 +408,15 @@ export class PayrollService {
   /**
    * Get payslip by ID.
    */
-  static async getPayslipById(id: string): Promise<IPayslip> {
+  static async getPayslipById(id: string, companyId?: string): Promise<IPayslip> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new AppError('Invalid payslip ID format.', 400);
     }
 
-    const payslip = await Payslip.findById(id)
+    const findFilter: Record<string, unknown> = { _id: id };
+    if (companyId) findFilter.company = companyId;
+
+    const payslip = await Payslip.findOne(findFilter)
       .populate({
         path: 'employee',
         select: 'employeeId userId',
@@ -412,12 +436,15 @@ export class PayrollService {
   /**
    * Approve a payslip.
    */
-  static async approve(id: string, approverId: string): Promise<IPayslip> {
+  static async approve(id: string, approverId: string, companyId?: string): Promise<IPayslip> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new AppError('Invalid payslip ID format.', 400);
     }
 
-    const payslip = await Payslip.findById(id);
+    const approveFilter: Record<string, unknown> = { _id: id };
+    if (companyId) approveFilter.company = companyId;
+
+    const payslip = await Payslip.findOne(approveFilter);
     if (!payslip) {
       throw new AppError('Payslip not found.', 404);
     }
@@ -442,12 +469,15 @@ export class PayrollService {
   /**
    * Mark a payslip as paid.
    */
-  static async markPaid(id: string, details: PaymentDetails): Promise<IPayslip> {
+  static async markPaid(id: string, details: PaymentDetails, companyId?: string): Promise<IPayslip> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new AppError('Invalid payslip ID format.', 400);
     }
 
-    const payslip = await Payslip.findById(id);
+    const paidFilter: Record<string, unknown> = { _id: id };
+    if (companyId) paidFilter.company = companyId;
+
+    const payslip = await Payslip.findOne(paidFilter);
     if (!payslip) {
       throw new AppError('Payslip not found.', 404);
     }
@@ -480,6 +510,7 @@ export class PayrollService {
   static async getMyPayslips(
     userId: string,
     query: IQueryParams,
+    companyId?: string,
   ): Promise<PaginatedResult<IPayslip>> {
     // Resolve User ID to EmployeeProfile ID
     const profile = await EmployeeProfile.findOne({ userId }).select('_id');
@@ -492,6 +523,7 @@ export class PayrollService {
     } = query;
 
     const filter: Record<string, unknown> = { employee: employeeId };
+    if (companyId) filter.company = companyId;
 
     const skip = (page - 1) * limit;
     const sortOptions: Record<string, 1 | -1> = {
@@ -517,8 +549,11 @@ export class PayrollService {
   /**
    * Get salary summary for a given month/year.
    */
-  static async getSalarySummary(month: number, year: number): Promise<SalarySummary> {
-    const payslips = await Payslip.find({ month, year }).lean();
+  static async getSalarySummary(month: number, year: number, companyId?: string): Promise<SalarySummary> {
+    const summaryFilter: Record<string, unknown> = { month, year };
+    if (companyId) summaryFilter.company = companyId;
+
+    const payslips = await Payslip.find(summaryFilter).lean();
 
     const statusBreakdown: Record<string, number> = {};
     let totalGrossEarnings = 0;

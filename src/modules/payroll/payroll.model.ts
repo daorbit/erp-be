@@ -19,6 +19,7 @@ export enum PaymentMode {
 
 export interface ISalaryStructure extends Document {
   employee: mongoose.Types.ObjectId;
+  company: mongoose.Types.ObjectId;
   basic: number;
   hra: number;
   da: number;
@@ -49,6 +50,12 @@ const salaryStructureSchema = new Schema<ISalaryStructure>(
       ref: 'User',
       required: [true, 'Employee is required'],
       unique: true,
+    },
+    company: {
+      type: Schema.Types.ObjectId,
+      ref: 'Company',
+      required: [true, 'Company is required'],
+      index: true,
     },
     basic: {
       type: Number,
@@ -177,6 +184,7 @@ export interface IPayslipDeductions {
 
 export interface IPayslip extends Document {
   employee: mongoose.Types.ObjectId;
+  company: mongoose.Types.ObjectId;
   month: number;
   year: number;
   salaryStructure: mongoose.Types.ObjectId;
@@ -234,6 +242,12 @@ const payslipSchema = new Schema<IPayslip>(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: [true, 'Employee is required'],
+    },
+    company: {
+      type: Schema.Types.ObjectId,
+      ref: 'Company',
+      required: [true, 'Company is required'],
+      index: true,
     },
     month: {
       type: Number,

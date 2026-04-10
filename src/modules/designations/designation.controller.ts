@@ -21,7 +21,7 @@ export class DesignationController {
       },
     };
 
-    const result = await DesignationService.getAll(query);
+    const result = await DesignationService.getAll(query, req.user.company);
     res.status(200).json(
       buildResponse(true, result.data, 'Designations retrieved successfully', result.pagination),
     );
@@ -31,7 +31,7 @@ export class DesignationController {
    * GET /:id - Get designation by ID.
    */
   static getById = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const designation = await DesignationService.getById(req.params.id as string);
+    const designation = await DesignationService.getById(req.params.id as string, req.user.company);
     res.status(200).json(
       buildResponse(true, designation, 'Designation retrieved successfully'),
     );
@@ -41,7 +41,7 @@ export class DesignationController {
    * POST / - Create a new designation.
    */
   static create = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const designation = await DesignationService.create(req.body);
+    const designation = await DesignationService.create({ ...req.body, company: req.user.company });
     res.status(201).json(
       buildResponse(true, designation, 'Designation created successfully'),
     );
@@ -51,7 +51,7 @@ export class DesignationController {
    * PUT /:id - Update a designation.
    */
   static update = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const designation = await DesignationService.update(req.params.id as string, req.body);
+    const designation = await DesignationService.update(req.params.id as string, req.body, req.user.company);
     res.status(200).json(
       buildResponse(true, designation, 'Designation updated successfully'),
     );
@@ -61,7 +61,7 @@ export class DesignationController {
    * DELETE /:id - Soft delete a designation.
    */
   static delete = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const designation = await DesignationService.delete(req.params.id as string);
+    const designation = await DesignationService.delete(req.params.id as string, req.user.company);
     res.status(200).json(
       buildResponse(true, designation, 'Designation deactivated successfully'),
     );

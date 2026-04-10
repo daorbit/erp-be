@@ -21,7 +21,7 @@ import type {
 export class RecruitmentService {
   // ─── Job Posting CRUD ───────────────────────────────────────────────────
 
-  static async getAllJobs(query: IQueryParams) {
+  static async getAllJobs(query: IQueryParams, companyId?: string) {
     const {
       page = 1,
       limit = 10,
@@ -32,6 +32,7 @@ export class RecruitmentService {
     } = query;
 
     const filter: FilterQuery<IJobPosting> = {};
+    if (companyId) filter.company = companyId;
 
     if (search) {
       filter.$or = [
@@ -62,8 +63,11 @@ export class RecruitmentService {
     return { jobs, pagination: buildPagination(page, limit, total) };
   }
 
-  static async getJobById(id: string) {
-    const job = await JobPosting.findById(id)
+  static async getJobById(id: string, companyId?: string) {
+    const findFilter: Record<string, unknown> = { _id: id };
+    if (companyId) findFilter.company = companyId;
+
+    const job = await JobPosting.findOne(findFilter)
       .populate('department', 'name')
       .populate('designation', 'title')
       .populate('postedBy', 'firstName lastName');
@@ -80,9 +84,12 @@ export class RecruitmentService {
     return job;
   }
 
-  static async updateJob(id: string, data: UpdateJobPostingInput) {
-    const job = await JobPosting.findByIdAndUpdate(
-      id,
+  static async updateJob(id: string, data: UpdateJobPostingInput, companyId?: string) {
+    const filter: Record<string, unknown> = { _id: id };
+    if (companyId) filter.company = companyId;
+
+    const job = await JobPosting.findOneAndUpdate(
+      filter,
       { $set: data },
       { new: true, runValidators: true },
     )
@@ -96,8 +103,11 @@ export class RecruitmentService {
     return job;
   }
 
-  static async deleteJob(id: string) {
-    const job = await JobPosting.findByIdAndDelete(id);
+  static async deleteJob(id: string, companyId?: string) {
+    const deleteFilter: Record<string, unknown> = { _id: id };
+    if (companyId) deleteFilter.company = companyId;
+
+    const job = await JobPosting.findOneAndDelete(deleteFilter);
     if (!job) {
       throw new AppError('Job posting not found.', 404);
     }
@@ -108,9 +118,12 @@ export class RecruitmentService {
     return job;
   }
 
-  static async updateJobStatus(id: string, status: string) {
-    const job = await JobPosting.findByIdAndUpdate(
-      id,
+  static async updateJobStatus(id: string, status: string, companyId?: string) {
+    const filter: Record<string, unknown> = { _id: id };
+    if (companyId) filter.company = companyId;
+
+    const job = await JobPosting.findOneAndUpdate(
+      filter,
       { $set: { status } },
       { new: true, runValidators: true },
     );
@@ -124,7 +137,7 @@ export class RecruitmentService {
 
   // ─── Job Applications ─────────────────────────────────────────────────
 
-  static async getAllApplications(query: IQueryParams) {
+  static async getAllApplications(query: IQueryParams, companyId?: string) {
     const {
       page = 1,
       limit = 10,
@@ -135,6 +148,7 @@ export class RecruitmentService {
     } = query;
 
     const filter: FilterQuery<IJobApplication> = {};
+    if (companyId) filter.company = companyId;
 
     if (search) {
       filter.$or = [
@@ -163,8 +177,11 @@ export class RecruitmentService {
     return { applications, pagination: buildPagination(page, limit, total) };
   }
 
-  static async getApplicationById(id: string) {
-    const application = await JobApplication.findById(id)
+  static async getApplicationById(id: string, companyId?: string) {
+    const appFindFilter: Record<string, unknown> = { _id: id };
+    if (companyId) appFindFilter.company = companyId;
+
+    const application = await JobApplication.findOne(appFindFilter)
       .populate('jobPosting', 'title department employmentType location')
       .populate('interviewers', 'firstName lastName email');
 
@@ -192,12 +209,16 @@ export class RecruitmentService {
   static async updateApplicationStatus(
     id: string,
     data: UpdateApplicationStatusInput,
+    companyId?: string,
   ) {
     const updateData: Record<string, unknown> = { status: data.status };
     if (data.remarks) updateData.remarks = data.remarks;
 
-    const application = await JobApplication.findByIdAndUpdate(
-      id,
+    const appUpdateFilter: Record<string, unknown> = { _id: id };
+    if (companyId) appUpdateFilter.company = companyId;
+
+    const application = await JobApplication.findOneAndUpdate(
+      appUpdateFilter,
       { $set: updateData },
       { new: true, runValidators: true },
     ).populate('jobPosting', 'title');
@@ -209,9 +230,12 @@ export class RecruitmentService {
     return application;
   }
 
-  static async scheduleInterview(id: string, data: ScheduleInterviewInput) {
-    const application = await JobApplication.findByIdAndUpdate(
-      id,
+  static async scheduleInterview(id: string, data: ScheduleInterviewInput, companyId?: string) {
+    const interviewFilter: Record<string, unknown> = { _id: id };
+    if (companyId) interviewFilter.company = companyId;
+
+    const application = await JobApplication.findOneAndUpdate(
+      interviewFilter,
       {
         $set: {
           interviewDate: data.interviewDate,
@@ -232,7 +256,7 @@ export class RecruitmentService {
     return application;
   }
 
-  static async getApplicationsByJob(jobId: string, query: IQueryParams) {
+  static async getApplicationsByJob(jobId: string, query: IQueryParams, companyId?: string) {
     const {
       page = 1,
       limit = 10,
@@ -242,6 +266,7 @@ export class RecruitmentService {
     } = query;
 
     const filter: FilterQuery<IJobApplication> = { jobPosting: jobId };
+    if (companyId) filter.company = companyId;
     if (filters?.status) filter.status = filters.status;
 
     const skip = (page - 1) * limit;
@@ -260,8 +285,11 @@ export class RecruitmentService {
     return { applications, pagination: buildPagination(page, limit, total) };
   }
 
-  static async getJobStats(jobId: string) {
-    const job = await JobPosting.findById(jobId);
+  static async getJobStats(jobId: string, companyId?: string) {
+    const statsFilter: Record<string, unknown> = { _id: jobId };
+    if (companyId) statsFilter.company = companyId;
+
+    const job = await JobPosting.findOne(statsFilter);
     if (!job) {
       throw new AppError('Job posting not found.', 404);
     }

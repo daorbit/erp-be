@@ -56,7 +56,7 @@ export class AttendanceService {
   /**
    * Get all attendance records with filters and pagination.
    */
-  static async getAll(query: IQueryParams): Promise<PaginatedResult<IAttendance>> {
+  static async getAll(query: IQueryParams, companyId?: string): Promise<PaginatedResult<IAttendance>> {
     const {
       page = 1,
       limit = 10,
@@ -66,6 +66,7 @@ export class AttendanceService {
     } = query;
 
     const filter: Record<string, unknown> = {};
+    if (companyId) filter.company = companyId;
 
     if (filters.employee) {
       filter.employee = filters.employee;
@@ -110,12 +111,15 @@ export class AttendanceService {
   /**
    * Get attendance record by ID.
    */
-  static async getById(id: string): Promise<IAttendance> {
+  static async getById(id: string, companyId?: string): Promise<IAttendance> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new AppError('Invalid attendance ID format.', 400);
     }
 
-    const record = await Attendance.findById(id)
+    const findFilter: Record<string, unknown> = { _id: id };
+    if (companyId) findFilter.company = companyId;
+
+    const record = await Attendance.findOne(findFilter)
       .populate('employee', 'firstName lastName email employeeId')
       .populate('approvedBy', 'firstName lastName email');
 
@@ -129,7 +133,7 @@ export class AttendanceService {
   /**
    * Check in an employee for today.
    */
-  static async checkIn(employeeId: string, data: CheckInData): Promise<IAttendance> {
+  static async checkIn(employeeId: string, data: CheckInData, companyId?: string): Promise<IAttendance> {
     if (!mongoose.Types.ObjectId.isValid(employeeId)) {
       throw new AppError('Invalid employee ID format.', 400);
     }
@@ -137,10 +141,13 @@ export class AttendanceService {
     const today = dayjs().startOf('day').toDate();
 
     // Check if already checked in today
-    const existing = await Attendance.findOne({
+    const checkInFilter: Record<string, unknown> = {
       employee: employeeId,
       date: today,
-    });
+    };
+    if (companyId) checkInFilter.company = companyId;
+
+    const existing = await Attendance.findOne(checkInFilter);
 
     if (existing) {
       if (existing.checkIn) {
@@ -178,17 +185,20 @@ export class AttendanceService {
   /**
    * Check out an employee for today.
    */
-  static async checkOut(employeeId: string, data: CheckOutData): Promise<IAttendance> {
+  static async checkOut(employeeId: string, data: CheckOutData, companyId?: string): Promise<IAttendance> {
     if (!mongoose.Types.ObjectId.isValid(employeeId)) {
       throw new AppError('Invalid employee ID format.', 400);
     }
 
     const today = dayjs().startOf('day').toDate();
 
-    const record = await Attendance.findOne({
+    const checkOutFilter: Record<string, unknown> = {
       employee: employeeId,
       date: today,
-    });
+    };
+    if (companyId) checkOutFilter.company = companyId;
+
+    const record = await Attendance.findOne(checkOutFilter);
 
     if (!record) {
       throw new AppError('No check-in record found for today. Please check in first.', 404);
@@ -224,17 +234,20 @@ export class AttendanceService {
   /**
    * Admin/HR mark attendance for an employee.
    */
-  static async markAttendance(data: MarkAttendanceData): Promise<IAttendance> {
+  static async markAttendance(data: MarkAttendanceData, companyId?: string): Promise<IAttendance> {
     if (!mongoose.Types.ObjectId.isValid(data.employeeId)) {
       throw new AppError('Invalid employee ID format.', 400);
     }
 
     const date = dayjs(data.date).startOf('day').toDate();
 
-    const existing = await Attendance.findOne({
+    const markFilter: Record<string, unknown> = {
       employee: data.employeeId,
       date,
-    });
+    };
+    if (companyId) markFilter.company = companyId;
+
+    const existing = await Attendance.findOne(markFilter);
 
     if (existing) {
       existing.status = data.status;
@@ -264,6 +277,7 @@ export class AttendanceService {
     employeeId: string,
     month: number,
     year: number,
+    companyId?: string,
   ): Promise<IAttendance[]> {
     if (!mongoose.Types.ObjectId.isValid(employeeId)) {
       throw new AppError('Invalid employee ID format.', 400);
@@ -272,10 +286,13 @@ export class AttendanceService {
     const startDate = dayjs().year(year).month(month - 1).startOf('month').toDate();
     const endDate = dayjs().year(year).month(month - 1).endOf('month').toDate();
 
-    const records = await Attendance.find({
+    const myFilter: Record<string, unknown> = {
       employee: employeeId,
       date: { $gte: startDate, $lte: endDate },
-    })
+    };
+    if (companyId) myFilter.company = companyId;
+
+    const records = await Attendance.find(myFilter)
       .sort({ date: 1 })
       .lean();
 
@@ -289,6 +306,7 @@ export class AttendanceService {
     employeeId: string,
     month: number,
     year: number,
+    companyId?: string,
   ): Promise<AttendanceSummary> {
     if (!mongoose.Types.ObjectId.isValid(employeeId)) {
       throw new AppError('Invalid employee ID format.', 400);
@@ -297,10 +315,13 @@ export class AttendanceService {
     const startDate = dayjs().year(year).month(month - 1).startOf('month').toDate();
     const endDate = dayjs().year(year).month(month - 1).endOf('month').toDate();
 
-    const records = await Attendance.find({
+    const summaryFilter: Record<string, unknown> = {
       employee: employeeId,
       date: { $gte: startDate, $lte: endDate },
-    }).lean();
+    };
+    if (companyId) summaryFilter.company = companyId;
+
+    const records = await Attendance.find(summaryFilter).lean();
 
     const daysInMonth = dayjs().year(year).month(month - 1).daysInMonth();
 
@@ -351,7 +372,9 @@ export class AttendanceService {
   /**
    * Bulk mark attendance for multiple employees.
    */
-  static async bulkMarkAttendance(data: BulkMarkData): Promise<IAttendance[]> {
+  static async bulkMarkAttendance(data: BulkMarkData, companyId?: string): Promise<IAttendance[]> {
+    // companyId is available for future company-scoped bulk operations
+    void companyId;
     const date = dayjs(data.date).startOf('day').toDate();
     const results: IAttendance[] = [];
 
@@ -382,10 +405,13 @@ export class AttendanceService {
   /**
    * Get daily attendance report for all employees on a given date.
    */
-  static async getDailyReport(date: string): Promise<IAttendance[]> {
+  static async getDailyReport(date: string, companyId?: string): Promise<IAttendance[]> {
     const targetDate = dayjs(date).startOf('day').toDate();
 
-    const records = await Attendance.find({ date: targetDate })
+    const dailyFilter: Record<string, unknown> = { date: targetDate };
+    if (companyId) dailyFilter.company = companyId;
+
+    const records = await Attendance.find(dailyFilter)
       .populate('employee', 'firstName lastName email employeeId')
       .populate('approvedBy', 'firstName lastName email')
       .sort({ 'employee.firstName': 1 })

@@ -7,6 +7,7 @@ import { PerformanceService } from './performance.service.js';
 // ─── Review Controllers ─────────────────────────────────────────────────────
 
 export const getAllReviews = asyncHandler(async (req: Request, res: Response) => {
+  const authReq = req as IAuthRequest;
   const query: IQueryParams = {
     page: Number(req.query.page) || 1,
     limit: Number(req.query.limit) || 10,
@@ -20,7 +21,7 @@ export const getAllReviews = asyncHandler(async (req: Request, res: Response) =>
     },
   };
 
-  const { reviews, pagination } = await PerformanceService.getAllReviews(query);
+  const { reviews, pagination } = await PerformanceService.getAllReviews(query, authReq.user.company);
 
   res.status(200).json(
     buildResponse(true, reviews, 'Reviews retrieved successfully', pagination),
@@ -28,7 +29,8 @@ export const getAllReviews = asyncHandler(async (req: Request, res: Response) =>
 });
 
 export const getReviewById = asyncHandler(async (req: Request, res: Response) => {
-  const review = await PerformanceService.getReviewById(req.params.id as string);
+  const authReq = req as IAuthRequest;
+  const review = await PerformanceService.getReviewById(req.params.id as string, authReq.user.company);
 
   res.status(200).json(
     buildResponse(true, review, 'Review retrieved successfully'),
@@ -40,6 +42,7 @@ export const createReview = asyncHandler(async (req: Request, res: Response) => 
   const review = await PerformanceService.createReview({
     ...req.body,
     reviewer: authReq.user.id,
+    company: authReq.user.company,
   });
 
   res.status(201).json(
@@ -48,7 +51,8 @@ export const createReview = asyncHandler(async (req: Request, res: Response) => 
 });
 
 export const updateReview = asyncHandler(async (req: Request, res: Response) => {
-  const review = await PerformanceService.updateReview(req.params.id as string, req.body);
+  const authReq = req as IAuthRequest;
+  const review = await PerformanceService.updateReview(req.params.id as string, req.body, authReq.user.company);
 
   res.status(200).json(
     buildResponse(true, review, 'Review updated successfully'),
@@ -56,7 +60,8 @@ export const updateReview = asyncHandler(async (req: Request, res: Response) => 
 });
 
 export const deleteReview = asyncHandler(async (req: Request, res: Response) => {
-  await PerformanceService.deleteReview(req.params.id as string);
+  const authReq = req as IAuthRequest;
+  await PerformanceService.deleteReview(req.params.id as string, authReq.user.company);
 
   res.status(200).json(
     buildResponse(true, null, 'Review deleted successfully'),
@@ -64,7 +69,8 @@ export const deleteReview = asyncHandler(async (req: Request, res: Response) => 
 });
 
 export const submitReview = asyncHandler(async (req: Request, res: Response) => {
-  const review = await PerformanceService.submitReview(req.params.id as string);
+  const authReq = req as IAuthRequest;
+  const review = await PerformanceService.submitReview(req.params.id as string, authReq.user.company);
 
   res.status(200).json(
     buildResponse(true, review, 'Review submitted to the next stage successfully'),
@@ -83,6 +89,7 @@ export const getMyReviews = asyncHandler(async (req: Request, res: Response) => 
   const { reviews, pagination } = await PerformanceService.getMyReviews(
     authReq.user.id,
     query,
+    authReq.user.company,
   );
 
   res.status(200).json(
@@ -102,6 +109,7 @@ export const getPendingReviews = asyncHandler(async (req: Request, res: Response
   const { reviews, pagination } = await PerformanceService.getPendingReviews(
     authReq.user.id,
     query,
+    authReq.user.company,
   );
 
   res.status(200).json(
@@ -112,6 +120,7 @@ export const getPendingReviews = asyncHandler(async (req: Request, res: Response
 // ─── Goal Controllers ───────────────────────────────────────────────────────
 
 export const getAllGoals = asyncHandler(async (req: Request, res: Response) => {
+  const authReq = req as IAuthRequest;
   const query: IQueryParams = {
     page: Number(req.query.page) || 1,
     limit: Number(req.query.limit) || 10,
@@ -126,7 +135,7 @@ export const getAllGoals = asyncHandler(async (req: Request, res: Response) => {
     },
   };
 
-  const { goals, pagination } = await PerformanceService.getAllGoals(query);
+  const { goals, pagination } = await PerformanceService.getAllGoals(query, authReq.user.company);
 
   res.status(200).json(
     buildResponse(true, goals, 'Goals retrieved successfully', pagination),
@@ -134,7 +143,8 @@ export const getAllGoals = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const getGoalById = asyncHandler(async (req: Request, res: Response) => {
-  const goal = await PerformanceService.getGoalById(req.params.id as string);
+  const authReq = req as IAuthRequest;
+  const goal = await PerformanceService.getGoalById(req.params.id as string, authReq.user.company);
 
   res.status(200).json(
     buildResponse(true, goal, 'Goal retrieved successfully'),
@@ -146,6 +156,7 @@ export const createGoal = asyncHandler(async (req: Request, res: Response) => {
   const goal = await PerformanceService.createGoal({
     ...req.body,
     assignedBy: authReq.user.id,
+    company: authReq.user.company,
   });
 
   res.status(201).json(
@@ -154,7 +165,8 @@ export const createGoal = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const updateGoal = asyncHandler(async (req: Request, res: Response) => {
-  const goal = await PerformanceService.updateGoal(req.params.id as string, req.body);
+  const authReq = req as IAuthRequest;
+  const goal = await PerformanceService.updateGoal(req.params.id as string, req.body, authReq.user.company);
 
   res.status(200).json(
     buildResponse(true, goal, 'Goal updated successfully'),
@@ -162,7 +174,8 @@ export const updateGoal = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const deleteGoal = asyncHandler(async (req: Request, res: Response) => {
-  await PerformanceService.deleteGoal(req.params.id as string);
+  const authReq = req as IAuthRequest;
+  await PerformanceService.deleteGoal(req.params.id as string, authReq.user.company);
 
   res.status(200).json(
     buildResponse(true, null, 'Goal deleted successfully'),
@@ -181,6 +194,7 @@ export const getMyGoals = asyncHandler(async (req: Request, res: Response) => {
   const { goals, pagination } = await PerformanceService.getMyGoals(
     authReq.user.id,
     query,
+    authReq.user.company,
   );
 
   res.status(200).json(
@@ -189,7 +203,8 @@ export const getMyGoals = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const updateGoalProgress = asyncHandler(async (req: Request, res: Response) => {
-  const goal = await PerformanceService.updateGoalProgress(req.params.id as string, req.body);
+  const authReq = req as IAuthRequest;
+  const goal = await PerformanceService.updateGoalProgress(req.params.id as string, req.body, authReq.user.company);
 
   res.status(200).json(
     buildResponse(true, goal, 'Goal progress updated successfully'),
@@ -197,6 +212,7 @@ export const updateGoalProgress = asyncHandler(async (req: Request, res: Respons
 });
 
 export const getGoalsByEmployee = asyncHandler(async (req: Request, res: Response) => {
+  const authReq = req as IAuthRequest;
   const query: IQueryParams = {
     page: Number(req.query.page) || 1,
     limit: Number(req.query.limit) || 10,
@@ -207,6 +223,7 @@ export const getGoalsByEmployee = asyncHandler(async (req: Request, res: Respons
   const { goals, pagination } = await PerformanceService.getGoalsByEmployee(
     req.params.employeeId as string,
     query,
+    authReq.user.company,
   );
 
   res.status(200).json(

@@ -45,6 +45,7 @@ export interface IAssignmentHistory {
 
 export interface IAsset extends Document {
   name: string;
+  company: mongoose.Types.ObjectId;
   assetTag: string;
   category: AssetCategory;
   brand?: string;
@@ -104,6 +105,12 @@ const assetSchema = new Schema<IAsset>(
       required: [true, 'Asset name is required'],
       trim: true,
       maxlength: [200, 'Name cannot exceed 200 characters'],
+    },
+    company: {
+      type: Schema.Types.ObjectId,
+      ref: 'Company',
+      required: [true, 'Company is required'],
+      index: true,
     },
     assetTag: {
       type: String,

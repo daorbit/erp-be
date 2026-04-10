@@ -21,7 +21,7 @@ export class HolidayController {
       },
     };
 
-    const result = await HolidayService.getAll(query);
+    const result = await HolidayService.getAll(query, req.user.company);
     res.status(200).json(
       buildResponse(true, result.data, 'Holidays retrieved successfully', result.pagination),
     );
@@ -32,7 +32,7 @@ export class HolidayController {
    */
   static getUpcoming = asyncHandler(async (req: IAuthRequest, res: Response) => {
     const limit = parseInt(req.query.limit as string) || 5;
-    const holidays = await HolidayService.getUpcoming(limit);
+    const holidays = await HolidayService.getUpcoming(limit, req.user.company);
     res.status(200).json(
       buildResponse(true, holidays, 'Upcoming holidays retrieved successfully'),
     );
@@ -48,7 +48,7 @@ export class HolidayController {
       return;
     }
 
-    const holidays = await HolidayService.getByYear(year);
+    const holidays = await HolidayService.getByYear(year, req.user.company);
     res.status(200).json(
       buildResponse(true, holidays, 'Holidays retrieved successfully'),
     );
@@ -58,7 +58,7 @@ export class HolidayController {
    * GET /:id - Get holiday by ID.
    */
   static getById = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const holiday = await HolidayService.getById(req.params.id as string);
+    const holiday = await HolidayService.getById(req.params.id as string, req.user.company);
     res.status(200).json(
       buildResponse(true, holiday, 'Holiday retrieved successfully'),
     );
@@ -68,7 +68,7 @@ export class HolidayController {
    * POST / - Create a new holiday.
    */
   static create = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const holiday = await HolidayService.create(req.body);
+    const holiday = await HolidayService.create({ ...req.body, company: req.user.company });
     res.status(201).json(
       buildResponse(true, holiday, 'Holiday created successfully'),
     );
@@ -78,7 +78,7 @@ export class HolidayController {
    * PUT /:id - Update a holiday.
    */
   static update = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const holiday = await HolidayService.update(req.params.id as string, req.body);
+    const holiday = await HolidayService.update(req.params.id as string, req.body, req.user.company);
     res.status(200).json(
       buildResponse(true, holiday, 'Holiday updated successfully'),
     );
@@ -88,7 +88,7 @@ export class HolidayController {
    * DELETE /:id - Soft delete a holiday.
    */
   static delete = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const holiday = await HolidayService.delete(req.params.id as string);
+    const holiday = await HolidayService.delete(req.params.id as string, req.user.company);
     res.status(200).json(
       buildResponse(true, holiday, 'Holiday deactivated successfully'),
     );

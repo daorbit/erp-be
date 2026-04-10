@@ -5,6 +5,7 @@ import type { IAuthRequest, IQueryParams } from '../../shared/types.js';
 import { DocumentService } from './document.service.js';
 
 export const getAll = asyncHandler(async (req: Request, res: Response) => {
+  const authReq = req as IAuthRequest;
   const query: IQueryParams = {
     page: Number(req.query.page) || 1,
     limit: Number(req.query.limit) || 10,
@@ -20,7 +21,7 @@ export const getAll = asyncHandler(async (req: Request, res: Response) => {
     },
   };
 
-  const { documents, pagination } = await DocumentService.getAll(query);
+  const { documents, pagination } = await DocumentService.getAll(query, authReq.user.company);
 
   res.status(200).json(
     buildResponse(true, documents, 'Documents retrieved successfully', pagination),
@@ -28,7 +29,8 @@ export const getAll = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const getById = asyncHandler(async (req: Request, res: Response) => {
-  const document = await DocumentService.getById(req.params.id as string);
+  const authReq = req as IAuthRequest;
+  const document = await DocumentService.getById(req.params.id as string, authReq.user.company);
 
   res.status(200).json(
     buildResponse(true, document, 'Document retrieved successfully'),
@@ -40,6 +42,7 @@ export const upload = asyncHandler(async (req: Request, res: Response) => {
   const document = await DocumentService.upload({
     ...req.body,
     uploadedBy: authReq.user.id,
+    company: authReq.user.company,
   });
 
   res.status(201).json(
@@ -48,7 +51,8 @@ export const upload = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const update = asyncHandler(async (req: Request, res: Response) => {
-  const document = await DocumentService.update(req.params.id as string, req.body);
+  const authReq = req as IAuthRequest;
+  const document = await DocumentService.update(req.params.id as string, req.body, authReq.user.company);
 
   res.status(200).json(
     buildResponse(true, document, 'Document updated successfully'),
@@ -56,7 +60,8 @@ export const update = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const remove = asyncHandler(async (req: Request, res: Response) => {
-  await DocumentService.delete(req.params.id as string);
+  const authReq = req as IAuthRequest;
+  await DocumentService.delete(req.params.id as string, authReq.user.company);
 
   res.status(200).json(
     buildResponse(true, null, 'Document deleted successfully'),
@@ -64,6 +69,7 @@ export const remove = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const getByEmployee = asyncHandler(async (req: Request, res: Response) => {
+  const authReq = req as IAuthRequest;
   const query: IQueryParams = {
     page: Number(req.query.page) || 1,
     limit: Number(req.query.limit) || 10,
@@ -74,6 +80,7 @@ export const getByEmployee = asyncHandler(async (req: Request, res: Response) =>
   const { documents, pagination } = await DocumentService.getByEmployee(
     req.params.employeeId as string,
     query,
+    authReq.user.company,
   );
 
   res.status(200).json(
@@ -82,6 +89,7 @@ export const getByEmployee = asyncHandler(async (req: Request, res: Response) =>
 });
 
 export const getPublicDocuments = asyncHandler(async (req: Request, res: Response) => {
+  const authReq = req as IAuthRequest;
   const query: IQueryParams = {
     page: Number(req.query.page) || 1,
     limit: Number(req.query.limit) || 10,
@@ -89,7 +97,7 @@ export const getPublicDocuments = asyncHandler(async (req: Request, res: Respons
     sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'desc',
   };
 
-  const { documents, pagination } = await DocumentService.getPublicDocuments(query);
+  const { documents, pagination } = await DocumentService.getPublicDocuments(query, authReq.user.company);
 
   res.status(200).json(
     buildResponse(true, documents, 'Public documents retrieved successfully', pagination),
@@ -97,6 +105,7 @@ export const getPublicDocuments = asyncHandler(async (req: Request, res: Respons
 });
 
 export const getByCategory = asyncHandler(async (req: Request, res: Response) => {
+  const authReq = req as IAuthRequest;
   const query: IQueryParams = {
     page: Number(req.query.page) || 1,
     limit: Number(req.query.limit) || 10,
@@ -107,6 +116,7 @@ export const getByCategory = asyncHandler(async (req: Request, res: Response) =>
   const { documents, pagination } = await DocumentService.getByCategory(
     req.params.category as string,
     query,
+    authReq.user.company,
   );
 
   res.status(200).json(

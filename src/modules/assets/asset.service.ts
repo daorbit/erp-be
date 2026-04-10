@@ -11,7 +11,7 @@ import type {
 } from './asset.validator.js';
 
 export class AssetService {
-  static async getAll(query: IQueryParams) {
+  static async getAll(query: IQueryParams, companyId?: string) {
     const {
       page = 1,
       limit = 10,
@@ -22,6 +22,7 @@ export class AssetService {
     } = query;
 
     const filter: FilterQuery<IAsset> = {};
+    if (companyId) filter.company = companyId;
 
     if (search) {
       filter.$or = [
@@ -52,8 +53,11 @@ export class AssetService {
     return { assets, pagination: buildPagination(page, limit, total) };
   }
 
-  static async getById(id: string) {
-    const asset = await Asset.findById(id)
+  static async getById(id: string, companyId?: string) {
+    const findFilter: Record<string, unknown> = { _id: id };
+    if (companyId) findFilter.company = companyId;
+
+    const asset = await Asset.findOne(findFilter)
       .populate('assignedTo', 'firstName lastName email')
       .populate('assignmentHistory.employee', 'firstName lastName email');
 
@@ -69,9 +73,12 @@ export class AssetService {
     return asset;
   }
 
-  static async update(id: string, data: UpdateAssetInput) {
-    const asset = await Asset.findByIdAndUpdate(
-      id,
+  static async update(id: string, data: UpdateAssetInput, companyId?: string) {
+    const updateFilter: Record<string, unknown> = { _id: id };
+    if (companyId) updateFilter.company = companyId;
+
+    const asset = await Asset.findOneAndUpdate(
+      updateFilter,
       { $set: data },
       { new: true, runValidators: true },
     ).populate('assignedTo', 'firstName lastName email');
@@ -83,8 +90,11 @@ export class AssetService {
     return asset;
   }
 
-  static async delete(id: string) {
-    const asset = await Asset.findById(id);
+  static async delete(id: string, companyId?: string) {
+    const deleteFilter: Record<string, unknown> = { _id: id };
+    if (companyId) deleteFilter.company = companyId;
+
+    const asset = await Asset.findOne(deleteFilter);
     if (!asset) {
       throw new AppError('Asset not found.', 404);
     }
@@ -97,8 +107,11 @@ export class AssetService {
     return asset;
   }
 
-  static async assignToEmployee(assetId: string, data: AssignAssetInput) {
-    const asset = await Asset.findById(assetId);
+  static async assignToEmployee(assetId: string, data: AssignAssetInput, companyId?: string) {
+    const assignFilter: Record<string, unknown> = { _id: assetId };
+    if (companyId) assignFilter.company = companyId;
+
+    const asset = await Asset.findOne(assignFilter);
     if (!asset) {
       throw new AppError('Asset not found.', 404);
     }
@@ -125,8 +138,11 @@ export class AssetService {
     return asset;
   }
 
-  static async returnAsset(assetId: string, data: ReturnAssetInput) {
-    const asset = await Asset.findById(assetId);
+  static async returnAsset(assetId: string, data: ReturnAssetInput, companyId?: string) {
+    const returnFilter: Record<string, unknown> = { _id: assetId };
+    if (companyId) returnFilter.company = companyId;
+
+    const asset = await Asset.findOne(returnFilter);
     if (!asset) {
       throw new AppError('Asset not found.', 404);
     }
@@ -154,33 +170,42 @@ export class AssetService {
     return asset;
   }
 
-  static async getByEmployee(employeeId: string) {
-    const assets = await Asset.find({
+  static async getByEmployee(employeeId: string, companyId?: string) {
+    const empFilter: Record<string, unknown> = {
       assignedTo: employeeId,
       status: AssetStatus.ASSIGNED,
-    })
+    };
+    if (companyId) empFilter.company = companyId;
+
+    const assets = await Asset.find(empFilter)
       .sort({ assignedDate: -1 })
       .lean();
 
     return assets;
   }
 
-  static async getAvailable() {
-    const assets = await Asset.find({
+  static async getAvailable(companyId?: string) {
+    const availFilter: Record<string, unknown> = {
       status: AssetStatus.AVAILABLE,
-    })
+    };
+    if (companyId) availFilter.company = companyId;
+
+    const assets = await Asset.find(availFilter)
       .sort({ category: 1, name: 1 })
       .lean();
 
     return assets;
   }
 
-  static async getMaintenanceDue() {
+  static async getMaintenanceDue(companyId?: string) {
     const now = new Date();
-    const assets = await Asset.find({
+    const maintFilter: Record<string, unknown> = {
       warrantyExpiry: { $lte: now },
       status: { $nin: [AssetStatus.DISPOSED, AssetStatus.LOST] },
-    })
+    };
+    if (companyId) maintFilter.company = companyId;
+
+    const assets = await Asset.find(maintFilter)
       .populate('assignedTo', 'firstName lastName email')
       .sort({ warrantyExpiry: 1 })
       .lean();

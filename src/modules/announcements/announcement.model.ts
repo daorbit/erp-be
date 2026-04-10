@@ -41,6 +41,7 @@ export interface IReadReceipt {
 
 export interface IAnnouncement extends Document {
   title: string;
+  company: mongoose.Types.ObjectId;
   content: string;
   category: AnnouncementCategory;
   priority: AnnouncementPriority;
@@ -99,6 +100,12 @@ const announcementSchema = new Schema<IAnnouncement>(
       required: [true, 'Announcement title is required'],
       trim: true,
       maxlength: [200, 'Title cannot exceed 200 characters'],
+    },
+    company: {
+      type: Schema.Types.ObjectId,
+      ref: 'Company',
+      required: [true, 'Company is required'],
+      index: true,
     },
     content: {
       type: String,

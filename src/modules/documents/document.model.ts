@@ -18,6 +18,7 @@ export enum DocumentCategory {
 
 export interface IDocument extends Document {
   title: string;
+  company: mongoose.Types.ObjectId;
   description?: string;
   category: DocumentCategory;
   fileUrl: string;
@@ -42,6 +43,12 @@ const documentSchema = new Schema<IDocument>(
       required: [true, 'Document title is required'],
       trim: true,
       maxlength: [200, 'Title cannot exceed 200 characters'],
+    },
+    company: {
+      type: Schema.Types.ObjectId,
+      ref: 'Company',
+      required: [true, 'Company is required'],
+      index: true,
     },
     description: {
       type: String,
