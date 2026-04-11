@@ -178,9 +178,9 @@ export class AttendanceService {
       const shift = await Shift.findById(empProfile.shift).lean();
       if (shift) {
         const [startH, startM] = shift.startTime.split(':').map(Number);
-        const graceH = startH + Math.floor((startM + shift.graceMinutes) / 60);
-        const graceM = (startM + shift.graceMinutes) % 60;
-        isLate = now.getHours() > graceH || (now.getHours() === graceH && now.getMinutes() > graceM);
+        const graceDeadline = dayjs().hour(startH).minute(startM).second(0)
+          .add(shift.graceMinutes, 'minute');
+        isLate = dayjs().isAfter(graceDeadline);
       }
     }
 

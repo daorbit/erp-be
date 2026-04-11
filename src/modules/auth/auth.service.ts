@@ -42,11 +42,17 @@ export class AuthService {
 
     // Auto-create EmployeeProfile for non-super_admin users
     if (user.role !== UserRole.SUPER_ADMIN && user.company) {
-      await EmployeeProfile.create({
-        userId: user._id,
-        company: user.company,
-        employeeId: user.employeeId,
-      });
+      try {
+        await EmployeeProfile.create({
+          userId: user._id,
+          company: user.company,
+          employeeId: user.employeeId,
+        });
+      } catch (err) {
+        // Rollback: delete the user if profile creation fails
+        await User.findByIdAndDelete(user._id);
+        throw new AppError('Failed to create employee profile. Please try again.', 500);
+      }
     }
 
     const accessToken = user.generateAuthToken();
