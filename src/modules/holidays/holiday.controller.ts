@@ -68,7 +68,7 @@ export class HolidayController {
    * POST / - Create a new holiday.
    */
   static create = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const holiday = await HolidayService.create({ ...req.body, company: req.user.company });
+    const holiday = await HolidayService.create({ ...req.body, company: req.user.company, createdBy: req.user.id });
     res.status(201).json(
       buildResponse(true, holiday, 'Holiday created successfully'),
     );

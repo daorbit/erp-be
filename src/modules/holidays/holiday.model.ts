@@ -27,6 +27,7 @@ export interface IHoliday extends Document {
   applicableFor: HolidayApplicableFor;
   departments: mongoose.Types.ObjectId[];
   createdBy: mongoose.Types.ObjectId;
+  isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -86,6 +87,10 @@ const holidaySchema = new Schema<IHoliday>(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: [true, 'Creator is required'],
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
     },
   },
   {
