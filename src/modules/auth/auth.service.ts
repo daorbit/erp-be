@@ -4,6 +4,7 @@ import { AppError } from '../../middleware/errorHandler.js';
 import { generateEmployeeId } from '../../shared/helpers.js';
 import { UserRole } from '../../shared/types.js';
 import User, { type IUser } from './auth.model.js';
+import EmployeeProfile from '../employees/employee.model.js';
 import type { RegisterInput, UpdateProfileInput } from './auth.validator.js';
 
 interface AuthTokens {
@@ -38,6 +39,15 @@ export class AuthService {
       ...data,
       employeeId,
     });
+
+    // Auto-create EmployeeProfile for non-super_admin users
+    if (user.role !== UserRole.SUPER_ADMIN && user.company) {
+      await EmployeeProfile.create({
+        userId: user._id,
+        company: user.company,
+        employeeId: user.employeeId,
+      });
+    }
 
     const accessToken = user.generateAuthToken();
     const refreshToken = user.generateRefreshToken();
