@@ -30,6 +30,7 @@ export const registerSchema = z.object({
   company: z.string().optional(),
   department: z.string().optional(),
   designation: z.string().optional(),
+  avatar: z.string().url('Avatar must be a valid URL').optional(),
   onboardingRequired: z.boolean().optional().default(false),
 }).refine(
   (data) => data.role === UserRole.SUPER_ADMIN || !!data.company,
