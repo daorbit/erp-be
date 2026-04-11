@@ -4,6 +4,8 @@ import { AppError } from '../../middleware/errorHandler.js';
 import { buildPagination } from '../../shared/helpers.js';
 import type { IQueryParams } from '../../shared/types.js';
 import Attendance, { AttendanceStatus, type IAttendance } from './attendance.model.js';
+import EmployeeProfile from '../employees/employee.model.js';
+import Shift from '../shifts/shift.model.js';
 
 interface PaginatedResult<T> {
   data: T[];
@@ -166,9 +168,21 @@ export class AttendanceService {
       return existing;
     }
 
-    // Determine if late (after 9:30 AM)
+    // Determine if late based on employee's assigned shift (fallback to 9:30 AM)
     const now = new Date();
-    const isLate = now.getHours() > 9 || (now.getHours() === 9 && now.getMinutes() > 30);
+    let isLate = now.getHours() > 9 || (now.getHours() === 9 && now.getMinutes() > 30);
+
+    // Check if employee has an assigned shift
+    const empProfile = await EmployeeProfile.findOne({ userId: employeeId }).lean();
+    if (empProfile?.shift) {
+      const shift = await Shift.findById(empProfile.shift).lean();
+      if (shift) {
+        const [startH, startM] = shift.startTime.split(':').map(Number);
+        const graceH = startH + Math.floor((startM + shift.graceMinutes) / 60);
+        const graceM = (startM + shift.graceMinutes) % 60;
+        isLate = now.getHours() > graceH || (now.getHours() === graceH && now.getMinutes() > graceM);
+      }
+    }
 
     const record = await Attendance.create({
       employee: employeeId,

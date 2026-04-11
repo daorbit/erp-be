@@ -5,6 +5,7 @@ import config from './config/index.js';
 import { connectDB } from './config/database.js';
 import app from './app.js';
 import { seedAdminUser } from './database/autoSeed.js';
+import { startShiftScheduler, stopShiftScheduler } from './modules/shifts/shiftScheduler.js';
 
 // ─── Unhandled rejection handler ─────────────────────────────────────────────
 process.on('unhandledRejection', (reason: unknown) => {
@@ -26,6 +27,7 @@ process.on('uncaughtException', (error: Error) => {
 // ─── SIGTERM handler ─────────────────────────────────────────────────────────
 process.on('SIGTERM', () => {
   console.log('[SERVER] SIGTERM received. Shutting down gracefully...');
+  stopShiftScheduler();
   server?.close(() => {
     console.log('[SERVER] Process terminated.');
     process.exit(0);
@@ -45,6 +47,9 @@ async function bootstrap(): Promise<void> {
         `[SERVER] Running on port ${config.server.port} in ${config.server.nodeEnv} mode`,
       );
     });
+
+    // Start shift reminder scheduler
+    startShiftScheduler();
   } catch (error) {
     console.error('[SERVER] Failed to start:', error);
     process.exit(1);

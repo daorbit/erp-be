@@ -102,6 +102,7 @@ export interface IEmployeeProfile extends Document {
   resignationDate?: Date;
   lastWorkingDate?: Date;
   employmentType: EmploymentType;
+  shift?: mongoose.Types.ObjectId;
   workShift?: string;
   workLocation?: string;
   reportingManager?: mongoose.Types.ObjectId;
@@ -256,6 +257,10 @@ const employeeProfileSchema = new Schema<IEmployeeProfile>(
       type: String,
       enum: Object.values(EmploymentType),
       default: EmploymentType.FULL_TIME,
+    },
+    shift: {
+      type: Schema.Types.ObjectId,
+      ref: 'Shift',
     },
     workShift: {
       type: String,

@@ -134,6 +134,7 @@ export class EmployeeService {
           ],
         })
         .populate('reportingManager', 'firstName lastName email')
+        .populate('shift', 'name startTime endTime graceMinutes')
         .sort(sortOptions)
         .skip(skip)
         .limit(limit)
