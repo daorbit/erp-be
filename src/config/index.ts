@@ -62,6 +62,11 @@ const config = {
     dir: optionalEnv("UPLOAD_DIR", "./uploads"),
     maxFileSize: parseInt(optionalEnv("MAX_FILE_SIZE", "5242880"), 10),
   },
+  cloudinary: {
+    cloudName: optionalEnv("CLOUDINARY_CLOUD_NAME", ""),
+    apiKey: optionalEnv("CLOUDINARY_API_KEY", ""),
+    apiSecret: optionalEnv("CLOUDINARY_API_SECRET", ""),
+  },
 } as const;
 
 export type Config = typeof config;

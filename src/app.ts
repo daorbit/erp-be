@@ -31,6 +31,7 @@ import companyRoutes from './modules/companies/company.routes.js';
 import invitationRoutes from './modules/invitations/invitation.routes.js';
 import shiftRoutes from './modules/shifts/shift.routes.js';
 import webhookRoutes from './modules/shifts/webhook.routes.js';
+import uploadRoutes from './modules/upload/upload.routes.js';
 import { requireOnboardingComplete } from './middleware/onboardingGate.js';
 
 // ─── Express app ─────────────────────────────────────────────────────────────
@@ -113,9 +114,10 @@ app.get(`${API_PREFIX}/health`, (_req: Request, res: Response) => {
 // Webhook routes (no auth — called by Twilio)
 app.use(`${API_PREFIX}/webhooks`, webhookRoutes);
 
-// Auth, invitation & onboarding routes (exempt from onboarding gate)
+// Auth, invitation, upload & onboarding routes (exempt from onboarding gate)
 app.use(`${API_PREFIX}/auth`, authRoutes);
 app.use(`${API_PREFIX}/invitations`, invitationRoutes);
+app.use(`${API_PREFIX}/upload`, uploadRoutes);
 
 import onboardingRoutes from './modules/onboarding/onboarding.routes.js';
 app.use(`${API_PREFIX}/onboarding`, onboardingRoutes);
