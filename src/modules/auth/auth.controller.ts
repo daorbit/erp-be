@@ -4,14 +4,7 @@ import { buildResponse } from '../../shared/helpers.js';
 import { AuthService } from './auth.service.js';
 
 export const register = asyncHandler(async (req: Request, res: Response) => {
-  const data = { ...req.body };
-
-  // Company admin can only create users for their own company
-  if (req.user?.role === 'admin' && req.user.company) {
-    data.company = req.user.company;
-  }
-
-  const result = await AuthService.register(data);
+  const result = await AuthService.register(req.body);
 
   res.status(201).json(
     buildResponse(true, {

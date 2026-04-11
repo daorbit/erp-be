@@ -21,6 +21,14 @@ router.post(
   '/register',
   authenticate,
   authorize(UserRole.SUPER_ADMIN, UserRole.ADMIN),
+  // Inject company from authenticated admin before validation
+  (req, _res, next) => {
+    if (req.user?.role === UserRole.ADMIN && req.user.company) {
+      req.body = req.body || {};
+      req.body.company = req.user.company.toString();
+    }
+    next();
+  },
   validate(registerSchema),
   authController.register,
 );
