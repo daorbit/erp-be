@@ -14,9 +14,7 @@ export const createDepartmentSchema = z.object({
     .toUpperCase(),
   description: z.string().trim().max(500, 'Description cannot exceed 500 characters').optional(),
   headOfDepartment: z.string().optional(),
-  parentDepartment: z
-    .string({ required_error: 'Parent department is required' })
-    .min(1, 'Parent department is required'),
+  parentDepartments: z.array(z.string()).min(1, 'At least one parent department is required'),
 });
 
 export const updateDepartmentSchema = z.object({
@@ -35,7 +33,7 @@ export const updateDepartmentSchema = z.object({
     .optional(),
   description: z.string().trim().max(500, 'Description cannot exceed 500 characters').optional(),
   headOfDepartment: z.string().nullable().optional(),
-  parentDepartment: z.string().min(1, 'Parent department is required').optional(),
+  parentDepartments: z.array(z.string()).min(1, 'At least one parent department is required').optional(),
   isActive: z.boolean().optional(),
 });
 

@@ -7,7 +7,7 @@ export interface IDesignation extends Document {
   code: string;
   description?: string;
   company: mongoose.Types.ObjectId;
-  department?: mongoose.Types.ObjectId;
+  departments?: mongoose.Types.ObjectId[];
   level: number;
   band?: string;
   isActive: boolean;
@@ -43,10 +43,10 @@ const designationSchema = new Schema<IDesignation>(
       required: [true, 'Company is required'],
       index: true,
     },
-    department: {
+    departments: [{
       type: Schema.Types.ObjectId,
       ref: 'Department',
-    },
+    }],
     level: {
       type: Number,
       required: [true, 'Designation level is required'],
@@ -80,7 +80,7 @@ const designationSchema = new Schema<IDesignation>(
 
 designationSchema.index({ title: 1, company: 1 }, { unique: true });
 designationSchema.index({ code: 1, company: 1 }, { unique: true });
-designationSchema.index({ department: 1 });
+designationSchema.index({ departments: 1 });
 designationSchema.index({ level: 1 });
 designationSchema.index({ isActive: 1 });
 designationSchema.index({ title: 'text', description: 'text' });

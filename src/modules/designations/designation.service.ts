@@ -35,7 +35,7 @@ export class DesignationService {
     }
 
     if (filters.department) {
-      filter.department = filters.department;
+      filter.departments = filters.department;
     }
 
     if (filters.level) {
@@ -49,7 +49,7 @@ export class DesignationService {
 
     const [designations, total] = await Promise.all([
       Designation.find(filter)
-        .populate('department', 'name code')
+        .populate('departments', 'name code')
         .sort(sortOptions)
         .skip(skip)
         .limit(limit)
@@ -75,7 +75,7 @@ export class DesignationService {
     if (companyId) filter.company = companyId;
 
     const designation = await Designation.findOne(filter)
-      .populate('department', 'name code');
+      .populate('departments', 'name code');
 
     if (!designation) {
       throw new AppError('Designation not found.', 404);
@@ -91,7 +91,7 @@ export class DesignationService {
     const designation = await Designation.create(data);
 
     return Designation.findById(designation._id)
-      .populate('department', 'name code') as unknown as IDesignation;
+      .populate('departments', 'name code') as unknown as IDesignation;
   }
 
   /**
@@ -109,7 +109,7 @@ export class DesignationService {
       filter,
       { $set: data },
       { new: true, runValidators: true },
-    ).populate('department', 'name code');
+    ).populate('departments', 'name code');
 
     if (!designation) {
       throw new AppError('Designation not found.', 404);

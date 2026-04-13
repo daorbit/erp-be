@@ -8,7 +8,7 @@ export interface IDepartment extends Document {
   description?: string;
   company: mongoose.Types.ObjectId;
   headOfDepartment?: mongoose.Types.ObjectId;
-  parentDepartment: mongoose.Types.ObjectId;
+  parentDepartments: mongoose.Types.ObjectId[];
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -49,11 +49,10 @@ const departmentSchema = new Schema<IDepartment>(
       type: Schema.Types.ObjectId,
       ref: 'User',
     },
-    parentDepartment: {
+    parentDepartments: [{
       type: Schema.Types.ObjectId,
       ref: 'ParentDepartment',
-      required: [true, 'Parent department is required'],
-    },
+    }],
     isActive: {
       type: Boolean,
       default: true,
@@ -77,7 +76,7 @@ const departmentSchema = new Schema<IDepartment>(
 departmentSchema.index({ name: 1, company: 1 }, { unique: true });
 departmentSchema.index({ code: 1, company: 1 }, { unique: true });
 departmentSchema.index({ name: 'text', description: 'text' });
-departmentSchema.index({ parentDepartment: 1 });
+departmentSchema.index({ parentDepartments: 1 });
 departmentSchema.index({ isActive: 1 });
 
 // ─── Virtuals ───────────────────────────────────────────────────────────────
