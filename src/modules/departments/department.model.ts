@@ -8,7 +8,7 @@ export interface IDepartment extends Document {
   description?: string;
   company: mongoose.Types.ObjectId;
   headOfDepartment?: mongoose.Types.ObjectId;
-  parentDepartment?: mongoose.Types.ObjectId;
+  parentDepartment: mongoose.Types.ObjectId;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -51,7 +51,8 @@ const departmentSchema = new Schema<IDepartment>(
     },
     parentDepartment: {
       type: Schema.Types.ObjectId,
-      ref: 'Department',
+      ref: 'ParentDepartment',
+      required: [true, 'Parent department is required'],
     },
     isActive: {
       type: Boolean,

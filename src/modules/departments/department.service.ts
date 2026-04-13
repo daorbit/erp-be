@@ -3,6 +3,7 @@ import { AppError } from '../../middleware/errorHandler.js';
 import { buildPagination } from '../../shared/helpers.js';
 import type { IQueryParams } from '../../shared/types.js';
 import Department, { type IDepartment } from './department.model.js';
+import ParentDepartment from '../parent-departments/parentDepartment.model.js';
 
 interface PaginatedResult<T> {
   data: T[];
@@ -51,7 +52,7 @@ export class DepartmentService {
     const [departments, total] = await Promise.all([
       Department.find(filter)
         .populate('headOfDepartment', 'firstName lastName email')
-        .populate('parentDepartment', 'name code')
+        .populate('parentDepartment', 'name shortName')
         .populate('employeeCount')
         .sort(sortOptions)
         .skip(skip)
@@ -79,7 +80,7 @@ export class DepartmentService {
 
     const department = await Department.findOne(filter)
       .populate('headOfDepartment', 'firstName lastName email')
-      .populate('parentDepartment', 'name code')
+      .populate('parentDepartment', 'name shortName')
       .populate('employeeCount');
 
     if (!department) {
@@ -94,7 +95,7 @@ export class DepartmentService {
    */
   static async create(data: Partial<IDepartment>): Promise<IDepartment> {
     if (data.parentDepartment) {
-      const parentExists = await Department.findById(data.parentDepartment);
+      const parentExists = await ParentDepartment.findById(data.parentDepartment);
       if (!parentExists) {
         throw new AppError('Parent department not found.', 404);
       }
@@ -104,7 +105,7 @@ export class DepartmentService {
 
     return Department.findById(department._id)
       .populate('headOfDepartment', 'firstName lastName email')
-      .populate('parentDepartment', 'name code') as unknown as IDepartment;
+      .populate('parentDepartment', 'name shortName') as unknown as IDepartment;
   }
 
   /**
@@ -129,7 +130,7 @@ export class DepartmentService {
       { new: true, runValidators: true },
     )
       .populate('headOfDepartment', 'firstName lastName email')
-      .populate('parentDepartment', 'name code');
+      .populate('parentDepartment', 'name shortName');
 
     if (!department) {
       throw new AppError('Department not found.', 404);
