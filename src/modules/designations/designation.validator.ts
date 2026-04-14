@@ -13,7 +13,7 @@ export const createDesignationSchema = z.object({
     .max(20, 'Short name cannot exceed 20 characters')
     .toUpperCase(),
   rolesAndResponsibility: z.string().trim().max(1000, 'Roles and responsibility cannot exceed 1000 characters').optional(),
-  departments: z.array(z.string()).optional(),
+  departments: z.array(z.string()).min(1, 'At least one department is required'),
   displayOrder: z.number().int().optional(),
   employeeBand: z.string().trim().max(50, 'Employee band cannot exceed 50 characters').optional(),
 });
