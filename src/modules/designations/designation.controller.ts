@@ -13,11 +13,10 @@ export class DesignationController {
       page: parseInt(req.query.page as string) || 1,
       limit: parseInt(req.query.limit as string) || 10,
       search: req.query.search as string,
-      sortBy: (req.query.sortBy as string) || 'level',
+      sortBy: (req.query.sortBy as string) || 'displayOrder',
       sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'asc',
       filters: {
         department: req.query.department as string,
-        level: req.query.level as string,
       },
     };
 

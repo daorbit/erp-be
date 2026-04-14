@@ -18,7 +18,7 @@ export class DesignationService {
       page = 1,
       limit = 10,
       search,
-      sortBy = 'level',
+      sortBy = 'displayOrder',
       sortOrder = 'asc',
       filters = {},
     } = query;
@@ -28,9 +28,9 @@ export class DesignationService {
 
     if (search) {
       filter.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { code: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
+        { name: { $regex: search, $options: 'i' } },
+        { shortName: { $regex: search, $options: 'i' } },
+        { rolesAndResponsibility: { $regex: search, $options: 'i' } },
       ];
     }
 
@@ -38,9 +38,7 @@ export class DesignationService {
       filter.departments = filters.department;
     }
 
-    if (filters.level) {
-      filter.level = Number(filters.level);
-    }
+
 
     const skip = (page - 1) * limit;
     const sortOptions: Record<string, 1 | -1> = {
@@ -49,7 +47,7 @@ export class DesignationService {
 
     const [designations, total] = await Promise.all([
       Designation.find(filter)
-        .populate('departments', 'name code')
+        .populate('departments', 'name shortName')
         .sort(sortOptions)
         .skip(skip)
         .limit(limit)
@@ -75,7 +73,7 @@ export class DesignationService {
     if (companyId) filter.company = companyId;
 
     const designation = await Designation.findOne(filter)
-      .populate('departments', 'name code');
+      .populate('departments', 'name shortName');
 
     if (!designation) {
       throw new AppError('Designation not found.', 404);
@@ -91,7 +89,7 @@ export class DesignationService {
     const designation = await Designation.create(data);
 
     return Designation.findById(designation._id)
-      .populate('departments', 'name code') as unknown as IDesignation;
+      .populate('departments', 'name shortName') as unknown as IDesignation;
   }
 
   /**
@@ -109,7 +107,7 @@ export class DesignationService {
       filter,
       { $set: data },
       { new: true, runValidators: true },
-    ).populate('departments', 'name code');
+    ).populate('departments', 'name shortName');
 
     if (!designation) {
       throw new AppError('Designation not found.', 404);

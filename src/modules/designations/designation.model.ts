@@ -3,13 +3,13 @@ import mongoose, { Schema, type Document, type Model } from 'mongoose';
 // ─── Interface ───────────────────────────────────────────────────────────────
 
 export interface IDesignation extends Document {
-  title: string;
-  code: string;
-  description?: string;
+  name: string;
+  shortName: string;
+  rolesAndResponsibility?: string;
   company: mongoose.Types.ObjectId;
   departments?: mongoose.Types.ObjectId[];
-  level: number;
-  band?: string;
+  displayOrder: number;
+  employeeBand?: string;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -19,23 +19,23 @@ export interface IDesignation extends Document {
 
 const designationSchema = new Schema<IDesignation>(
   {
-    title: {
+    name: {
       type: String,
-      required: [true, 'Designation title is required'],
+      required: [true, 'Designation name is required'],
       trim: true,
-      maxlength: [100, 'Title cannot exceed 100 characters'],
+      maxlength: [100, 'Name cannot exceed 100 characters'],
     },
-    code: {
+    shortName: {
       type: String,
-      required: [true, 'Designation code is required'],
+      required: [true, 'Short name is required'],
       uppercase: true,
       trim: true,
-      maxlength: [20, 'Code cannot exceed 20 characters'],
+      maxlength: [20, 'Short name cannot exceed 20 characters'],
     },
-    description: {
+    rolesAndResponsibility: {
       type: String,
       trim: true,
-      maxlength: [500, 'Description cannot exceed 500 characters'],
+      maxlength: [1000, 'Roles and responsibility cannot exceed 1000 characters'],
     },
     company: {
       type: Schema.Types.ObjectId,
@@ -47,16 +47,14 @@ const designationSchema = new Schema<IDesignation>(
       type: Schema.Types.ObjectId,
       ref: 'Department',
     }],
-    level: {
+    displayOrder: {
       type: Number,
-      required: [true, 'Designation level is required'],
-      min: [1, 'Level must be at least 1 (entry)'],
-      max: [10, 'Level cannot exceed 10 (CXO)'],
+      default: 0,
     },
-    band: {
+    employeeBand: {
       type: String,
       trim: true,
-      maxlength: [10, 'Band cannot exceed 10 characters'],
+      maxlength: [50, 'Employee band cannot exceed 50 characters'],
     },
     isActive: {
       type: Boolean,
@@ -78,12 +76,11 @@ const designationSchema = new Schema<IDesignation>(
 
 // ─── Indexes ─────────────────────────────────────────────────────────────────
 
-designationSchema.index({ title: 1, company: 1 }, { unique: true });
-designationSchema.index({ code: 1, company: 1 }, { unique: true });
+designationSchema.index({ name: 1, company: 1 }, { unique: true });
+designationSchema.index({ shortName: 1, company: 1 }, { unique: true });
 designationSchema.index({ departments: 1 });
-designationSchema.index({ level: 1 });
 designationSchema.index({ isActive: 1 });
-designationSchema.index({ title: 'text', description: 'text' });
+designationSchema.index({ name: 'text', rolesAndResponsibility: 'text' });
 
 // ─── Model ───────────────────────────────────────────────────────────────────
 
