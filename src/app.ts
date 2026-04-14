@@ -31,6 +31,7 @@ import companyRoutes from './modules/companies/company.routes.js';
 import invitationRoutes from './modules/invitations/invitation.routes.js';
 import shiftRoutes from './modules/shifts/shift.routes.js';
 import webhookRoutes from './modules/shifts/webhook.routes.js';
+import parentDepartmentRoutes from './modules/parent-departments/parentDepartment.routes.js';
 import uploadRoutes from './modules/upload/upload.routes.js';
 import { requireOnboardingComplete } from './middleware/onboardingGate.js';
 
@@ -145,6 +146,7 @@ app.use(`${API_PREFIX}/reports`, reportRoutes);
 app.use(`${API_PREFIX}/dashboard`, dashboardRoutes);
 app.use(`${API_PREFIX}/companies`, companyRoutes);
 app.use(`${API_PREFIX}/shifts`, shiftRoutes);
+app.use(`${API_PREFIX}/parent-departments`, parentDepartmentRoutes);
 
 import auditRoutes from './modules/audit/audit.routes.js';
 app.use(`${API_PREFIX}/audit-logs`, auditRoutes);

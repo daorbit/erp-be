@@ -13,7 +13,7 @@ export const createDesignationSchema = z.object({
     .max(20, 'Code cannot exceed 20 characters')
     .toUpperCase(),
   description: z.string().trim().max(500, 'Description cannot exceed 500 characters').optional(),
-  department: z.string().optional(),
+  departments: z.array(z.string()).optional(),
   level: z
     .number({ required_error: 'Level is required' })
     .int('Level must be an integer')
@@ -37,7 +37,7 @@ export const updateDesignationSchema = z.object({
     .toUpperCase()
     .optional(),
   description: z.string().trim().max(500, 'Description cannot exceed 500 characters').optional(),
-  department: z.string().nullable().optional(),
+  departments: z.array(z.string()).nullable().optional(),
   level: z
     .number()
     .int('Level must be an integer')

@@ -51,7 +51,7 @@ export class DepartmentService {
     const [departments, total] = await Promise.all([
       Department.find(filter)
         .populate('headOfDepartment', 'firstName lastName email')
-        .populate('parentDepartment', 'name code')
+        .populate('parentDepartments', 'name shortName')
         .populate('employeeCount')
         .sort(sortOptions)
         .skip(skip)
@@ -79,7 +79,7 @@ export class DepartmentService {
 
     const department = await Department.findOne(filter)
       .populate('headOfDepartment', 'firstName lastName email')
-      .populate('parentDepartment', 'name code')
+      .populate('parentDepartments', 'name shortName')
       .populate('employeeCount');
 
     if (!department) {
@@ -93,18 +93,11 @@ export class DepartmentService {
    * Create a new department.
    */
   static async create(data: Partial<IDepartment>): Promise<IDepartment> {
-    if (data.parentDepartment) {
-      const parentExists = await Department.findById(data.parentDepartment);
-      if (!parentExists) {
-        throw new AppError('Parent department not found.', 404);
-      }
-    }
-
     const department = await Department.create(data);
 
     return Department.findById(department._id)
       .populate('headOfDepartment', 'firstName lastName email')
-      .populate('parentDepartment', 'name code') as unknown as IDepartment;
+      .populate('parentDepartments', 'name shortName') as unknown as IDepartment;
   }
 
   /**
@@ -116,10 +109,6 @@ export class DepartmentService {
     }
 
     // Prevent circular parent reference
-    if (data.parentDepartment && data.parentDepartment.toString() === id) {
-      throw new AppError('A department cannot be its own parent.', 400);
-    }
-
     const filter: Record<string, unknown> = { _id: id };
     if (companyId) filter.company = companyId;
 
@@ -129,7 +118,7 @@ export class DepartmentService {
       { new: true, runValidators: true },
     )
       .populate('headOfDepartment', 'firstName lastName email')
-      .populate('parentDepartment', 'name code');
+      .populate('parentDepartments', 'name shortName');
 
     if (!department) {
       throw new AppError('Department not found.', 404);
