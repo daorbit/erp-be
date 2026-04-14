@@ -52,7 +52,8 @@ export class DepartmentService {
     const [departments, total] = await Promise.all([
       Department.find(filter)
         // .populate('headOfDepartment', 'firstName lastName email')
-        .populate('parentDepartments', 'name shortName')
+        .populate('parentDepartment', 'name shortName')
+        .populate('branches', 'name code')
         .populate('employeeCount')
         .sort(sortOptions)
         .skip(skip)
@@ -80,7 +81,8 @@ export class DepartmentService {
 
     const department = await Department.findOne(filter)
       // .populate('headOfDepartment', 'firstName lastName email')
-      .populate('parentDepartments', 'name shortName')
+      .populate('parentDepartment', 'name shortName')
+      .populate('branches', 'name code')
       .populate('employeeCount');
 
     if (!department) {
@@ -98,7 +100,8 @@ export class DepartmentService {
 
     return Department.findById(department._id)
       // .populate('headOfDepartment', 'firstName lastName email')
-      .populate('parentDepartments', 'name shortName') as unknown as IDepartment;
+      .populate('parentDepartment', 'name shortName')
+      .populate('branches', 'name code') as unknown as IDepartment;
   }
 
   /**
@@ -119,7 +122,8 @@ export class DepartmentService {
       { new: true, runValidators: true },
     )
       // .populate('headOfDepartment', 'firstName lastName email')
-      .populate('parentDepartments', 'name shortName');
+      .populate('parentDepartment', 'name shortName')
+      .populate('branches', 'name code');
 
     if (!department) {
       throw new AppError('Department not found.', 404);

@@ -8,7 +8,8 @@ export interface IDepartment extends Document {
   description?: string;
   company: mongoose.Types.ObjectId;
   // headOfDepartment?: mongoose.Types.ObjectId;
-  parentDepartments: mongoose.Types.ObjectId[];
+  parentDepartment?: mongoose.Types.ObjectId;
+  branches: mongoose.Types.ObjectId[];
   displayOrder: number;
   isActive: boolean;
   createdAt: Date;
@@ -54,9 +55,13 @@ const departmentSchema = new Schema<IDepartment>(
       type: Number,
       default: 0,
     },
-    parentDepartments: [{
+    parentDepartment: {
       type: Schema.Types.ObjectId,
       ref: 'ParentDepartment',
+    },
+    branches: [{
+      type: Schema.Types.ObjectId,
+      ref: 'Branch',
     }],
     isActive: {
       type: Boolean,
@@ -81,7 +86,8 @@ const departmentSchema = new Schema<IDepartment>(
 departmentSchema.index({ name: 1, company: 1 }, { unique: true });
 departmentSchema.index({ shortName: 1, company: 1 }, { unique: true });
 departmentSchema.index({ name: 'text', description: 'text' });
-departmentSchema.index({ parentDepartments: 1 });
+departmentSchema.index({ parentDepartment: 1 });
+departmentSchema.index({ branches: 1 });
 departmentSchema.index({ isActive: 1 });
 
 // ─── Virtuals ───────────────────────────────────────────────────────────────
