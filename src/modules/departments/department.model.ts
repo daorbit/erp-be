@@ -4,11 +4,12 @@ import mongoose, { Schema, type Document, type Model } from 'mongoose';
 
 export interface IDepartment extends Document {
   name: string;
-  code: string;
+  shortName: string;
   description?: string;
   company: mongoose.Types.ObjectId;
-  headOfDepartment?: mongoose.Types.ObjectId;
+  // headOfDepartment?: mongoose.Types.ObjectId;
   parentDepartments: mongoose.Types.ObjectId[];
+  displayOrder: number;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -27,12 +28,12 @@ const departmentSchema = new Schema<IDepartment>(
       trim: true,
       maxlength: [100, 'Department name cannot exceed 100 characters'],
     },
-    code: {
+    shortName: {
       type: String,
-      required: [true, 'Department code is required'],
+      required: [true, 'Short name is required'],
       uppercase: true,
       trim: true,
-      maxlength: [20, 'Department code cannot exceed 20 characters'],
+      maxlength: [20, 'Short name cannot exceed 20 characters'],
     },
     description: {
       type: String,
@@ -45,9 +46,13 @@ const departmentSchema = new Schema<IDepartment>(
       required: [true, 'Company is required'],
       index: true,
     },
-    headOfDepartment: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
+    // headOfDepartment: {
+    //   type: Schema.Types.ObjectId,
+    //   ref: 'User',
+    // },
+    displayOrder: {
+      type: Number,
+      default: 0,
     },
     parentDepartments: [{
       type: Schema.Types.ObjectId,
@@ -74,7 +79,7 @@ const departmentSchema = new Schema<IDepartment>(
 // ─── Indexes ─────────────────────────────────────────────────────────────────
 
 departmentSchema.index({ name: 1, company: 1 }, { unique: true });
-departmentSchema.index({ code: 1, company: 1 }, { unique: true });
+departmentSchema.index({ shortName: 1, company: 1 }, { unique: true });
 departmentSchema.index({ name: 'text', description: 'text' });
 departmentSchema.index({ parentDepartments: 1 });
 departmentSchema.index({ isActive: 1 });

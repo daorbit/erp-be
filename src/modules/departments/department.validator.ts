@@ -6,14 +6,15 @@ export const createDepartmentSchema = z.object({
     .trim()
     .min(1, 'Department name is required')
     .max(100, 'Department name cannot exceed 100 characters'),
-  code: z
-    .string({ required_error: 'Department code is required' })
+  shortName: z
+    .string({ required_error: 'Short name is required' })
     .trim()
-    .min(1, 'Department code is required')
-    .max(20, 'Department code cannot exceed 20 characters')
+    .min(1, 'Short name is required')
+    .max(20, 'Short name cannot exceed 20 characters')
     .toUpperCase(),
   description: z.string().trim().max(500, 'Description cannot exceed 500 characters').optional(),
-  headOfDepartment: z.string().optional(),
+  // headOfDepartment: z.string().optional(),
+  displayOrder: z.number().int().optional(),
   parentDepartments: z.array(z.string()).min(1, 'At least one parent department is required'),
 });
 
@@ -24,15 +25,16 @@ export const updateDepartmentSchema = z.object({
     .min(1, 'Department name is required')
     .max(100, 'Department name cannot exceed 100 characters')
     .optional(),
-  code: z
+  shortName: z
     .string()
     .trim()
-    .min(1, 'Department code is required')
-    .max(20, 'Department code cannot exceed 20 characters')
+    .min(1, 'Short name is required')
+    .max(20, 'Short name cannot exceed 20 characters')
     .toUpperCase()
     .optional(),
   description: z.string().trim().max(500, 'Description cannot exceed 500 characters').optional(),
-  headOfDepartment: z.string().nullable().optional(),
+  // headOfDepartment: z.string().nullable().optional(),
+  displayOrder: z.number().int().optional(),
   parentDepartments: z.array(z.string()).min(1, 'At least one parent department is required').optional(),
   isActive: z.boolean().optional(),
 });

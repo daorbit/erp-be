@@ -12,9 +12,10 @@ interface PaginatedResult<T> {
 interface DepartmentTreeNode {
   _id: string;
   name: string;
-  code: string;
+  shortName: string;
   description?: string;
-  headOfDepartment?: unknown;
+  // headOfDepartment?: unknown;
+  displayOrder: number;
   isActive: boolean;
   children: DepartmentTreeNode[];
 }
@@ -38,7 +39,7 @@ export class DepartmentService {
     if (search) {
       filter.$or = [
         { name: { $regex: search, $options: 'i' } },
-        { code: { $regex: search, $options: 'i' } },
+        { shortName: { $regex: search, $options: 'i' } },
         { description: { $regex: search, $options: 'i' } },
       ];
     }
@@ -50,7 +51,7 @@ export class DepartmentService {
 
     const [departments, total] = await Promise.all([
       Department.find(filter)
-        .populate('headOfDepartment', 'firstName lastName email')
+        // .populate('headOfDepartment', 'firstName lastName email')
         .populate('parentDepartments', 'name shortName')
         .populate('employeeCount')
         .sort(sortOptions)
@@ -78,7 +79,7 @@ export class DepartmentService {
     if (companyId) filter.company = companyId;
 
     const department = await Department.findOne(filter)
-      .populate('headOfDepartment', 'firstName lastName email')
+      // .populate('headOfDepartment', 'firstName lastName email')
       .populate('parentDepartments', 'name shortName')
       .populate('employeeCount');
 
@@ -96,7 +97,7 @@ export class DepartmentService {
     const department = await Department.create(data);
 
     return Department.findById(department._id)
-      .populate('headOfDepartment', 'firstName lastName email')
+      // .populate('headOfDepartment', 'firstName lastName email')
       .populate('parentDepartments', 'name shortName') as unknown as IDepartment;
   }
 
@@ -117,7 +118,7 @@ export class DepartmentService {
       { $set: data },
       { new: true, runValidators: true },
     )
-      .populate('headOfDepartment', 'firstName lastName email')
+      // .populate('headOfDepartment', 'firstName lastName email')
       .populate('parentDepartments', 'name shortName');
 
     if (!department) {
@@ -159,7 +160,7 @@ export class DepartmentService {
     if (companyId) treeFilter.company = companyId;
 
     const departments = await Department.find(treeFilter)
-      .populate('headOfDepartment', 'firstName lastName email')
+      // .populate('headOfDepartment', 'firstName lastName email')
       .lean();
 
     // Build a map of id -> node
@@ -170,9 +171,10 @@ export class DepartmentService {
       map.set(dept._id.toString(), {
         _id: dept._id.toString(),
         name: dept.name,
-        code: dept.code,
+        shortName: dept.shortName,
         description: dept.description,
-        headOfDepartment: dept.headOfDepartment,
+        // headOfDepartment: dept.headOfDepartment,
+        displayOrder: dept.displayOrder,
         isActive: dept.isActive,
         children: [],
       });
