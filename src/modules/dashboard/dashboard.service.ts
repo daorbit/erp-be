@@ -258,7 +258,7 @@ export class DashboardService {
 
     return departments.map((dept) => ({
       department: dept.name,
-      code: dept.code,
+      code: dept.shortName,
       count: (dept as unknown as { employeeCount?: number }).employeeCount ?? 0,
     }));
   }

@@ -15,9 +15,21 @@ export const createDepartmentSchema = z.object({
   description: z.string().trim().max(500, 'Description cannot exceed 500 characters').optional(),
   // headOfDepartment: z.string().optional(),
   displayOrder: z.number().int().optional(),
-  parentDepartment: z.string({ required_error: 'Parent department is required' }).min(1, 'Parent department is required'),
-  branches: z.array(z.string()).optional(),
+  // Optional: if provided, the created department becomes a sub-department
+  // of the given parent. Selecting no parent creates a top-level department.
+  parentDepartment: z.string().min(1).optional().nullable(),
+  branches: z.array(z.string()).min(1, 'At least one branch is required'),
 });
+
+export const mergeDepartmentsSchema = z.object({
+  fromDepartment: z.string({ required_error: 'From Department is required' }).min(1, 'From Department is required'),
+  toDepartment: z.string({ required_error: 'To Department is required' }).min(1, 'To Department is required'),
+}).refine((d) => d.fromDepartment !== d.toDepartment, {
+  message: 'From and To departments must be different',
+  path: ['toDepartment'],
+});
+
+export type MergeDepartmentsInput = z.infer<typeof mergeDepartmentsSchema>;
 
 export const updateDepartmentSchema = z.object({
   name: z

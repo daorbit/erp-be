@@ -33,6 +33,12 @@ export interface ILeaveType extends Document {
   isActive: boolean;
   isPaid: boolean;
   applicableFor: ApplicableFor;
+  // ─── NwayERP Leave master extensions ─────────────────────────────────────
+  shortName?: string;         // "Leave Short Name"
+  leavePriority?: number;     // "Leave Priority"
+  relaxationDay?: number;     // "Relaxation Day"
+  leaveAllowMax?: number;     // "Leave Allow Max" — max days an employee can take at once
+  remarks?: string;           // free text
   createdAt: Date;
   updatedAt: Date;
 }
@@ -92,6 +98,12 @@ const leaveTypeSchema = new Schema<ILeaveType>(
       enum: Object.values(ApplicableFor),
       default: ApplicableFor.ALL,
     },
+    // NwayERP extensions
+    shortName: { type: String, trim: true, uppercase: true, maxlength: 10 },
+    leavePriority: { type: Number, default: 0 },
+    relaxationDay: { type: Number, default: 0 },
+    leaveAllowMax: { type: Number, default: 0 },
+    remarks: { type: String, trim: true, maxlength: 500 },
   },
   {
     timestamps: true,

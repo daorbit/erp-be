@@ -4,13 +4,23 @@ import { requireCompany } from '../../middleware/companyScope.js';
 import { validate } from '../../middleware/validate.js';
 import { UserRole } from '../../shared/types.js';
 import { DesignationController } from './designation.controller.js';
-import { createDesignationSchema, updateDesignationSchema } from './designation.validator.js';
+import { createDesignationSchema, updateDesignationSchema, mergeDesignationsSchema } from './designation.validator.js';
 
 const router = Router();
 
 // All routes require authentication
 router.use(authenticate);
 router.use(requireCompany);
+
+// Must be before /:id to avoid being shadowed
+router.get('/employee-count', DesignationController.employeeCount);
+
+router.post(
+  '/merge',
+  authorize(UserRole.SUPER_ADMIN, UserRole.ADMIN),
+  validate(mergeDesignationsSchema),
+  DesignationController.merge,
+);
 
 router.get('/', DesignationController.getAll);
 

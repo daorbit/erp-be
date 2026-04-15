@@ -138,4 +138,24 @@ export class EmployeeController {
     const records = await Asset.find(filter).sort({ assignedDate: -1 }).lean();
     res.status(200).json(buildResponse(true, records, 'Employee assets retrieved'));
   });
+
+  /**
+   * POST /bulk-update — apply the same field-updates to many employees.
+   * Body: { employeeIds: string[], set: { field: value, ... } }
+   */
+  static bulkUpdate = asyncHandler(async (req: IAuthRequest, res: Response) => {
+    const { employeeIds, set } = req.body as { employeeIds: string[]; set: Record<string, unknown> };
+    const result = await EmployeeService.bulkUpdate(employeeIds, set, req.user.company);
+    res.status(200).json(
+      buildResponse(true, result, `Updated ${result.modified} of ${result.matched} employee(s)`),
+    );
+  });
+
+  /**
+   * GET /:id/full-and-final — compute F&F summary for one employee.
+   */
+  static fullAndFinal = asyncHandler(async (req: IAuthRequest, res: Response) => {
+    const result = await EmployeeService.fullAndFinal(req.params.id as string, req.user.company);
+    res.status(200).json(buildResponse(true, result, 'F&F computed'));
+  });
 }

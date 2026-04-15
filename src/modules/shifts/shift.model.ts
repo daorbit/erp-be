@@ -14,6 +14,19 @@ export interface IShift extends Document {
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
+
+  // ─── NwayERP Shift-master extensions ───────────────────────────────────
+  inTimeAsAttendanceDate?: boolean;
+  outTimeAsAttendanceDate?: boolean;
+  considerLowerLimit?: string;   // HH:mm — earliest clock-in that still counts
+  considerUpperLimit?: string;   // HH:mm — latest clock-out that still counts
+  halfTime?: string;             // HH:mm — mid-shift split for half-day checks
+  lunchTimeMinutes?: number;
+  halfDayMinHours?: number;      // 0.50 = 30 minutes
+  fullDayMinHours?: number;
+  totalShiftHours?: number;
+  isShiftBreak?: boolean;
+  statusOnSinglePunch?: string;
 }
 
 // ─── Schema ──────────────────────────────────────────────────────────────────
@@ -70,6 +83,19 @@ const shiftSchema = new Schema<IShift>(
       ref: 'User',
       required: [true, 'Creator is required'],
     },
+
+    // NwayERP extensions
+    inTimeAsAttendanceDate: { type: Boolean, default: true },
+    outTimeAsAttendanceDate: { type: Boolean, default: false },
+    considerLowerLimit: { type: String, default: '00:00' },
+    considerUpperLimit: { type: String, default: '23:59' },
+    halfTime: { type: String, default: '12:00' },
+    lunchTimeMinutes: { type: Number, default: 0, min: 0 },
+    halfDayMinHours: { type: Number, default: 4, min: 0 },
+    fullDayMinHours: { type: Number, default: 8, min: 0 },
+    totalShiftHours: { type: Number, default: 0, min: 0 },
+    isShiftBreak: { type: Boolean, default: false },
+    statusOnSinglePunch: { type: String, default: 'absent' },
   },
   {
     timestamps: true,

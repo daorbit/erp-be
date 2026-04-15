@@ -65,4 +65,27 @@ export class DesignationController {
       buildResponse(true, designation, 'Designation deactivated successfully'),
     );
   });
+
+  /**
+   * POST /merge - Merge one designation into another.
+   */
+  static merge = asyncHandler(async (req: IAuthRequest, res: Response) => {
+    const { fromDesignation, toDesignation } = req.body as { fromDesignation: string; toDesignation: string };
+    const result = await DesignationService.merge(fromDesignation, toDesignation, req.user.company);
+    res.status(200).json(
+      buildResponse(true, result, `Designation merged successfully. ${result.movedUsers} user(s) reassigned.`),
+    );
+  });
+
+  /**
+   * GET /employee-count?branch=<id> - Count active users per designation.
+   * Branch is optional; when absent, counts across the whole company.
+   */
+  static employeeCount = asyncHandler(async (req: IAuthRequest, res: Response) => {
+    const branch = (req.query.branch as string) || undefined;
+    const rows = await DesignationService.countByBranch(req.user.company, branch);
+    res.status(200).json(
+      buildResponse(true, rows, 'Employee counts retrieved successfully'),
+    );
+  });
 }

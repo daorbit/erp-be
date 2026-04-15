@@ -72,4 +72,19 @@ export class DepartmentController {
       buildResponse(true, department, 'Department deactivated successfully'),
     );
   });
+
+  /**
+   * POST /merge - Merge one department into another.
+   * Body: { fromDepartment: id, toDepartment: id }
+   */
+  static merge = asyncHandler(async (req: IAuthRequest, res: Response) => {
+    const { fromDepartment, toDepartment } = req.body as {
+      fromDepartment: string;
+      toDepartment: string;
+    };
+    const result = await DepartmentService.merge(fromDepartment, toDepartment, req.user.company);
+    res.status(200).json(
+      buildResponse(true, result, `Department merged successfully. ${result.movedUsers} user(s) reassigned.`),
+    );
+  });
 }

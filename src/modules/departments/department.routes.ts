@@ -4,7 +4,7 @@ import { requireCompany } from '../../middleware/companyScope.js';
 import { validate } from '../../middleware/validate.js';
 import { UserRole } from '../../shared/types.js';
 import { DepartmentController } from './department.controller.js';
-import { createDepartmentSchema, updateDepartmentSchema } from './department.validator.js';
+import { createDepartmentSchema, updateDepartmentSchema, mergeDepartmentsSchema } from './department.validator.js';
 
 const router = Router();
 
@@ -14,6 +14,14 @@ router.use(requireCompany);
 
 // Tree endpoint (before /:id to avoid conflict)
 router.get('/tree', DepartmentController.getTree);
+
+// Merge: reassign users from source → target, then soft-delete source.
+router.post(
+  '/merge',
+  authorize(UserRole.SUPER_ADMIN, UserRole.ADMIN),
+  validate(mergeDepartmentsSchema),
+  DepartmentController.merge,
+);
 
 // Standard CRUD
 router.get('/', DepartmentController.getAll);
