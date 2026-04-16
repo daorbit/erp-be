@@ -2,7 +2,7 @@ import mongoose, { Schema, type Document, type Model } from 'mongoose';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import config from '../../config/index.js';
-import { UserRole, UserCategory, UserType } from '../../shared/types.js';
+import { UserRole, UserCategory, UserType, ErpModule } from '../../shared/types.js';
 
 // ─── Interface ───────────────────────────────────────────────────────────────
 
@@ -32,6 +32,7 @@ export interface IUser extends Document {
   userType?: UserType;             // super_admin / admin / ho_user / site_admin / user
   allowedDepartments?: mongoose.Types.ObjectId[];
   allowedBranches?: mongoose.Types.ObjectId[];
+  allowedModules?: string[];
   remark?: string;
 
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -124,6 +125,7 @@ const userSchema = new Schema<IUser>(
     userType: { type: String, enum: Object.values(UserType) },
     allowedDepartments: [{ type: Schema.Types.ObjectId, ref: 'Department' }],
     allowedBranches: [{ type: Schema.Types.ObjectId, ref: 'Branch' }],
+    allowedModules: [{ type: String, enum: Object.values(ErpModule) }],
     remark: { type: String, trim: true, maxlength: 500 },
   },
   {

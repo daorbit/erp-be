@@ -255,6 +255,22 @@ export enum UserType {
   USER = 'user',
 }
 
+// ─── ERP Modules ──────────────────────────────────────────────────────────
+
+export enum ErpModule {
+  ADMIN = 'admin',
+  ADMIN_ACCOUNTS = 'admin_accounts',
+  CORRESPONDENCE = 'correspondence',
+  HUMAN_RESOURCE = 'human_resource',
+  MACHINERY = 'machinery',
+  MIS_ADMIN = 'mis_admin',
+  PRODUCTION = 'production',
+  PROJECT_MANAGEMENT = 'project_management',
+  PURCHASE = 'purchase',
+  STORE = 'store',
+  TENDER = 'tender',
+}
+
 // ─── Leave Type (extension) ────────────────────────────────────────────────
 
 export enum LeaveCarryType {
