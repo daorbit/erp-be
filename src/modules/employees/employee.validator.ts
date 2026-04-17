@@ -51,10 +51,6 @@ export const createEmployeeSchema = z.object({
     .trim()
     .email('Please provide a valid email address')
     .toLowerCase(),
-  password: z
-    .string({ required_error: 'Password is required' })
-    .min(8, 'Password must be at least 8 characters')
-    .max(128, 'Password cannot exceed 128 characters'),
   phone: z.string().trim().optional(),
   role: z.enum(['super_admin', 'admin', 'hr_manager', 'manager', 'employee']).optional(),
   department: z.string().optional(),

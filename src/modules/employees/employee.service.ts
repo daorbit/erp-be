@@ -9,7 +9,6 @@ interface EmployeeCreateData {
   firstName: string;
   lastName: string;
   email: string;
-  password: string;
   phone?: string;
   role?: string;
   company?: string;
@@ -193,7 +192,7 @@ export class EmployeeService {
       firstName: data.firstName,
       lastName: data.lastName,
       email: data.email,
-      password: data.password,
+      password: `Emp@${Date.now().toString(36)}`,
       phone: data.phone,
       role: data.role ?? 'employee',
       employeeId,
