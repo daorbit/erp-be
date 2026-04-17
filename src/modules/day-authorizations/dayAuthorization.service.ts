@@ -8,7 +8,7 @@ const DEFAULT_MODULES: Array<{ moduleName: string; entities: string[] }> = [
     moduleName: 'HUMAN-RESOURCE',
     entities: [
       'Advance', 'Attendance Entry', 'Employee Group Transfer', 'Employee Site Transfer',
-      'Leave Application', 'Loan Application', 'OD Entry', 'Other Addition', 'Other Deduction',
+      'Loan Application', 'OD Entry', 'Other Addition', 'Other Deduction',
       'Salary Calculation', 'Sim Allotment', 'Sim Bill Entry', 'Sim Surrender',
     ],
   },
