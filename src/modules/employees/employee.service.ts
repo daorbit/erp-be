@@ -419,8 +419,6 @@ export class EmployeeService {
     const gross = (e as any).salary?.grossSalary ?? 0;
     const deductions = (e as any).salary?.deductions ?? 0;
     const noticeDays = (e as any).noticePeriodDays ?? 0;
-    const pendingLeave = ((e as any).leaveTemplate ?? [])
-      .reduce((s: number, r: any) => s + (r.value ?? 0), 0);
 
     return {
       employeeId: (e as any).employeeId,
@@ -432,8 +430,6 @@ export class EmployeeService {
       netSalary: gross - deductions,
       noticePeriodDays: noticeDays,
       noticePeriodRecovery: basic ? (basic / 30) * noticeDays : 0,
-      pendingLeaveBalance: pendingLeave,
-      leaveEncashment: basic ? (basic / 30) * pendingLeave : 0,
     };
   }
 }

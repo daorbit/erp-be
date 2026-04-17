@@ -4,7 +4,6 @@ import { buildResponse } from '../../shared/helpers.js';
 import type { IAuthRequest, IQueryParams } from '../../shared/types.js';
 import { EmployeeService } from './employee.service.js';
 import Attendance from '../attendance/attendance.model.js';
-import { LeaveRequest } from '../leaves/leave.model.js';
 import { Payslip } from '../payroll/payroll.model.js';
 
 export class EmployeeController {
@@ -102,19 +101,6 @@ export class EmployeeController {
       .limit(30)
       .lean();
     res.status(200).json(buildResponse(true, records, 'Employee attendance retrieved'));
-  });
-
-  static getEmployeeLeaves = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const profile = await EmployeeService.getById(req.params.id as string, req.user.company);
-    const userId = (profile as any).userId?._id || (profile as any).userId;
-    const filter: Record<string, unknown> = { employee: userId };
-    if (req.user.company) filter.company = req.user.company;
-    const records = await LeaveRequest.find(filter)
-      .populate('leaveType', 'name code')
-      .sort({ createdAt: -1 })
-      .limit(20)
-      .lean();
-    res.status(200).json(buildResponse(true, records, 'Employee leaves retrieved'));
   });
 
   static getEmployeePayslips = asyncHandler(async (req: IAuthRequest, res: Response) => {

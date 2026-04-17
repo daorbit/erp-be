@@ -27,16 +27,6 @@ export class DashboardController {
   });
 
   /**
-   * GET /leave-overview - Get leave requests overview.
-   */
-  static getLeaveOverview = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const overview = await DashboardService.getLeaveOverview(req.user.company);
-    res.status(200).json(
-      buildResponse(true, overview, 'Leave overview retrieved successfully'),
-    );
-  });
-
-  /**
    * GET /department-distribution - Get employee count per department.
    */
   static getDepartmentDistribution = asyncHandler(async (req: IAuthRequest, res: Response) => {

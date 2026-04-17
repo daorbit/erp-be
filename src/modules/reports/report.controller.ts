@@ -40,26 +40,6 @@ export const getAttendanceReport = asyncHandler(async (req: Request, res: Respon
   );
 });
 
-export const getLeaveReport = asyncHandler(async (req: Request, res: Response) => {
-  const year = Number(req.query.year);
-
-  if (!year) {
-    res.status(400).json(buildResponse(false, null, 'Year is required'));
-    return;
-  }
-
-  const authReq = req as IAuthRequest;
-  const report = await ReportService.getLeaveReport(
-    year,
-    req.query.department as string,
-    authReq.user.company,
-  );
-
-  res.status(200).json(
-    buildResponse(true, report, 'Leave report generated successfully'),
-  );
-});
-
 export const getPayrollReport = asyncHandler(async (req: Request, res: Response) => {
   const month = Number(req.query.month);
   const year = Number(req.query.year);

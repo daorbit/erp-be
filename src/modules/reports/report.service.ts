@@ -2,7 +2,6 @@ import mongoose from 'mongoose';
 import { AppError } from '../../middleware/errorHandler.js';
 import EmployeeProfile from '../employees/employee.model.js';
 import Attendance from '../attendance/attendance.model.js';
-import { LeaveRequest } from '../leaves/leave.model.js';
 import { Payslip } from '../payroll/payroll.model.js';
 import { JobPosting, JobApplication } from '../recruitment/recruitment.model.js';
 
@@ -117,45 +116,6 @@ export class ReportService {
     const report = await Attendance.aggregate(pipeline);
 
     return { month, year, summary: report };
-  }
-
-  /**
-   * Leave report: usage summary for a year.
-   */
-  static async getLeaveReport(year: number, departmentId?: string, companyId?: string) {
-    const startDate = new Date(year, 0, 1);
-    const endDate = new Date(year, 11, 31, 23, 59, 59);
-
-    const matchStage: Record<string, unknown> = {
-      startDate: { $gte: startDate },
-      endDate: { $lte: endDate },
-    };
-    if (companyId) matchStage.company = new mongoose.Types.ObjectId(companyId);
-
-    void departmentId;
-
-    const pipeline: mongoose.PipelineStage[] = [
-      { $match: matchStage },
-      {
-        $group: {
-          _id: { status: '$status' },
-          count: { $sum: 1 },
-          totalDays: { $sum: '$totalDays' },
-        },
-      },
-    ];
-
-    const report = await LeaveRequest.aggregate(pipeline);
-
-    const summary: Record<string, { count: number; totalDays: number }> = {};
-    for (const item of report) {
-      summary[item._id.status as string] = {
-        count: item.count as number,
-        totalDays: item.totalDays as number,
-      };
-    }
-
-    return { year, summary };
   }
 
   /**

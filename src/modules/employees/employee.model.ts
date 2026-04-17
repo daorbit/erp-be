@@ -226,7 +226,6 @@ export interface IEmployeeProfile extends Document {
   empRoles?: IEmployeeRole[];
   previousOrgs?: IPreviousOrg[];
   branchHistory?: IBranchHistoryEntry[];
-  leaveTemplate?: ILeaveTemplateEntry[];
   bankHistory?: IBankHistoryEntry[];
   additionalDocs?: IAdditionalDoc[];
 }
@@ -280,11 +279,6 @@ export interface IBranchHistoryEntry {
   level?: mongoose.Types.ObjectId;
   grade?: mongoose.Types.ObjectId;
   isActive: boolean;
-}
-
-export interface ILeaveTemplateEntry {
-  leaveType: mongoose.Types.ObjectId; // ref LeaveType
-  value: number;                      // Balance for this leave type
 }
 
 export interface IBankHistoryEntry {
@@ -439,14 +433,6 @@ const branchHistorySchema = new Schema<IBranchHistoryEntry>(
     isActive: { type: Boolean, default: true },
   },
   { _id: true, timestamps: true },
-);
-
-const leaveTemplateSchema = new Schema<ILeaveTemplateEntry>(
-  {
-    leaveType: { type: Schema.Types.ObjectId, ref: 'LeaveType', required: true },
-    value: { type: Number, default: 0, min: 0 },
-  },
-  { _id: true },
 );
 
 const bankHistorySchema = new Schema<IBankHistoryEntry>(
@@ -680,7 +666,6 @@ const employeeProfileSchema = new Schema<IEmployeeProfile>(
     empRoles: [empRoleSchema],
     previousOrgs: [previousOrgSchema],
     branchHistory: [branchHistorySchema],
-    leaveTemplate: [leaveTemplateSchema],
     bankHistory: [bankHistorySchema],
     additionalDocs: [additionalDocSchema],
   },

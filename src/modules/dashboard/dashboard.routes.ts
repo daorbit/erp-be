@@ -21,7 +21,6 @@ router.use(requireCompany);
 
 router.get('/stats', DashboardController.getStats);
 router.get('/attendance-overview', DashboardController.getAttendanceOverview);
-router.get('/leave-overview', DashboardController.getLeaveOverview);
 router.get('/department-distribution', DashboardController.getDepartmentDistribution);
 router.get('/recent-activities', DashboardController.getRecentActivities);
 router.get('/birthdays', DashboardController.getBirthdays);

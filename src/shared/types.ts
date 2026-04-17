@@ -54,13 +54,6 @@ export enum UserRole {
   VIEWER = 'viewer',
 }
 
-export enum LeaveStatus {
-  PENDING = 'pending',
-  APPROVED = 'approved',
-  REJECTED = 'rejected',
-  CANCELLED = 'cancelled',
-}
-
 export enum AttendanceStatus {
   PRESENT = 'present',
   ABSENT = 'absent',
@@ -86,14 +79,6 @@ export enum RecruitmentStatus {
   ON_HOLD = 'on_hold',
   CLOSED = 'closed',
   CANCELLED = 'cancelled',
-}
-
-export enum PerformanceRating {
-  OUTSTANDING = 'outstanding',
-  EXCEEDS_EXPECTATIONS = 'exceeds_expectations',
-  MEETS_EXPECTATIONS = 'meets_expectations',
-  NEEDS_IMPROVEMENT = 'needs_improvement',
-  UNSATISFACTORY = 'unsatisfactory',
 }
 
 // ─── Master module enums ─────────────────────────────────────────────────────
@@ -251,13 +236,6 @@ export enum ErpModule {
   PURCHASE = 'purchase',
   STORE = 'store',
   TENDER = 'tender',
-}
-
-// ─── Leave Type (extension) ────────────────────────────────────────────────
-
-export enum LeaveCarryType {
-  CARRY_FORWARDED = 'carry_forwarded',
-  NOT_CARRY_FORWARDED = 'not_carry_forwarded',
 }
 
 // ─── TDS ────────────────────────────────────────────────────────────────────
