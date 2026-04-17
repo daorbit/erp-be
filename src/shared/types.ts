@@ -88,24 +88,6 @@ export enum RecruitmentStatus {
   CANCELLED = 'cancelled',
 }
 
-export enum TicketStatus {
-  OPEN = 'open',
-  IN_PROGRESS = 'in_progress',
-  ON_HOLD = 'on_hold',
-  RESOLVED = 'resolved',
-  CLOSED = 'closed',
-  REOPENED = 'reopened',
-}
-
-export enum ExpenseStatus {
-  DRAFT = 'draft',
-  SUBMITTED = 'submitted',
-  UNDER_REVIEW = 'under_review',
-  APPROVED = 'approved',
-  REJECTED = 'rejected',
-  REIMBURSED = 'reimbursed',
-}
-
 export enum PerformanceRating {
   OUTSTANDING = 'outstanding',
   EXCEEDS_EXPECTATIONS = 'exceeds_expectations',

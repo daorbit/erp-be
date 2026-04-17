@@ -42,7 +42,6 @@ router.get(
 router.get('/:id/attendance', EmployeeController.getEmployeeAttendance);
 router.get('/:id/leaves', EmployeeController.getEmployeeLeaves);
 router.get('/:id/payslips', EmployeeController.getEmployeePayslips);
-router.get('/:id/assets', EmployeeController.getEmployeeAssets);
 
 router.get(
   '/:id',

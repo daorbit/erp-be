@@ -89,23 +89,6 @@ export const getRecruitmentReport = asyncHandler(async (req: Request, res: Respo
   );
 });
 
-export const getExpenseReport = asyncHandler(async (req: Request, res: Response) => {
-  const month = Number(req.query.month);
-  const year = Number(req.query.year);
-
-  if (!month || !year) {
-    res.status(400).json(buildResponse(false, null, 'Month and year are required'));
-    return;
-  }
-
-  const authReq = req as IAuthRequest;
-  const report = await ReportService.getExpenseReport(month, year, authReq.user.company);
-
-  res.status(200).json(
-    buildResponse(true, report, 'Expense report generated successfully'),
-  );
-});
-
 export const getHeadcountReport = asyncHandler(async (req: Request, res: Response) => {
   const authReq = req as IAuthRequest;
   const report = await ReportService.getHeadcountReport(authReq.user.company);

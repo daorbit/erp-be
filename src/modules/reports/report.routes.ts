@@ -18,7 +18,6 @@ router.get('/attendance', reportController.getAttendanceReport);
 router.get('/leaves', reportController.getLeaveReport);
 router.get('/payroll', reportController.getPayrollReport);
 router.get('/recruitment', reportController.getRecruitmentReport);
-router.get('/expenses', reportController.getExpenseReport);
 router.get('/headcount', reportController.getHeadcountReport);
 router.get('/turnover', reportController.getTurnoverReport);
 

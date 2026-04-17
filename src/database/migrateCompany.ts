@@ -67,10 +67,7 @@ async function migrateCompany(): Promise<void> {
     'trainingprograms',
     'documents',
     'holidays',
-    'announcements',
-    'expenses',
-    'assets',
-    'tickets',
+
   ];
 
   for (const col of collections) {

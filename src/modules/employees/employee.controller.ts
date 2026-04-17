@@ -6,7 +6,6 @@ import { EmployeeService } from './employee.service.js';
 import Attendance from '../attendance/attendance.model.js';
 import { LeaveRequest } from '../leaves/leave.model.js';
 import { Payslip } from '../payroll/payroll.model.js';
-import Asset from '../assets/asset.model.js';
 
 export class EmployeeController {
   /**
@@ -128,15 +127,6 @@ export class EmployeeController {
       .limit(12)
       .lean();
     res.status(200).json(buildResponse(true, records, 'Employee payslips retrieved'));
-  });
-
-  static getEmployeeAssets = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const profile = await EmployeeService.getById(req.params.id as string, req.user.company);
-    const userId = (profile as any).userId?._id || (profile as any).userId;
-    const filter: Record<string, unknown> = { assignedTo: userId };
-    if (req.user.company) filter.company = req.user.company;
-    const records = await Asset.find(filter).sort({ assignedDate: -1 }).lean();
-    res.status(200).json(buildResponse(true, records, 'Employee assets retrieved'));
   });
 
   /**

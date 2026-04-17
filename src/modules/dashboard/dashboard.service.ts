@@ -7,7 +7,6 @@ import Attendance, { AttendanceStatus } from '../attendance/attendance.model.js'
 import { LeaveRequest, LeaveRequestStatus } from '../leaves/leave.model.js';
 import { Payslip } from '../payroll/payroll.model.js';
 import Holiday from '../holidays/holiday.model.js';
-import Announcement from '../announcements/announcement.model.js';
 import { PayslipStatus } from '../payroll/payroll.model.js';
 
 interface DashboardStats {
@@ -22,7 +21,6 @@ interface DashboardStats {
   };
   upcomingHolidays: number;
   recentHires: number;
-  activeAnnouncements: number;
   pendingPayroll: number;
 }
 
@@ -91,17 +89,6 @@ export class DashboardService {
     const hiresFilter: Record<string, unknown> = { joinDate: { $gte: thirtyDaysAgo }, isActive: true };
     if (companyId) hiresFilter.company = companyId;
 
-    const announcementFilter: Record<string, unknown> = {
-      isActive: true,
-      publishDate: { $lte: now },
-      $or: [
-        { expiryDate: { $exists: false } },
-        { expiryDate: null },
-        { expiryDate: { $gte: now } },
-      ],
-    };
-    if (companyId) announcementFilter.company = companyId;
-
     const payrollFilter: Record<string, unknown> = { status: PayslipStatus.DRAFT };
     if (companyId) payrollFilter.company = companyId;
 
@@ -112,7 +99,6 @@ export class DashboardService {
       todayAttendanceRecords,
       upcomingHolidays,
       recentHires,
-      activeAnnouncements,
       pendingPayroll,
     ] = await Promise.all([
       User.countDocuments(userFilter),
@@ -121,7 +107,6 @@ export class DashboardService {
       Attendance.find(attendanceFilter).lean(),
       Holiday.countDocuments(holidayFilter),
       EmployeeProfile.countDocuments(hiresFilter),
-      Announcement.countDocuments(announcementFilter),
       Payslip.countDocuments(payrollFilter),
     ]);
 
@@ -307,20 +292,6 @@ export class DashboardService {
         type: 'attendance',
         description: `${name} marked ${att.status}`,
         timestamp: att.createdAt,
-      });
-    }
-
-    // Recent announcements
-    const recentAnnouncements = await Announcement.find(activityFilter)
-      .sort({ createdAt: -1 })
-      .limit(3)
-      .lean();
-
-    for (const ann of recentAnnouncements) {
-      activities.push({
-        type: 'announcement',
-        description: `New announcement: ${ann.title}`,
-        timestamp: ann.createdAt,
       });
     }
 
