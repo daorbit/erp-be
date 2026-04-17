@@ -132,6 +132,13 @@ export class EmployeeService {
             { path: 'designation', select: 'title code level' },
           ],
         })
+        .populate('company', 'name')
+        .populate('branch', 'name')
+        .populate('department', 'name')
+        .populate('designation', 'name')
+        .populate('level', 'name')
+        .populate('grade', 'name')
+        .populate('employeeGroup', 'name')
         .populate('reportingManager', 'firstName lastName email')
         .populate('shift', 'name startTime endTime graceMinutes')
         .sort(sortOptions)
@@ -167,7 +174,15 @@ export class EmployeeService {
           { path: 'designation', select: 'title code level band' },
         ],
       })
-      .populate('reportingManager', 'firstName lastName email');
+      .populate('company', 'name')
+      .populate('branch', 'name')
+      .populate('department', 'name')
+      .populate('designation', 'name')
+      .populate('level', 'name')
+      .populate('grade', 'name')
+      .populate('employeeGroup', 'name')
+      .populate('reportingManager', 'firstName lastName email')
+      .populate('shift', 'name startTime endTime graceMinutes');
 
     if (!employee) {
       throw new AppError('Employee not found.', 404);
