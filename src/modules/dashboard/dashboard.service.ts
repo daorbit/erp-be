@@ -57,7 +57,6 @@ export class DashboardService {
     const today = dayjs().startOf('day').toDate();
     const todayEnd = dayjs().endOf('day').toDate();
     const thirtyDaysAgo = dayjs().subtract(30, 'day').toDate();
-    const now = new Date();
 
     const userFilter: Record<string, unknown> = { isActive: true };
     if (companyId) userFilter.company = companyId;
@@ -118,7 +117,6 @@ export class DashboardService {
       totalDepartments,
       todayAttendance,
       recentHires,
-      activeAnnouncements,
       pendingPayroll,
     };
   }
