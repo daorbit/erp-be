@@ -4,9 +4,7 @@ import { buildResponse } from '../../shared/helpers.js';
 import type { IAuthRequest, IQueryParams } from '../../shared/types.js';
 import { EmployeeService } from './employee.service.js';
 import Attendance from '../attendance/attendance.model.js';
-import { LeaveRequest } from '../leaves/leave.model.js';
 import { Payslip } from '../payroll/payroll.model.js';
-import Asset from '../assets/asset.model.js';
 
 export class EmployeeController {
   /**
@@ -105,19 +103,6 @@ export class EmployeeController {
     res.status(200).json(buildResponse(true, records, 'Employee attendance retrieved'));
   });
 
-  static getEmployeeLeaves = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const profile = await EmployeeService.getById(req.params.id as string, req.user.company);
-    const userId = (profile as any).userId?._id || (profile as any).userId;
-    const filter: Record<string, unknown> = { employee: userId };
-    if (req.user.company) filter.company = req.user.company;
-    const records = await LeaveRequest.find(filter)
-      .populate('leaveType', 'name code')
-      .sort({ createdAt: -1 })
-      .limit(20)
-      .lean();
-    res.status(200).json(buildResponse(true, records, 'Employee leaves retrieved'));
-  });
-
   static getEmployeePayslips = asyncHandler(async (req: IAuthRequest, res: Response) => {
     const profile = await EmployeeService.getById(req.params.id as string, req.user.company);
     const userId = (profile as any).userId?._id || (profile as any).userId;
@@ -130,12 +115,23 @@ export class EmployeeController {
     res.status(200).json(buildResponse(true, records, 'Employee payslips retrieved'));
   });
 
-  static getEmployeeAssets = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const profile = await EmployeeService.getById(req.params.id as string, req.user.company);
-    const userId = (profile as any).userId?._id || (profile as any).userId;
-    const filter: Record<string, unknown> = { assignedTo: userId };
-    if (req.user.company) filter.company = req.user.company;
-    const records = await Asset.find(filter).sort({ assignedDate: -1 }).lean();
-    res.status(200).json(buildResponse(true, records, 'Employee assets retrieved'));
+  /**
+   * POST /bulk-update — apply the same field-updates to many employees.
+   * Body: { employeeIds: string[], set: { field: value, ... } }
+   */
+  static bulkUpdate = asyncHandler(async (req: IAuthRequest, res: Response) => {
+    const { employeeIds, set } = req.body as { employeeIds: string[]; set: Record<string, unknown> };
+    const result = await EmployeeService.bulkUpdate(employeeIds, set, req.user.company);
+    res.status(200).json(
+      buildResponse(true, result, `Updated ${result.modified} of ${result.matched} employee(s)`),
+    );
+  });
+
+  /**
+   * GET /:id/full-and-final — compute F&F summary for one employee.
+   */
+  static fullAndFinal = asyncHandler(async (req: IAuthRequest, res: Response) => {
+    const result = await EmployeeService.fullAndFinal(req.params.id as string, req.user.company);
+    res.status(200).json(buildResponse(true, result, 'F&F computed'));
   });
 }

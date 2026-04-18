@@ -55,22 +55,12 @@ async function migrateCompany(): Promise<void> {
     'designations',
     'employeeprofiles',
     'attendances',
-    'leavetypes',
-    'leaverequests',
-    'leavebalances',
     'salarystructures',
     'payslips',
     'jobpostings',
     'jobapplications',
-    'performancereviews',
-    'goals',
-    'trainingprograms',
-    'documents',
-    'holidays',
-    'announcements',
-    'expenses',
-    'assets',
-    'tickets',
+
+
   ];
 
   for (const col of collections) {

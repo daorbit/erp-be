@@ -4,25 +4,18 @@ import User from '../auth/auth.model.js';
 import EmployeeProfile from '../employees/employee.model.js';
 import Department from '../departments/department.model.js';
 import Attendance, { AttendanceStatus } from '../attendance/attendance.model.js';
-import { LeaveRequest, LeaveRequestStatus } from '../leaves/leave.model.js';
-import { Payslip } from '../payroll/payroll.model.js';
-import Holiday from '../holidays/holiday.model.js';
-import Announcement from '../announcements/announcement.model.js';
-import { PayslipStatus } from '../payroll/payroll.model.js';
+import { Payslip, PayslipStatus } from '../payroll/payroll.model.js';
 
 interface DashboardStats {
   totalEmployees: number;
   totalDepartments: number;
-  pendingLeaves: number;
   todayAttendance: {
     present: number;
     absent: number;
     late: number;
     onLeave: number;
   };
-  upcomingHolidays: number;
   recentHires: number;
-  activeAnnouncements: number;
   pendingPayroll: number;
 }
 
@@ -35,13 +28,6 @@ interface AttendanceOverview {
   halfDay: number;
   workFromHome: number;
   total: number;
-}
-
-interface LeaveOverview {
-  pending: number;
-  approved: number;
-  rejected: number;
-  cancelled: number;
 }
 
 interface DepartmentDistribution {
@@ -71,7 +57,6 @@ export class DashboardService {
     const today = dayjs().startOf('day').toDate();
     const todayEnd = dayjs().endOf('day').toDate();
     const thirtyDaysAgo = dayjs().subtract(30, 'day').toDate();
-    const now = new Date();
 
     const userFilter: Record<string, unknown> = { isActive: true };
     if (companyId) userFilter.company = companyId;
@@ -79,28 +64,11 @@ export class DashboardService {
     const deptFilter: Record<string, unknown> = { isActive: true };
     if (companyId) deptFilter.company = companyId;
 
-    const leaveFilter: Record<string, unknown> = { status: LeaveRequestStatus.PENDING };
-    if (companyId) leaveFilter.company = companyId;
-
     const attendanceFilter: Record<string, unknown> = { date: { $gte: today, $lte: todayEnd } };
     if (companyId) attendanceFilter.company = companyId;
 
-    const holidayFilter: Record<string, unknown> = { date: { $gte: today }, isActive: true };
-    if (companyId) holidayFilter.company = companyId;
-
     const hiresFilter: Record<string, unknown> = { joinDate: { $gte: thirtyDaysAgo }, isActive: true };
     if (companyId) hiresFilter.company = companyId;
-
-    const announcementFilter: Record<string, unknown> = {
-      isActive: true,
-      publishDate: { $lte: now },
-      $or: [
-        { expiryDate: { $exists: false } },
-        { expiryDate: null },
-        { expiryDate: { $gte: now } },
-      ],
-    };
-    if (companyId) announcementFilter.company = companyId;
 
     const payrollFilter: Record<string, unknown> = { status: PayslipStatus.DRAFT };
     if (companyId) payrollFilter.company = companyId;
@@ -108,20 +76,14 @@ export class DashboardService {
     const [
       totalEmployees,
       totalDepartments,
-      pendingLeaves,
       todayAttendanceRecords,
-      upcomingHolidays,
       recentHires,
-      activeAnnouncements,
       pendingPayroll,
     ] = await Promise.all([
       User.countDocuments(userFilter),
       Department.countDocuments(deptFilter),
-      LeaveRequest.countDocuments(leaveFilter),
       Attendance.find(attendanceFilter).lean(),
-      Holiday.countDocuments(holidayFilter),
       EmployeeProfile.countDocuments(hiresFilter),
-      Announcement.countDocuments(announcementFilter),
       Payslip.countDocuments(payrollFilter),
     ]);
 
@@ -153,11 +115,8 @@ export class DashboardService {
     return {
       totalEmployees,
       totalDepartments,
-      pendingLeaves,
       todayAttendance,
-      upcomingHolidays,
       recentHires,
-      activeAnnouncements,
       pendingPayroll,
     };
   }
@@ -214,38 +173,6 @@ export class DashboardService {
   }
 
   /**
-   * Get leave requests overview (counts by status).
-   */
-  static async getLeaveOverview(companyId?: string): Promise<LeaveOverview> {
-    const currentYear = new Date().getFullYear();
-    const yearStart = new Date(currentYear, 0, 1);
-
-    const baseLF: Record<string, unknown> = { createdAt: { $gte: yearStart } };
-    if (companyId) baseLF.company = companyId;
-
-    const [pending, approved, rejected, cancelled] = await Promise.all([
-      LeaveRequest.countDocuments({
-        ...baseLF,
-        status: LeaveRequestStatus.PENDING,
-      }),
-      LeaveRequest.countDocuments({
-        ...baseLF,
-        status: LeaveRequestStatus.APPROVED,
-      }),
-      LeaveRequest.countDocuments({
-        ...baseLF,
-        status: LeaveRequestStatus.REJECTED,
-      }),
-      LeaveRequest.countDocuments({
-        ...baseLF,
-        status: LeaveRequestStatus.CANCELLED,
-      }),
-    ]);
-
-    return { pending, approved, rejected, cancelled };
-  }
-
-  /**
    * Get employee count per department.
    */
   static async getDepartmentDistribution(companyId?: string): Promise<DepartmentDistribution[]> {
@@ -258,7 +185,7 @@ export class DashboardService {
 
     return departments.map((dept) => ({
       department: dept.name,
-      code: dept.code,
+      code: dept.shortName,
       count: (dept as unknown as { employeeCount?: number }).employeeCount ?? 0,
     }));
   }
@@ -271,25 +198,6 @@ export class DashboardService {
 
     const activityFilter: Record<string, unknown> = {};
     if (companyId) activityFilter.company = companyId;
-
-    // Recent leave requests
-    const recentLeaves = await LeaveRequest.find(activityFilter)
-      .populate('employee', 'firstName lastName')
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .lean();
-
-    for (const leave of recentLeaves) {
-      const emp = leave.employee as unknown as { firstName?: string; lastName?: string };
-      const name = emp?.firstName && emp?.lastName
-        ? `${emp.firstName} ${emp.lastName}`
-        : 'An employee';
-      activities.push({
-        type: 'leave',
-        description: `${name} submitted a leave request (${leave.status})`,
-        timestamp: leave.createdAt,
-      });
-    }
 
     // Recent attendance
     const recentAttendance = await Attendance.find(activityFilter)
@@ -307,20 +215,6 @@ export class DashboardService {
         type: 'attendance',
         description: `${name} marked ${att.status}`,
         timestamp: att.createdAt,
-      });
-    }
-
-    // Recent announcements
-    const recentAnnouncements = await Announcement.find(activityFilter)
-      .sort({ createdAt: -1 })
-      .limit(3)
-      .lean();
-
-    for (const ann of recentAnnouncements) {
-      activities.push({
-        type: 'announcement',
-        description: `New announcement: ${ann.title}`,
-        timestamp: ann.createdAt,
       });
     }
 

@@ -2,10 +2,8 @@ import mongoose from 'mongoose';
 import { AppError } from '../../middleware/errorHandler.js';
 import EmployeeProfile from '../employees/employee.model.js';
 import Attendance from '../attendance/attendance.model.js';
-import { LeaveRequest } from '../leaves/leave.model.js';
 import { Payslip } from '../payroll/payroll.model.js';
 import { JobPosting, JobApplication } from '../recruitment/recruitment.model.js';
-import Expense from '../expenses/expense.model.js';
 
 interface DateRange {
   startDate?: string;
@@ -121,45 +119,6 @@ export class ReportService {
   }
 
   /**
-   * Leave report: usage summary for a year.
-   */
-  static async getLeaveReport(year: number, departmentId?: string, companyId?: string) {
-    const startDate = new Date(year, 0, 1);
-    const endDate = new Date(year, 11, 31, 23, 59, 59);
-
-    const matchStage: Record<string, unknown> = {
-      startDate: { $gte: startDate },
-      endDate: { $lte: endDate },
-    };
-    if (companyId) matchStage.company = new mongoose.Types.ObjectId(companyId);
-
-    void departmentId;
-
-    const pipeline: mongoose.PipelineStage[] = [
-      { $match: matchStage },
-      {
-        $group: {
-          _id: { status: '$status' },
-          count: { $sum: 1 },
-          totalDays: { $sum: '$totalDays' },
-        },
-      },
-    ];
-
-    const report = await LeaveRequest.aggregate(pipeline);
-
-    const summary: Record<string, { count: number; totalDays: number }> = {};
-    for (const item of report) {
-      summary[item._id.status as string] = {
-        count: item.count as number,
-        totalDays: item.totalDays as number,
-      };
-    }
-
-    return { year, summary };
-  }
-
-  /**
    * Payroll report: monthly payroll summary.
    */
   static async getPayrollReport(month: number, year: number, companyId?: string) {
@@ -260,51 +219,6 @@ export class ReportService {
       jobPostings: jobStatusCounts,
       applications: { total: totalApplications, byStatus: applicationStatusCounts },
     };
-  }
-
-  /**
-   * Expense report: summary by category for a month.
-   */
-  static async getExpenseReport(month: number, year: number, companyId?: string) {
-    if (month < 1 || month > 12) {
-      throw new AppError('Month must be between 1 and 12.', 400);
-    }
-
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0, 23, 59, 59);
-
-    const expenseMatch: Record<string, unknown> = { date: { $gte: startDate, $lte: endDate } };
-    if (companyId) expenseMatch.company = new mongoose.Types.ObjectId(companyId);
-
-    const pipeline: mongoose.PipelineStage[] = [
-      { $match: expenseMatch },
-      {
-        $group: {
-          _id: { category: '$category', status: '$status' },
-          totalAmount: { $sum: '$amount' },
-          count: { $sum: 1 },
-        },
-      },
-      { $sort: { totalAmount: -1 } },
-    ];
-
-    const report = await Expense.aggregate(pipeline);
-
-    let grandTotal = 0;
-    const categories: Record<string, unknown[]> = {};
-
-    for (const item of report) {
-      const category = item._id.category as string;
-      if (!categories[category]) categories[category] = [];
-      categories[category].push({
-        status: item._id.status,
-        totalAmount: item.totalAmount,
-        count: item.count,
-      });
-      grandTotal += item.totalAmount as number;
-    }
-
-    return { month, year, grandTotal, categories };
   }
 
   /**

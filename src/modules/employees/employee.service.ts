@@ -9,7 +9,6 @@ interface EmployeeCreateData {
   firstName: string;
   lastName: string;
   email: string;
-  password: string;
   phone?: string;
   role?: string;
   company?: string;
@@ -133,6 +132,13 @@ export class EmployeeService {
             { path: 'designation', select: 'title code level' },
           ],
         })
+        .populate('company', 'name')
+        .populate('branch', 'name')
+        .populate('department', 'name')
+        .populate('designation', 'name')
+        .populate('level', 'name')
+        .populate('grade', 'name')
+        .populate('employeeGroup', 'name')
         .populate('reportingManager', 'firstName lastName email')
         .populate('shift', 'name startTime endTime graceMinutes')
         .sort(sortOptions)
@@ -168,7 +174,15 @@ export class EmployeeService {
           { path: 'designation', select: 'title code level band' },
         ],
       })
-      .populate('reportingManager', 'firstName lastName email');
+      .populate('company', 'name')
+      .populate('branch', 'name')
+      .populate('department', 'name')
+      .populate('designation', 'name')
+      .populate('level', 'name')
+      .populate('grade', 'name')
+      .populate('employeeGroup', 'name')
+      .populate('reportingManager', 'firstName lastName email')
+      .populate('shift', 'name startTime endTime graceMinutes');
 
     if (!employee) {
       throw new AppError('Employee not found.', 404);
@@ -193,7 +207,7 @@ export class EmployeeService {
       firstName: data.firstName,
       lastName: data.lastName,
       email: data.email,
-      password: data.password,
+      password: `Emp@${Date.now().toString(36)}`,
       phone: data.phone,
       role: data.role ?? 'employee',
       employeeId,
@@ -363,5 +377,74 @@ export class EmployeeService {
       .lean();
 
     return employees as any as IEmployeeProfile[];
+  }
+
+  /**
+   * Bulk-update a whitelisted set of fields on many employees at once.
+   * Used by the Multiple Shift / Branch / Reporting / generic Update pages.
+   * Whitelisted fields only — anything else is silently dropped to prevent
+   * accidental mass-writes from a hostile client.
+   */
+  static async bulkUpdate(
+    employeeIds: string[],
+    set: Record<string, unknown>,
+    companyId?: string,
+  ): Promise<{ matched: number; modified: number }> {
+    if (!Array.isArray(employeeIds) || employeeIds.length === 0) {
+      throw new AppError('No employees provided', 400);
+    }
+    const allowedFields = new Set([
+      'shift', 'branch', 'department', 'designation', 'level', 'grade',
+      'employeeGroup', 'tagName', 'reportingEmp', 'empStatus',
+      'confirmationDay', 'noticePeriodDays', 'empRemark',
+      'isActive', 'categorySkill', 'subCompany', 'pfScheme',
+    ]);
+    const safe: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(set)) {
+      if (allowedFields.has(k) && v !== undefined) safe[k] = v;
+    }
+    if (Object.keys(safe).length === 0) {
+      throw new AppError('No updatable fields in payload', 400);
+    }
+
+    const filter: Record<string, unknown> = { _id: { $in: employeeIds } };
+    if (companyId) filter.company = companyId;
+
+    const result = await EmployeeProfile.updateMany(filter, { $set: safe });
+    return {
+      matched: (result as { matchedCount?: number }).matchedCount ?? 0,
+      modified: (result as { modifiedCount?: number }).modifiedCount ?? 0,
+    };
+  }
+
+  /**
+   * Compute a lightweight full-and-final statement for one employee.
+   * Reference implementation: loads current salary breakdown + leave balances
+   * + notice-period pay, returns totals. Real-world F&F needs payroll/attendance
+   * integration — we surface the core fields and let payroll extend.
+   */
+  static async fullAndFinal(id: string, companyId?: string) {
+    if (!mongoose.Types.ObjectId.isValid(id)) throw new AppError('Invalid employee ID', 400);
+    const filter: Record<string, unknown> = { _id: id };
+    if (companyId) filter.company = companyId;
+    const e = await EmployeeProfile.findOne(filter).lean();
+    if (!e) throw new AppError('Employee not found', 404);
+
+    const basic = (e as any).salary?.basic ?? 0;
+    const gross = (e as any).salary?.grossSalary ?? 0;
+    const deductions = (e as any).salary?.deductions ?? 0;
+    const noticeDays = (e as any).noticePeriodDays ?? 0;
+
+    return {
+      employeeId: (e as any).employeeId,
+      resignationDate: (e as any).resignationDate,
+      lastWorkingDate: (e as any).lastWorkingDate,
+      basic,
+      grossSalary: gross,
+      deductions,
+      netSalary: gross - deductions,
+      noticePeriodDays: noticeDays,
+      noticePeriodRecovery: basic ? (basic / 30) * noticeDays : 0,
+    };
   }
 }

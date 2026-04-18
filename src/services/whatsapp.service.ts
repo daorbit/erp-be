@@ -57,13 +57,3 @@ export async function sendShiftReminder(phone: string, employeeName: string, shi
     body: `Hi ${employeeName}, your shift "${shiftName}" started at ${startTime}. Please check in to the attendance system.`,
   });
 }
-
-/**
- * Send leave inquiry after grace period.
- */
-export async function sendLeaveInquiry(phone: string, employeeName: string, shiftName: string): Promise<boolean> {
-  return sendWhatsAppMessage({
-    to: phone,
-    body: `Hi ${employeeName}, you haven't checked in for your "${shiftName}" shift. Are you on leave today?\n\nReply *YES* to apply for leave\nReply *NO* if you're coming in`,
-  });
-}

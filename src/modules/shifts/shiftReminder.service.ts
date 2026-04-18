@@ -6,8 +6,7 @@ import EmployeeProfile from '../employees/employee.model.js';
 import Attendance from '../attendance/attendance.model.js';
 import Shift, { type IShift } from './shift.model.js';
 import ShiftReminder, { ReminderStatus } from './shiftReminder.model.js';
-import { LeaveRequest, LeaveType, LeaveBalance, LeaveRequestStatus } from '../leaves/leave.model.js';
-import { sendShiftReminder, sendLeaveInquiry } from '../../services/whatsapp.service.js';
+import { sendShiftReminder } from '../../services/whatsapp.service.js';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -16,8 +15,7 @@ dayjs.extend(timezone);
  * Core shift reminder logic:
  *
  * 1. At shift start time → check who hasn't checked in → send WhatsApp reminder
- * 2. After graceMinutes (default 15) → re-check → send leave inquiry (YES/NO)
- * 3. On WhatsApp reply "YES" → auto-apply leave
+ * 2. After graceMinutes (default 15) → re-check → send follow-up reminder
  */
 export class ShiftReminderService {
   /**
@@ -49,9 +47,9 @@ export class ShiftReminderService {
         await this.sendInitialReminders(shift, now);
       }
 
-      // Phase 2: At shift start + grace → send leave inquiry
+      // Phase 2: At shift start + grace → send follow-up reminder
       if (currentTimeStr === inquiryTime) {
-        await this.sendLeaveInquiries(shift, now);
+        await this.sendFollowUpReminders(shift, now);
       }
     }
   }
@@ -83,16 +81,6 @@ export class ShiftReminderService {
 
       if (attendance) continue; // Already checked in
 
-      // Check if already has approved leave for today
-      const existingLeave = await LeaveRequest.findOne({
-        employee: user._id,
-        status: LeaveRequestStatus.APPROVED,
-        startDate: { $lte: today },
-        endDate: { $gte: today },
-      });
-
-      if (existingLeave) continue; // On approved leave
-
       // Check if reminder already sent today for this shift
       const existingReminder = await ShiftReminder.findOne({
         employee: user._id,
@@ -122,9 +110,9 @@ export class ShiftReminderService {
 
   /**
    * Phase 2: Re-check employees who still haven't checked in after grace period.
-   * Send leave inquiry (YES/NO).
+   * Send follow-up reminder.
    */
-  private static async sendLeaveInquiries(shift: IShift, now: dayjs.Dayjs): Promise<void> {
+  private static async sendFollowUpReminders(shift: IShift, now: dayjs.Dayjs): Promise<void> {
     const today = now.startOf('day').toDate();
 
     // Find reminders sent today for this shift that haven't progressed
@@ -151,15 +139,15 @@ export class ShiftReminderService {
         continue;
       }
 
-      // Send leave inquiry
+      // Send follow-up reminder
       const employeeName = `${user.firstName} ${user.lastName}`;
-      await sendLeaveInquiry(user.phone, employeeName, shift.name);
+      await sendShiftReminder(user.phone, employeeName, shift.name, shift.startTime);
 
       reminder.status = ReminderStatus.INQUIRY_SENT;
       reminder.inquirySentAt = new Date();
       await reminder.save();
 
-      console.log(`[ShiftReminder] Sent leave inquiry to ${employeeName} for shift "${shift.name}"`);
+      console.log(`[ShiftReminder] Sent follow-up reminder to ${employeeName} for shift "${shift.name}"`);
     }
   }
 
@@ -193,79 +181,16 @@ export class ShiftReminderService {
     reminder.responseText = responseText.trim();
 
     if (response === 'YES' || response === 'Y') {
-      // Auto-apply leave
-      const leaveRequest = await this.autoApplyLeave(user._id.toString(), user.company?.toString());
-
-      if (leaveRequest) {
-        reminder.status = ReminderStatus.LEAVE_APPLIED;
-        reminder.leaveRequest = leaveRequest._id as any;
-        await reminder.save();
-        return `Leave applied for today. Your leave request is pending approval. Request ID: ${leaveRequest._id}`;
-      } else {
-        await reminder.save();
-        return 'Unable to auto-apply leave. You may not have sufficient leave balance or no leave type is configured. Please contact HR.';
-      }
+      reminder.status = ReminderStatus.LEAVE_APPLIED;
+      await reminder.save();
+      return 'Noted. Please contact HR to apply for leave.';
     } else if (response === 'NO' || response === 'N') {
       reminder.status = ReminderStatus.DECLINED_LEAVE;
       await reminder.save();
       return 'Noted. Please check in to the attendance system as soon as possible.';
     } else {
-      return 'Please reply *YES* to apply for leave or *NO* if you are coming in.';
+      return 'Please reply *YES* if you want to take leave or *NO* if you are coming in.';
     }
   }
 
-  /**
-   * Auto-apply casual/sick leave for the employee.
-   * Picks the first available leave type with remaining balance.
-   */
-  private static async autoApplyLeave(
-    employeeId: string,
-    companyId?: string,
-  ): Promise<any> {
-    const today = dayjs().startOf('day');
-    const year = today.year();
-
-    // Check for overlapping leave
-    const existingLeave = await LeaveRequest.findOne({
-      employee: employeeId,
-      status: { $in: [LeaveRequestStatus.PENDING, LeaveRequestStatus.APPROVED] },
-      startDate: { $lte: today.toDate() },
-      endDate: { $gte: today.toDate() },
-    });
-
-    if (existingLeave) return null;
-
-    // Find leave types with available balance (prefer "CL" or "SL" codes)
-    const leaveFilter: Record<string, unknown> = { isActive: true };
-    if (companyId) leaveFilter.company = companyId;
-
-    const leaveTypes = await LeaveType.find(leaveFilter)
-      .sort({ code: 1 }) // CL comes before SL alphabetically
-      .lean();
-
-    for (const lt of leaveTypes) {
-      const balance = await LeaveBalance.findOne({
-        employee: employeeId,
-        leaveType: lt._id,
-        year,
-      });
-
-      if (balance && balance.remaining >= 1) {
-        const leaveRequest = await LeaveRequest.create({
-          employee: employeeId,
-          company: companyId,
-          leaveType: lt._id,
-          startDate: today.toDate(),
-          endDate: today.toDate(),
-          totalDays: 1,
-          reason: 'Auto-applied via shift reminder (WhatsApp)',
-          isHalfDay: false,
-        });
-
-        return leaveRequest;
-      }
-    }
-
-    return null; // No leave balance available
-  }
 }

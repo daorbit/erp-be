@@ -23,6 +23,15 @@ router.get(
   EmployeeController.getReportees,
 );
 
+// Bulk update — must be before /:id so it isn't shadowed.
+router.post(
+  '/bulk-update',
+  authorize(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.HR_MANAGER),
+  EmployeeController.bulkUpdate,
+);
+
+router.get('/:id/full-and-final', EmployeeController.fullAndFinal);
+
 // Standard CRUD
 router.get(
   '/',
@@ -31,9 +40,7 @@ router.get(
 );
 
 router.get('/:id/attendance', EmployeeController.getEmployeeAttendance);
-router.get('/:id/leaves', EmployeeController.getEmployeeLeaves);
 router.get('/:id/payslips', EmployeeController.getEmployeePayslips);
-router.get('/:id/assets', EmployeeController.getEmployeeAssets);
 
 router.get(
   '/:id',

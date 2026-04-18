@@ -3,6 +3,7 @@ import { AppError } from '../../middleware/errorHandler.js';
 import { buildPagination } from '../../shared/helpers.js';
 import type { IQueryParams } from '../../shared/types.js';
 import Department, { type IDepartment } from './department.model.js';
+import User from '../auth/auth.model.js';
 
 interface PaginatedResult<T> {
   data: T[];
@@ -52,7 +53,8 @@ export class DepartmentService {
     const [departments, total] = await Promise.all([
       Department.find(filter)
         // .populate('headOfDepartment', 'firstName lastName email')
-        .populate('parentDepartments', 'name shortName')
+        .populate('parentDepartment', 'name shortName')
+        .populate('branches', 'name code')
         .populate('employeeCount')
         .sort(sortOptions)
         .skip(skip)
@@ -80,7 +82,8 @@ export class DepartmentService {
 
     const department = await Department.findOne(filter)
       // .populate('headOfDepartment', 'firstName lastName email')
-      .populate('parentDepartments', 'name shortName')
+      .populate('parentDepartment', 'name shortName')
+      .populate('branches', 'name code')
       .populate('employeeCount');
 
     if (!department) {
@@ -98,7 +101,8 @@ export class DepartmentService {
 
     return Department.findById(department._id)
       // .populate('headOfDepartment', 'firstName lastName email')
-      .populate('parentDepartments', 'name shortName') as unknown as IDepartment;
+      .populate('parentDepartment', 'name shortName')
+      .populate('branches', 'name code') as unknown as IDepartment;
   }
 
   /**
@@ -119,7 +123,8 @@ export class DepartmentService {
       { new: true, runValidators: true },
     )
       // .populate('headOfDepartment', 'firstName lastName email')
-      .populate('parentDepartments', 'name shortName');
+      .populate('parentDepartment', 'name shortName')
+      .populate('branches', 'name code');
 
     if (!department) {
       throw new AppError('Department not found.', 404);
@@ -150,6 +155,51 @@ export class DepartmentService {
     }
 
     return department;
+  }
+
+  /**
+   * Merge `fromDepartment` into `toDepartment`: reassign every user whose
+   * department is the source to the destination, then soft-delete the source.
+   * Both departments must belong to the caller's company.
+   */
+  static async merge(
+    fromId: string,
+    toId: string,
+    companyId?: string,
+  ): Promise<{ movedUsers: number; fromDepartment: IDepartment; toDepartment: IDepartment }> {
+    if (!mongoose.Types.ObjectId.isValid(fromId) || !mongoose.Types.ObjectId.isValid(toId)) {
+      throw new AppError('Invalid department ID format.', 400);
+    }
+    if (fromId === toId) {
+      throw new AppError('From and To departments must be different.', 400);
+    }
+
+    const filterBase: Record<string, unknown> = {};
+    if (companyId) filterBase.company = companyId;
+
+    const [fromDept, toDept] = await Promise.all([
+      Department.findOne({ ...filterBase, _id: fromId }),
+      Department.findOne({ ...filterBase, _id: toId }),
+    ]);
+
+    if (!fromDept) throw new AppError('Source (From) department not found.', 404);
+    if (!toDept) throw new AppError('Target (To) department not found.', 404);
+
+    // Reassign all users in the source department to the target department.
+    const userFilter: Record<string, unknown> = { department: fromId };
+    if (companyId) userFilter.company = companyId;
+
+    const { modifiedCount } = await User.updateMany(userFilter, { $set: { department: toId } });
+
+    // Soft-delete the source department.
+    fromDept.isActive = false;
+    await fromDept.save();
+
+    return {
+      movedUsers: modifiedCount ?? 0,
+      fromDepartment: fromDept,
+      toDepartment: toDept,
+    };
   }
 
   /**

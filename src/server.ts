@@ -5,6 +5,7 @@ import config from './config/index.js';
 import { connectDB } from './config/database.js';
 import app from './app.js';
 import { seedAdminUser } from './database/autoSeed.js';
+import { syncSchemaIndexes } from './database/syncSchemaIndexes.js';
 import { startShiftScheduler, stopShiftScheduler } from './modules/shifts/shiftScheduler.js';
 
 // ─── Unhandled rejection handler ─────────────────────────────────────────────
@@ -40,6 +41,9 @@ let server: ReturnType<typeof app.listen> | undefined;
 async function bootstrap(): Promise<void> {
   try {
     await connectDB();
+    // Drop indexes no longer declared in any schema (e.g. the legacy `code_1`
+    // unique index on departments). Idempotent — cheap on subsequent boots.
+    await syncSchemaIndexes();
     await seedAdminUser();
 
     server = app.listen(config.server.port, () => {

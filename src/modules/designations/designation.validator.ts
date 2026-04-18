@@ -39,5 +39,14 @@ export const updateDesignationSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
+export const mergeDesignationsSchema = z.object({
+  fromDesignation: z.string({ required_error: 'From Designation is required' }).min(1, 'From Designation is required'),
+  toDesignation: z.string({ required_error: 'To Designation is required' }).min(1, 'To Designation is required'),
+}).refine((d) => d.fromDesignation !== d.toDesignation, {
+  message: 'From and To designations must be different',
+  path: ['toDesignation'],
+});
+
 export type CreateDesignationInput = z.infer<typeof createDesignationSchema>;
 export type UpdateDesignationInput = z.infer<typeof updateDesignationSchema>;
+export type MergeDesignationsInput = z.infer<typeof mergeDesignationsSchema>;

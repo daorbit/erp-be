@@ -2,7 +2,7 @@ import mongoose, { Schema, type Document, type Model } from 'mongoose';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import config from '../../config/index.js';
-import { UserRole } from '../../shared/types.js';
+import { UserRole, UserCategory, UserType, ErpModule } from '../../shared/types.js';
 
 // ─── Interface ───────────────────────────────────────────────────────────────
 
@@ -25,6 +25,15 @@ export interface IUser extends Document {
   refreshToken?: string;
   createdAt: Date;
   updatedAt: Date;
+
+  // ─── NwayERP User master extensions ──────────────────────────────────────
+  username?: string;               // "User Name" — separate from email for login
+  userCategory?: UserCategory;     // internal / external
+  userType?: UserType;             // super_admin / admin / ho_user / site_admin / user
+  allowedDepartments?: mongoose.Types.ObjectId[];
+  allowedBranches?: mongoose.Types.ObjectId[];
+  allowedModules?: string[];
+  remark?: string;
 
   comparePassword(candidatePassword: string): Promise<boolean>;
   generateAuthToken(): string;
@@ -109,6 +118,15 @@ const userSchema = new Schema<IUser>(
       type: String,
       select: false,
     },
+
+    // NwayERP extensions
+    username: { type: String, trim: true, maxlength: 50 },
+    userCategory: { type: String, enum: Object.values(UserCategory) },
+    userType: { type: String, enum: Object.values(UserType) },
+    allowedDepartments: [{ type: Schema.Types.ObjectId, ref: 'Department' }],
+    allowedBranches: [{ type: Schema.Types.ObjectId, ref: 'Branch' }],
+    allowedModules: [{ type: String, enum: Object.values(ErpModule) }],
+    remark: { type: String, trim: true, maxlength: 500 },
   },
   {
     timestamps: true,
