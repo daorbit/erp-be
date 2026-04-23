@@ -1,7 +1,7 @@
 # ERP Backend - HR Management System API
 
 ## Overview
-RESTful API for HR Management System built with Express.js 5, TypeScript, MongoDB (Mongoose), and JWT authentication. Provides 151 endpoints across 18 HR modules.
+RESTful API for an HR Management System built with Express.js 5, TypeScript, MongoDB (Mongoose), and JWT authentication. Multi-tenant (company-scoped) architecture with 41 modules.
 
 ## Tech Stack
 - **Runtime**: Node.js 20+ with TypeScript 5.8
@@ -10,64 +10,106 @@ RESTful API for HR Management System built with Express.js 5, TypeScript, MongoD
 - **Auth**: JWT (jsonwebtoken) + bcryptjs
 - **Validation**: Zod
 - **Security**: Helmet, CORS, express-rate-limit
-- **File Upload**: Multer
-- **Logging**: Morgan
+- **File Upload**: Multer + Cloudinary (`config/cloudinary.ts`)
+- **Logging**: Morgan + custom audit logger middleware
+- **Messaging**: WhatsApp service (`services/whatsapp.service.ts`)
 
 ## Project Structure
 ```
 src/
-  server.ts          # Entry point: connect DB, auto-seed admin, start server
-  app.ts             # Express app: middleware, route mounting, error handling
+  server.ts              # Entry point: connect DB, auto-seed admin, start server
+  app.ts                 # Express app: middleware, all route mounting, error handling
   config/
-    index.ts         # Environment config (MongoDB URI, JWT, CORS, etc.)
-    database.ts      # MongoDB connection
+    index.ts             # Environment config (MongoDB URI, JWT, CORS, Cloudinary, etc.)
+    database.ts          # MongoDB connection with lazy/singleton pattern for serverless
+    cloudinary.ts        # Cloudinary upload config
   middleware/
-    auth.ts          # JWT authenticate + role-based authorize
-    errorHandler.ts  # AppError class, asyncHandler, globalErrorHandler
-    validate.ts      # Zod validation middleware
+    auth.ts              # authenticate (JWT verify + DB check) + authorize (role check)
+    companyScope.ts      # requireCompany — ensures non-super_admin have a company
+    onboardingGate.ts    # requireOnboardingComplete — blocks incomplete onboarding
+    auditLogger.ts       # Logs all non-GET requests to audit collection
+    errorHandler.ts      # AppError class, asyncHandler, globalErrorHandler
+    validate.ts          # Zod validation middleware
+    upload.ts            # Multer file upload middleware
   shared/
-    types.ts         # Enums (UserRole, LeaveStatus, etc.), IApiResponse, IQueryParams
-    helpers.ts       # buildResponse, buildPagination, generateEmployeeId
+    types.ts             # IApiResponse, IQueryParams, IPagination interfaces
+    helpers.ts           # buildResponse, buildErrorResponse, buildPagination, generateEmployeeId
   types/
-    express.d.ts     # Express Request augmentation (req.user)
+    express.d.ts         # Express Request augmentation (req.user)
+  services/
+    whatsapp.service.ts  # WhatsApp messaging integration
   database/
-    seed.ts          # Manual seed script (npm run db:seed)
-    autoSeed.ts      # Auto-creates admin user on first startup
-  modules/
-    auth/            # User model + login/register/refresh/profile
-    employees/       # EmployeeProfile model + CRUD + department/reportees
-    departments/     # Department model + CRUD + tree hierarchy
-    designations/    # Designation model + CRUD
-    attendance/      # Attendance model + check-in/out + bulk mark + reports
-    leaves/          # LeaveType + LeaveRequest + LeaveBalance + apply/approve/reject
-    payroll/         # SalaryStructure + Payslip + generate/approve/markPaid
-    recruitment/     # JobPosting + JobApplication + interview scheduling
-    performance/     # PerformanceReview + Goal + ratings + submit workflow
-    training/        # TrainingProgram + enroll/complete/drop
-    documents/       # Document model + upload/download
-    holidays/        # Holiday model + by year/upcoming
-    announcements/   # Announcement + readBy tracking + active
-    expenses/        # Expense + submit/approve/reject/reimburse workflow
-    assets/          # Asset + assign/return + history tracking
-    helpdesk/        # Ticket + comments + status workflow
-    reports/         # 8 aggregation reports (employee, attendance, leave, payroll, etc.)
-    dashboard/       # Stats, attendance overview, dept distribution, activities
+    seed.ts              # Manual seed script (npm run db:seed)
+    autoSeed.ts          # Auto-creates super_admin user on first startup
+    migrateCompany.ts    # Migration helper for company data
+    syncSchemaIndexes.ts # Sync MongoDB schema indexes
+  modules/               # 41 feature modules (see full list below)
 ```
 
+## All Modules (`src/modules/`)
+| Module | Route prefix | Description |
+|---|---|---|
+| `auth` | `/auth` | User model, login/register/refresh/profile |
+| `companies` | `/companies` | Multi-tenant company management |
+| `onboarding` | `/onboarding` | KYC onboarding (exempt from gate) |
+| `invitations` | `/invitations` | Invite users by email |
+| `upload` | `/upload` | File upload (Cloudinary) |
+| `employees` | `/employees` | Employee profiles, CRUD, documents |
+| `departments` | `/departments` | Department tree hierarchy |
+| `parent-departments` | `/parent-departments` | Top-level department grouping |
+| `designations` | `/designations` | Designation CRUD + merge + employee count |
+| `employee-groups` | `/employee-groups` | Employee group management |
+| `shifts` | `/shifts` | Shift master + webhook routes |
+| `branches` | `/branches` | Branch CRUD |
+| `salary-heads` | `/salary-heads` | Salary head definitions |
+| `salary-structures` | `/salary-structures` | Salary structure + assign heads |
+| `qualifications` | `/qualifications` | Qualification list |
+| `document-masters` | `/document-masters` | Document type definitions |
+| `tags` | `/tags` | Tag management |
+| `levels` | `/levels` | Level (seniority) master |
+| `grades` | `/grades` | Grade master |
+| `banks` | `/banks` | Bank master |
+| `cities` | `/cities` | City master |
+| `important-forms` | `/important-forms` | Important form links |
+| `sims` | `/sims` | SIM card tracking |
+| `other-incomes` | `/other-incomes` | Other income types |
+| `att-upload-sites` | `/att-upload-sites` | Attendance upload site config |
+| `att-auto-notifications` | `/att-auto-notifications` | Attendance auto-mail/SMS rules |
+| `resignations` | `/resignations` | Employee resignation management |
+| `user-rights` | `/user-rights` | User permission management |
+| `day-authorizations` | `/day-authorizations` | Day-level authorization |
+| `tds-exemption-groups` | `/tds-groups` | TDS exemption group master |
+| `tds-exemptions` | `/tds-exemptions` | TDS exemption records |
+| `sms-email-alerts` | `/sms-email-alerts` | SMS/email alert configuration |
+| `image-galleries` | `/image-galleries` | Image gallery management |
+| `manage-messages` | `/manage-messages` | Message management |
+| `attendance` | `/attendance` | Attendance records, check-in/out, reports |
+| `payroll` | `/payroll` | Payroll generation and payslip management |
+| `recruitment` | `/recruitment` | Job postings + applications |
+| `reports` | `/reports` | Aggregation reports |
+| `dashboard` | `/dashboard` | Stats, overview, dept distribution |
+| `audit` | `/audit-logs` | Audit log viewer |
+
 ## Module Pattern
-Each module has 4-5 files:
-- `*.model.ts` - Mongoose schema + TypeScript interface + enums
-- `*.service.ts` - Business logic (static methods)
-- `*.controller.ts` - Request handlers (asyncHandler wrapped)
-- `*.validator.ts` - Zod schemas for request body validation
-- `*.routes.ts` - Express Router with auth/validate middleware
+Each module typically has 4–5 files:
+- `*.model.ts` — Mongoose schema + TypeScript interface + enums
+- `*.service.ts` — Business logic (static methods or plain functions)
+- `*.controller.ts` — Request handlers wrapped in `asyncHandler`
+- `*.validator.ts` — Zod schemas for request body validation
+- `*.routes.ts` — Express Router with `authenticate`/`authorize`/`validate` middleware
 
 ## Authentication & Authorization
 - **JWT tokens**: accessToken (7d) + refreshToken (30d)
 - **Roles**: `super_admin`, `admin`, `hr_manager`, `manager`, `employee`
-- **Middleware**: `authenticate` (verify JWT) → `authorize(...roles)` (check role)
+- **Middleware chain**: `authenticate` → `requireCompany` → `requireOnboardingComplete` → `authorize(...roles)`
 - **Password**: bcrypt with 12 salt rounds
-- All routes use `authenticate`, write operations also use `authorize`
+- Routes exempt from onboarding gate: `/auth`, `/invitations`, `/upload`, `/onboarding`, `/webhooks`
+
+## Multi-Tenancy
+- Each user (except `super_admin`) belongs to a `company` (ObjectId ref)
+- `requireCompany` middleware enforces this association
+- All module queries are scoped to `req.user.company`
+- `super_admin` can manage all companies
 
 ## API Response Format
 ```json
@@ -75,22 +117,15 @@ Each module has 4-5 files:
   "success": true,
   "data": {},
   "message": "Operation successful",
-  "pagination": {
-    "page": 1,
-    "limit": 10,
-    "total": 100,
-    "totalPages": 10
-  }
+  "pagination": { "page": 1, "limit": 10, "total": 100, "totalPages": 10 }
 }
 ```
+Use `buildResponse` / `buildErrorResponse` from `shared/helpers.ts`.
 
 ## Enums
-ALL enum values are **lowercase snake_case**:
+ALL enum values are **lowercase snake_case** (defined in individual model files):
 - UserRole: `super_admin`, `admin`, `hr_manager`, `manager`, `employee`
 - AttendanceStatus: `present`, `absent`, `half_day`, `late`, `on_leave`, `work_from_home`
-- LeaveStatus: `pending`, `approved`, `rejected`, `cancelled`
-- PayslipStatus: `draft`, `generated`, `approved`, `paid`
-- And more in `shared/types.ts` and individual model files
 
 ## Commands
 ```bash
