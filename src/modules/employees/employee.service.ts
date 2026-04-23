@@ -117,6 +117,17 @@ export class EmployeeService {
       filter.employmentType = filters.employmentType;
     }
 
+    // Exact match on employeeId (e.g. from search dialog "Employee Code" field)
+    if (filters.employeeId) {
+      filter.employeeId = { $regex: `^${filters.employeeId}$`, $options: 'i' };
+      // If there's also a $or from name search, wrap both in $and
+      if (filter.$or) {
+        filter.$and = [{ $or: filter.$or as Record<string, unknown>[] }, { employeeId: filter.employeeId }];
+        delete filter.$or;
+        delete filter.employeeId;
+      }
+    }
+
     const skip = (page - 1) * limit;
     const sortOptions: Record<string, 1 | -1> = {
       [sortBy]: sortOrder === 'asc' ? 1 : -1,

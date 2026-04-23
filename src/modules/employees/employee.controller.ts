@@ -22,6 +22,7 @@ export class EmployeeController {
         designation: req.query.designation as string,
         status: req.query.status as string,
         employmentType: req.query.employmentType as string,
+        employeeId: req.query.employeeId as string,
       },
     };
 
