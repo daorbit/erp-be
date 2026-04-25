@@ -12,8 +12,8 @@ router.use(authenticate);
 // Any authenticated user can view their own company
 router.get('/me', CompanyController.getMyCompany);
 
-// All other company routes require super_admin
-router.use(authorize(UserRole.SUPER_ADMIN));
+// All other company routes require super_admin or admin
+router.use(authorize(UserRole.SUPER_ADMIN, UserRole.ADMIN));
 
 router.get('/', CompanyController.getAll);
 router.get('/:id', CompanyController.getById);

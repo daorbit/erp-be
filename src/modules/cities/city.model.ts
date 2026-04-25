@@ -3,10 +3,12 @@ import mongoose, { Schema, type Document, type Model } from 'mongoose';
 export interface ICity extends Document {
   name: string;
   state: string;
+  district?: string;
+  subDistrict?: string;
   shortName?: string;
   stdCode?: string;
   pinCode?: string;
-  company?: mongoose.Types.ObjectId; // Optional: cities can be global or per-company
+  company?: mongoose.Types.ObjectId;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -16,6 +18,8 @@ const schema = new Schema<ICity>(
   {
     name: { type: String, required: [true, 'City Name is required'], trim: true, maxlength: 100 },
     state: { type: String, required: [true, 'State Name is required'], trim: true, maxlength: 100 },
+    district: { type: String, trim: true, maxlength: 100 },
+    subDistrict: { type: String, trim: true, maxlength: 100 },
     shortName: { type: String, trim: true, maxlength: 30 },
     stdCode: { type: String, trim: true, maxlength: 10 },
     pinCode: { type: String, trim: true, maxlength: 10 },

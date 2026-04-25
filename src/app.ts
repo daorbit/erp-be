@@ -49,6 +49,8 @@ import tdsExemptionRoutes from './modules/tds-exemptions/tdsExemption.routes.js'
 import smsEmailAlertRoutes from './modules/sms-email-alerts/smsEmailAlert.routes.js';
 import imageGalleryRoutes from './modules/image-galleries/imageGallery.routes.js';
 import manageMessageRoutes from './modules/manage-messages/manageMessage.routes.js';
+import locationRoutes from './modules/locations/location.routes.js';
+import stateRoutes from './modules/states/state.routes.js';
 import uploadRoutes from './modules/upload/upload.routes.js';
 import { requireOnboardingComplete } from './middleware/onboardingGate.js';
 
@@ -181,6 +183,8 @@ app.use(`${API_PREFIX}/tds-exemptions`, tdsExemptionRoutes);
 app.use(`${API_PREFIX}/sms-email-alerts`, smsEmailAlertRoutes);
 app.use(`${API_PREFIX}/image-galleries`, imageGalleryRoutes);
 app.use(`${API_PREFIX}/manage-messages`, manageMessageRoutes);
+app.use(`${API_PREFIX}/locations`, locationRoutes);
+app.use(`${API_PREFIX}/states`, stateRoutes);
 
 import auditRoutes from './modules/audit/audit.routes.js';
 app.use(`${API_PREFIX}/audit-logs`, auditRoutes);
