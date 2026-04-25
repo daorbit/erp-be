@@ -264,7 +264,7 @@ export class AuthService {
       'firstName', 'lastName', 'email', 'phone', 'username',
       'userCategory', 'userType', 'isActive', 'remark',
       'allowedDepartments', 'allowedBranches', 'allowedModules',
-      'department', 'designation', 'role', 'roles',
+      'department', 'designation', 'role',
     ];
     for (const k of allowed) {
       if (data[k] !== undefined) (user as any)[k] = data[k];

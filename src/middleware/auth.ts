@@ -88,12 +88,7 @@ export function authorize(...allowedRoles: UserRole[]): RequestHandler {
       return;
     }
 
-    const userRoles = [
-      req.user.role,
-      ...((req.user as any).roles ?? []),
-    ].filter(Boolean) as UserRole[];
-    const hasAccess = userRoles.some((r) => allowedRoles.includes(r));
-    if (!hasAccess) {
+    if (!allowedRoles.includes(req.user.role)) {
       next(
         new AppError(
           'You do not have permission to perform this action.',
