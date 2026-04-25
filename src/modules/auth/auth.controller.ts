@@ -47,6 +47,20 @@ export const getUsers = asyncHandler(async (req: Request, res: Response) => {
   );
 });
 
+export const adminUpdateUser = asyncHandler(async (req: Request, res: Response) => {
+  const user = await AuthService.adminUpdateUser(
+    req.params.id as string,
+    req.body || {},
+    req.user?.company,
+  );
+  res.status(200).json(buildResponse(true, user, 'User updated successfully'));
+});
+
+export const adminDeleteUser = asyncHandler(async (req: Request, res: Response) => {
+  await AuthService.adminDeleteUser(req.params.id as string, req.user?.company);
+  res.status(200).json(buildResponse(true, null, 'User deleted successfully'));
+});
+
 export const login = asyncHandler(async (req: Request, res: Response) => {
   const { email, password } = req.body;
   const result = await AuthService.login(email, password);

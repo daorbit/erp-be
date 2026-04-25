@@ -41,6 +41,22 @@ router.get(
   authController.getUsers,
 );
 
+// Admin-only: update user
+router.put(
+  '/users/:id',
+  authenticate,
+  authorize(UserRole.SUPER_ADMIN, UserRole.ADMIN),
+  authController.adminUpdateUser,
+);
+
+// Admin-only: delete user
+router.delete(
+  '/users/:id',
+  authenticate,
+  authorize(UserRole.SUPER_ADMIN, UserRole.ADMIN),
+  authController.adminDeleteUser,
+);
+
 // Admin-only: enable/disable user
 router.patch(
   '/users/:id/toggle-status',

@@ -246,6 +246,49 @@ export class AuthService {
   }
 
   /**
+   * Admin update of any user (within scope). Allows setting password directly
+   * for admin-driven password reset.
+   */
+  static async adminUpdateUser(
+    userId: string,
+    data: Record<string, any>,
+    companyId?: string,
+  ): Promise<IUser> {
+    const filter: Record<string, unknown> = { _id: userId };
+    if (companyId) filter.company = companyId;
+
+    const user = await User.findOne(filter).select('+password');
+    if (!user) throw new AppError('User not found.', 404);
+
+    const allowed = [
+      'firstName', 'lastName', 'email', 'phone', 'username',
+      'userCategory', 'userType', 'isActive', 'remark',
+      'allowedDepartments', 'allowedBranches', 'allowedModules',
+      'department', 'designation', 'role',
+    ];
+    for (const k of allowed) {
+      if (data[k] !== undefined) (user as any)[k] = data[k];
+    }
+    if (data.password) {
+      user.password = data.password; // pre-save hook re-hashes
+      user.refreshToken = undefined;
+    }
+    await user.save();
+    return user;
+  }
+
+  /**
+   * Admin delete user (within scope).
+   */
+  static async adminDeleteUser(userId: string, companyId?: string): Promise<void> {
+    const filter: Record<string, unknown> = { _id: userId };
+    if (companyId) filter.company = companyId;
+
+    const result = await User.findOneAndDelete(filter);
+    if (!result) throw new AppError('User not found.', 404);
+  }
+
+  /**
    * Get user profile by ID (with populated department/designation).
    */
   static async getProfile(userId: string): Promise<IUser> {
