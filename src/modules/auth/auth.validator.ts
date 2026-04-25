@@ -27,6 +27,7 @@ export const registerSchema = z.object({
     ),
   phone: z.string().trim().optional(),
   role: z.nativeEnum(UserRole).optional().default(UserRole.EMPLOYEE),
+  roles: z.array(z.nativeEnum(UserRole)).optional(),
   company: z.string().optional(),
   department: z.string().optional(),
   designation: z.string().optional(),

@@ -13,6 +13,7 @@ export interface IUser extends Document {
   password: string;
   phone?: string;
   role: UserRole;
+  roles?: UserRole[];
   employeeId: string;
   company?: mongoose.Types.ObjectId;
   department?: mongoose.Types.ObjectId;
@@ -79,6 +80,10 @@ const userSchema = new Schema<IUser>(
       enum: Object.values(UserRole),
       default: UserRole.EMPLOYEE,
     },
+    roles: [{
+      type: String,
+      enum: Object.values(UserRole),
+    }],
     company: {
       type: Schema.Types.ObjectId,
       ref: 'Company',
