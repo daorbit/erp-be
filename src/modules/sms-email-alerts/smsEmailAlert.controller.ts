@@ -8,6 +8,9 @@ export class SmsEmailAlertController {
   static getAll = asyncHandler(async (req: IAuthRequest, res: Response) => {
     res.status(200).json(buildResponse(true, await SmsEmailAlertService.getAll(req.user.company as string), 'Retrieved'));
   });
+  static getById = asyncHandler(async (req: IAuthRequest, res: Response) => {
+    res.status(200).json(buildResponse(true, await SmsEmailAlertService.getById(req.params.id as string, req.user.company as string), 'Retrieved'));
+  });
   static create = asyncHandler(async (req: IAuthRequest, res: Response) => {
     res.status(201).json(buildResponse(true, await SmsEmailAlertService.create({ ...req.body, company: req.user.company }), 'Created'));
   });

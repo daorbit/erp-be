@@ -14,6 +14,20 @@ router.use(requireCompany);
 router.get('/', LocationController.getAll);
 router.get('/:id', LocationController.getById);
 
+// Bulk From→To matrix save (LocationRoute page).
+router.post(
+  '/routes',
+  authorize(UserRole.SUPER_ADMIN, UserRole.ADMIN),
+  LocationController.upsertRoutes,
+);
+
+// Via-route save (ViaRoute page).
+router.post(
+  '/via-routes',
+  authorize(UserRole.SUPER_ADMIN, UserRole.ADMIN),
+  LocationController.saveViaRoute,
+);
+
 router.post(
   '/',
   authorize(UserRole.SUPER_ADMIN, UserRole.ADMIN),

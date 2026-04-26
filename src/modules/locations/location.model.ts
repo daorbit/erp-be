@@ -1,9 +1,14 @@
 import mongoose, { Schema, type Document, type Model } from 'mongoose';
 
 export interface ILocationRouteEntry {
+  // Per-row "this location → that location" distance used by Add → Route Detail.
+  toLocation?: mongoose.Types.ObjectId | string;
+  km?: number;
+  // Legacy / via-route freeform shape kept for backwards compatibility.
   routeName?: string;
   distance?: number;
   remarks?: string;
+  chainagePoint?: number;
 }
 
 export interface ILocation extends Document {
@@ -28,8 +33,11 @@ export interface ILocation extends Document {
 
 const routeEntrySchema = new Schema<ILocationRouteEntry>(
   {
+    toLocation: { type: Schema.Types.ObjectId, ref: 'Location' },
+    km: { type: Number },
     routeName: { type: String, trim: true },
     distance: { type: Number },
+    chainagePoint: { type: Number },
     remarks: { type: String, trim: true },
   },
   { _id: false },

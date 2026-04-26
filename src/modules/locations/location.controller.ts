@@ -36,4 +36,25 @@ export class LocationController {
     const loc = await LocationService.delete(req.params.id as string, req.user.company);
     res.status(200).json(buildResponse(true, loc, 'Location deactivated successfully'));
   });
+
+  // POST /locations/routes — bulk save the LocationRoute matrix.
+  // body: { entries: [{ fromSite, fromLoc, toSite, toLoc, km }] }
+  static upsertRoutes = asyncHandler(async (req: IAuthRequest, res: Response) => {
+    const entries = Array.isArray(req.body?.entries) ? req.body.entries : [];
+    const result = await LocationService.upsertRoutes(entries, req.user.company);
+    res.status(200).json(buildResponse(true, result, 'Routes saved'));
+  });
+
+  // POST /locations/via-routes — save a Via-Route definition.
+  // body: { fromLocation, toLocation, routes: [{ routeName, chainagePoint, distance }] }
+  static saveViaRoute = asyncHandler(async (req: IAuthRequest, res: Response) => {
+    const { fromLocation, toLocation, routes = [] } = req.body ?? {};
+    const loc = await LocationService.saveViaRoute(
+      fromLocation,
+      toLocation,
+      Array.isArray(routes) ? routes : [],
+      req.user.company,
+    );
+    res.status(200).json(buildResponse(true, loc, 'Via-route saved'));
+  });
 }

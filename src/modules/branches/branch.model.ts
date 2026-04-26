@@ -72,6 +72,8 @@ export interface IBranch extends Document {
   loiLoaDate?: Date;
   agreementNo?: string;
   agreementDate?: Date;
+  tenderNo?: string;
+  tenderDate?: Date;
   workCapital?: number;
   mandiLicenceNo?: string;
 
@@ -151,6 +153,8 @@ const branchSchema = new Schema<IBranch>(
     loiLoaNo: { type: String, trim: true },
     loiLoaDate: { type: Date },
     agreementNo: { type: String, trim: true },
+    tenderNo: { type: String, trim: true },
+    tenderDate: { type: Date },
     agreementDate: { type: Date },
     workCapital: { type: Number, default: 0 },
     mandiLicenceNo: { type: String, trim: true },

@@ -10,15 +10,21 @@ export class StateService {
   static async getAll(query: IQueryParams, companyId?: string): Promise<PaginatedResult<IState>> {
     const { page = 1, limit = 200, search, sortBy = 'name', sortOrder = 'asc' } = query;
 
-    const filter: Record<string, unknown> = { isActive: true };
-    if (companyId) filter.company = companyId;
-
-    if (search) {
-      filter.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { stateCode: { $regex: search, $options: 'i' } },
-      ];
+    // Combine company-scope and search clauses with $and so neither overwrites the other.
+    const andClauses: Record<string, unknown>[] = [{ isActive: true }];
+    if (companyId) {
+      // Include global (no-company) seeded states alongside company-specific entries.
+      andClauses.push({ $or: [{ company: companyId }, { company: { $exists: false } }] });
     }
+    if (search) {
+      andClauses.push({
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { stateCode: { $regex: search, $options: 'i' } },
+        ],
+      });
+    }
+    const filter: Record<string, unknown> = andClauses.length === 1 ? andClauses[0]! : { $and: andClauses };
 
     const skip = (page - 1) * limit;
     const sortOptions: Record<string, 1 | -1> = { [sortBy]: sortOrder === 'asc' ? 1 : -1 };

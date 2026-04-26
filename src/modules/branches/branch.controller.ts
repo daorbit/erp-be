@@ -14,7 +14,21 @@ export class BranchController {
       sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'asc',
     };
 
-    const result = await BranchService.getAll(query, req.user.company);
+    // Comma-separated query params (sent by the Site/Plant/Project list filters).
+    const csv = (v: unknown): string[] | undefined => {
+      if (typeof v !== 'string' || !v.trim()) return undefined;
+      return v.split(',').map((s) => s.trim()).filter(Boolean);
+    };
+
+    const filters = {
+      ids: csv(req.query.ids),
+      states: csv(req.query.states),
+      division: req.query.division as string | undefined,
+      siteStatus: req.query.siteStatus as 'active' | 'inactive' | 'all' | undefined,
+      lockStatus: req.query.lockStatus as 'locked' | 'open' | 'all' | undefined,
+    };
+
+    const result = await BranchService.getAll(query, req.user.company, filters);
     res.status(200).json(buildResponse(true, result.data, 'Branches retrieved successfully', result.pagination));
   });
 

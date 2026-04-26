@@ -5,7 +5,18 @@ import SmsEmailAlert, { type ISmsEmailAlert } from './smsEmailAlert.model.js';
 export class SmsEmailAlertService {
   static async getAll(companyId: string) {
     return SmsEmailAlert.find({ isActive: true, company: companyId })
-      .populate('employee', 'firstName lastName employeeId').sort({ createdAt: -1 }).lean();
+      .populate('employee', 'firstName lastName employeeId username email')
+      .populate('userId', 'firstName lastName username email')
+      .sort({ createdAt: -1 }).lean();
+  }
+  static async getById(id: string, companyId: string) {
+    if (!mongoose.Types.ObjectId.isValid(id)) throw new AppError('Invalid ID', 400);
+    const doc = await SmsEmailAlert.findOne({ _id: id, company: companyId })
+      .populate('employee', 'firstName lastName employeeId username email')
+      .populate('userId', 'firstName lastName username email')
+      .lean();
+    if (!doc) throw new AppError('Not found', 404);
+    return doc;
   }
   static async create(data: Partial<ISmsEmailAlert>) { return SmsEmailAlert.create(data); }
   static async update(id: string, data: Partial<ISmsEmailAlert>, companyId: string) {

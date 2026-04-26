@@ -93,3 +93,31 @@ export const getTurnoverReport = asyncHandler(async (req: Request, res: Response
     buildResponse(true, report, 'Turnover report generated successfully'),
   );
 });
+
+// User Work Report — aggregates voucher counts per user per module.
+export const getUserWorkReport = asyncHandler(async (req: Request, res: Response) => {
+  const authReq = req as IAuthRequest;
+  const result = await ReportService.getUserWorkReport(authReq.user.company as string, {
+    from: req.query.from as string,
+    to: req.query.to as string,
+    module: req.query.module as string,
+    userType: req.query.userType as string,
+    userId: req.query.userId as string,
+    siteIds: typeof req.query.siteIds === 'string' ? req.query.siteIds.split(',') : undefined,
+  });
+  res.status(200).json(buildResponse(true, result, 'User work report generated'));
+});
+
+// Site Wise User's List — server-filtered + grouped roster of (user × site × module).
+export const getSiteWiseUsers = asyncHandler(async (req: Request, res: Response) => {
+  const authReq = req as IAuthRequest;
+  const result = await ReportService.getSiteWiseUsers(authReq.user.company as string, {
+    userType: req.query.userType as string,
+    siteId: req.query.siteId as string,
+    department: req.query.department as string,
+    userId: req.query.userId as string,
+    userStatus: req.query.userStatus as 'active' | 'inactive' | 'all',
+    groupBy: req.query.groupBy as 'user_type' | 'user_name' | 'site_name' | 'module_name',
+  });
+  res.status(200).json(buildResponse(true, result, 'Site-wise users retrieved'));
+});

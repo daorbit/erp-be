@@ -14,8 +14,11 @@ export const createLocationSchema = z.object({
   city: z.string().trim().max(100).optional(),
   pinCode: z.string().trim().max(10).optional(),
   routeDetails: z.array(z.object({
+    toLocation: z.string().optional(),
+    km: z.number().optional(),
     routeName: z.string().trim().optional(),
     distance: z.number().optional(),
+    chainagePoint: z.number().optional(),
     remarks: z.string().trim().optional(),
   })).optional(),
 });

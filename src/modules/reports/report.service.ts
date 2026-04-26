@@ -4,6 +4,8 @@ import EmployeeProfile from '../employees/employee.model.js';
 import Attendance from '../attendance/attendance.model.js';
 import { Payslip } from '../payroll/payroll.model.js';
 import { JobPosting, JobApplication } from '../recruitment/recruitment.model.js';
+import User from '../auth/auth.model.js';
+import Branch from '../branches/branch.model.js';
 
 interface DateRange {
   startDate?: string;
@@ -334,5 +336,119 @@ export class ReportService {
     const totalLeft = monthly.reduce((acc, m) => acc + m.left, 0);
 
     return { year, totalJoined, totalLeft, monthly };
+  }
+
+  // ─── Site Wise User's List ──────────────────────────────────────────────
+  // Server-side filter + group of users × sites × modules. Returns:
+  //   { rows: [{ siteName, userName, moduleName, employeeName, userType }],
+  //     groups: [{ label, field, count, rows: Row[] }] }
+  static async getSiteWiseUsers(
+    companyId: string,
+    filters: {
+      userType?: string;
+      siteId?: string;
+      department?: string;
+      userId?: string;
+      userStatus?: 'active' | 'inactive' | 'all';
+      groupBy?: 'user_type' | 'user_name' | 'site_name' | 'module_name';
+    },
+  ) {
+    const userFilter: Record<string, unknown> = { company: companyId };
+    if (filters.userStatus === 'active') userFilter.isActive = true;
+    else if (filters.userStatus === 'inactive') userFilter.isActive = false;
+    if (filters.userType && filters.userType !== 'all') userFilter.role = filters.userType;
+    if (filters.userId && filters.userId !== 'all') {
+      if (mongoose.Types.ObjectId.isValid(filters.userId)) userFilter._id = filters.userId;
+    }
+
+    const [users, branches] = await Promise.all([
+      User.find(userFilter)
+        .select('firstName lastName username email role isActive employeeId branch allowedSites modules')
+        .lean(),
+      Branch.find({ company: companyId, isActive: true })
+        .select('name code')
+        .lean(),
+    ]);
+    const branchById: Record<string, any> = {};
+    for (const b of branches) branchById[String(b._id)] = b;
+
+    const DEFAULT_MODULES = [
+      'ADMIN', 'ADMIN-ACCOUNTS', 'CORRESPONDENCE', 'HUMAN-RESOURCE', 'MACHINERY',
+      'MIS-ADMIN', 'PRODUCTION', 'PROJECT-MANAGEMENT', 'PURCHASE', 'STORE', 'TENDER',
+    ];
+
+    type Row = {
+      siteName: string;
+      userName: string;
+      moduleName: string;
+      employeeName: string;
+      userType: string;
+    };
+    const rows: Row[] = [];
+    for (const u of users as any[]) {
+      const allowed: string[] = ([] as string[]).concat(
+        u.branch ? [String(u.branch)] : [],
+        Array.isArray(u.allowedSites) ? u.allowedSites.map(String) : [],
+      );
+      let siteIds = filters.siteId && filters.siteId !== 'all'
+        ? (allowed.includes(filters.siteId) ? [filters.siteId] : [])
+        : allowed.length ? allowed : Object.keys(branchById).slice(0, 1);
+
+      const userMods: string[] = Array.isArray(u.modules) && u.modules.length
+        ? u.modules : DEFAULT_MODULES;
+      const mods = filters.department && filters.department !== 'all'
+        ? (userMods.includes(filters.department) ? [filters.department] : [])
+        : userMods;
+
+      for (const sid of siteIds) {
+        const site = branchById[sid];
+        if (!site) continue;
+        for (const m of mods) {
+          rows.push({
+            siteName: site.name,
+            userName: (u.username || u.email || '').toUpperCase(),
+            moduleName: m,
+            employeeName: [u.firstName, u.lastName].filter(Boolean).join(' ').toUpperCase(),
+            userType: (u.role || '').toUpperCase().replace(/_/g, '-'),
+          });
+        }
+      }
+    }
+
+    const keyOf = (r: Row) => {
+      switch (filters.groupBy) {
+        case 'user_name': return r.userName || 'UNASSIGNED';
+        case 'site_name': return r.siteName || 'UNASSIGNED';
+        case 'module_name': return r.moduleName || 'UNASSIGNED';
+        case 'user_type':
+        default: return r.userType || 'UNASSIGNED';
+      }
+    };
+    const groupField = (filters.groupBy ?? 'user_type')
+      .replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+    const buckets: Record<string, Row[]> = {};
+    for (const r of rows) {
+      const k = keyOf(r);
+      buckets[k] ??= [];
+      buckets[k].push(r);
+    }
+    const groups = Object.entries(buckets)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([label, list]) => ({ label, field: groupField, count: list.length, rows: list }));
+
+    return { rows, groups };
+  }
+
+  // ─── User Work Report ────────────────────────────────────────────────────
+  // Aggregates voucher add/edit counts per user per module. Stub returns the
+  // shape the FE consumes; populate from the AuditLog collection when ready.
+  static async getUserWorkReport(
+    _companyId: string,
+    _filters: {
+      from?: string; to?: string; module?: string;
+      userType?: string; userId?: string; siteIds?: string[];
+    },
+  ) {
+    return { hr: [], purchase: [], machine: [], account: [], pm: [] };
   }
 }

@@ -9,8 +9,20 @@ interface PaginatedResult<T> {
   pagination: ReturnType<typeof buildPagination>;
 }
 
+export interface IBranchFilters {
+  ids?: string[];          // branch ids selected in Company-Site tree
+  states?: string[];       // state names (case-insensitive match on stateName)
+  division?: string;       // exact division match (or 'all')
+  siteStatus?: 'active' | 'inactive' | 'all';
+  lockStatus?: 'locked' | 'open' | 'all';
+}
+
 export class BranchService {
-  static async getAll(query: IQueryParams, companyId?: string): Promise<PaginatedResult<IBranch>> {
+  static async getAll(
+    query: IQueryParams,
+    companyId?: string,
+    filters: IBranchFilters = {},
+  ): Promise<PaginatedResult<IBranch>> {
     const {
       page = 1,
       limit = 10,
@@ -19,8 +31,27 @@ export class BranchService {
       sortOrder = 'asc',
     } = query;
 
-    const filter: Record<string, unknown> = { isActive: true };
+    const filter: Record<string, unknown> = {};
     if (companyId) filter.company = companyId;
+
+    // siteStatus → isActive  (default: include all when 'all' or unset)
+    if (filters.siteStatus === 'active') filter.isActive = true;
+    else if (filters.siteStatus === 'inactive') filter.isActive = false;
+
+    if (filters.lockStatus === 'locked') filter.isLocked = true;
+    else if (filters.lockStatus === 'open') filter.isLocked = false;
+
+    if (filters.ids && filters.ids.length > 0) {
+      filter._id = { $in: filters.ids.filter((id) => mongoose.Types.ObjectId.isValid(id)) };
+    }
+
+    if (filters.states && filters.states.length > 0) {
+      filter.stateName = { $in: filters.states.map((s) => new RegExp(`^${s}$`, 'i')) };
+    }
+
+    if (filters.division && filters.division !== 'all') {
+      filter.division = filters.division;
+    }
 
     if (search) {
       filter.$or = [

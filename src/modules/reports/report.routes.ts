@@ -14,6 +14,8 @@ router.use(
 );
 
 router.get('/employees', reportController.getEmployeeReport);
+router.get('/user-work', reportController.getUserWorkReport);
+router.get('/site-wise-users', reportController.getSiteWiseUsers);
 router.get('/attendance', reportController.getAttendanceReport);
 router.get('/payroll', reportController.getPayrollReport);
 router.get('/recruitment', reportController.getRecruitmentReport);
