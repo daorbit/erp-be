@@ -40,11 +40,6 @@ export interface IMobileAppCount extends Document {
   updatedAt: Date;
 }
 
-const limitSchema = new Schema<IAppLimit>({
-  total: { type: Number, default: 0 },
-  used: { type: Number, default: 0 },
-}, { _id: false });
-
 const activationUserSchema = new Schema<IActivationUser>({
   userName: { type: String, required: true, trim: true },
   mobile: { type: String, required: true, trim: true },
