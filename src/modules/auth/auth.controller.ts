@@ -39,6 +39,14 @@ export const completeOnboarding = asyncHandler(async (req: Request, res: Respons
   );
 });
 
+export const getUser = asyncHandler(async (req: Request, res: Response) => {
+  const user = await AuthService.getUserById(
+    req.params.id as string,
+    req.user?.role === 'super_admin' ? undefined : req.user?.company?.toString(),
+  );
+  res.status(200).json(buildResponse(true, user, 'User retrieved successfully'));
+});
+
 export const getUsers = asyncHandler(async (req: Request, res: Response) => {
   // Support User List page filters: userType / isActive / userName.
   const extra: { userType?: string; isActive?: boolean; userName?: string } = {};

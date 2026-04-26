@@ -171,6 +171,21 @@ export class AuthService {
   /**
    * List users, scoped by company for non-super_admin.
    */
+  static async getUserById(userId: string, companyId?: string): Promise<IUser> {
+    const filter: Record<string, unknown> = { _id: userId };
+    if (companyId) filter.company = companyId;
+
+    const user = await User.findOne(filter)
+      .populate('company', 'name code')
+      .populate('department', 'name')
+      .populate('designation', 'title')
+      .populate('allowedDepartments', 'name')
+      .populate('allowedBranches', 'name');
+
+    if (!user) throw new AppError('User not found.', 404);
+    return user;
+  }
+
   static async getUsers(
     companyId?: string,
     callerRole?: string,

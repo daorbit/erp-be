@@ -33,6 +33,14 @@ router.post(
   authController.register,
 );
 
+// Admin-only: get single user
+router.get(
+  '/users/:id',
+  authenticate,
+  authorize(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.HR_MANAGER),
+  authController.getUser,
+);
+
 // Admin-only: list users
 router.get(
   '/users',
