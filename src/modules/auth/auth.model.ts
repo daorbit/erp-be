@@ -34,6 +34,7 @@ export interface IUser extends Document {
   allowedBranches?: mongoose.Types.ObjectId[];
   allowedModules?: string[];
   remark?: string;
+  isErpDevCoUser?: boolean;        // Admin → User Profile flag
 
   comparePassword(candidatePassword: string): Promise<boolean>;
   generateAuthToken(): string;
@@ -127,6 +128,7 @@ const userSchema = new Schema<IUser>(
     allowedBranches: [{ type: Schema.Types.ObjectId, ref: 'Branch' }],
     allowedModules: [{ type: String, enum: Object.values(ErpModule) }],
     remark: { type: String, trim: true, maxlength: 500 },
+    isErpDevCoUser: { type: Boolean, default: false },
   },
   {
     timestamps: true,

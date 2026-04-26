@@ -45,6 +45,7 @@ export const registerSchema = z.object({
   allowedModules: z.array(z.string()).optional(),
   modules: z.array(z.string()).optional(),
   branch: z.string().optional(),
+  isErpDevCoUser: z.boolean().optional(),
 }).refine(
   (data) => data.role === UserRole.SUPER_ADMIN || !!data.company,
   { message: 'Company is required for non-application-admin users', path: ['company'] },
