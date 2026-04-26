@@ -171,13 +171,27 @@ export class AuthService {
   /**
    * List users, scoped by company for non-super_admin.
    */
-  static async getUsers(companyId?: string, callerRole?: string): Promise<IUser[]> {
+  static async getUsers(
+    companyId?: string,
+    callerRole?: string,
+    extra: { userType?: string; isActive?: boolean; userName?: string } = {},
+  ): Promise<IUser[]> {
     const filter: Record<string, unknown> = {};
     if (companyId) filter.company = companyId;
 
     // HR Manager can only see users at their level or below
     if (callerRole === UserRole.HR_MANAGER) {
       filter.role = { $in: [UserRole.HR_MANAGER, UserRole.MANAGER, UserRole.EMPLOYEE, UserRole.VIEWER] };
+    }
+
+    if (extra.userType) filter.userType = extra.userType;
+    if (typeof extra.isActive === 'boolean') filter.isActive = extra.isActive;
+    if (extra.userName) {
+      filter.$or = [
+        { username: { $regex: extra.userName, $options: 'i' } },
+        { firstName: { $regex: extra.userName, $options: 'i' } },
+        { lastName: { $regex: extra.userName, $options: 'i' } },
+      ];
     }
 
     const users = await User.find(filter)

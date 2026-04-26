@@ -9,6 +9,11 @@ export class AttendanceController {
    * GET / - Get all attendance records.
    */
   static getAll = asyncHandler(async (req: IAuthRequest, res: Response) => {
+    // The list page sends ?date=YYYY-MM-DD as a same-day shortcut. Treat it
+    // as both the start and end of the range so the existing service logic
+    // can stay unchanged.
+    const startDate = (req.query.startDate as string) || (req.query.date as string);
+    const endDate = (req.query.endDate as string) || (req.query.date as string);
     const query: IQueryParams = {
       page: parseInt(req.query.page as string) || 1,
       limit: parseInt(req.query.limit as string) || 10,
@@ -17,8 +22,8 @@ export class AttendanceController {
       filters: {
         employee: req.query.employee as string,
         status: req.query.status as string,
-        startDate: req.query.startDate as string,
-        endDate: req.query.endDate as string,
+        startDate,
+        endDate,
       },
     };
 

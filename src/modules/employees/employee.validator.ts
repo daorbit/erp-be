@@ -34,6 +34,10 @@ const identityDocsSchema = z.object({
 
 // ─── Create Employee Schema ──────────────────────────────────────────────────
 
+// `.passthrough()` keeps the NwayERP form's 80+ extended fields (fileNo,
+// branch, level, grade, employeeGroup, fatherName, etc.) intact instead of
+// silently dropping them. The service then routes known fields onto either
+// User or EmployeeProfile.
 export const createEmployeeSchema = z.object({
   // User fields
   firstName: z
@@ -73,7 +77,7 @@ export const createEmployeeSchema = z.object({
   emergencyContact: emergencyContactSchema,
   bankDetails: bankDetailsSchema,
   identityDocs: identityDocsSchema,
-});
+}).passthrough();
 
 // ─── Update Employee Schema ─────────────────────────────────────────────────
 
@@ -99,7 +103,7 @@ export const updateEmployeeSchema = z.object({
   bankDetails: bankDetailsSchema,
   identityDocs: identityDocsSchema,
   isActive: z.boolean().optional(),
-});
+}).passthrough();
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

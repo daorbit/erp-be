@@ -11,7 +11,9 @@ export const createParentDepartmentSchema = z.object({
     .trim()
     .min(1, 'Short name is required')
     .max(20, 'Short name cannot exceed 20 characters'),
+  description: z.string().trim().max(500).optional(),
   displayOrder: z.number().int().optional(),
+  isActive: z.boolean().optional(),
 });
 
 export const updateParentDepartmentSchema = z.object({
@@ -27,6 +29,7 @@ export const updateParentDepartmentSchema = z.object({
     .min(1, 'Short name is required')
     .max(20, 'Short name cannot exceed 20 characters')
     .optional(),
+  description: z.string().trim().max(500).optional(),
   displayOrder: z.number().int().optional(),
   isActive: z.boolean().optional(),
 });

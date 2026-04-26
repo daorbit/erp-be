@@ -40,7 +40,13 @@ export const completeOnboarding = asyncHandler(async (req: Request, res: Respons
 });
 
 export const getUsers = asyncHandler(async (req: Request, res: Response) => {
-  const users = await AuthService.getUsers(req.user?.company, req.user?.role);
+  // Support User List page filters: userType / isActive / userName.
+  const extra: { userType?: string; isActive?: boolean; userName?: string } = {};
+  if (typeof req.query.userType === 'string') extra.userType = req.query.userType;
+  if (typeof req.query.isActive === 'string') extra.isActive = req.query.isActive === 'true';
+  if (typeof req.query.userName === 'string') extra.userName = req.query.userName;
+
+  const users = await AuthService.getUsers(req.user?.company, req.user?.role, extra);
 
   res.status(200).json(
     buildResponse(true, users, 'Users retrieved successfully'),
@@ -64,6 +70,19 @@ export const adminDeleteUser = asyncHandler(async (req: Request, res: Response) 
 export const login = asyncHandler(async (req: Request, res: Response) => {
   const { email, password } = req.body;
   const result = await AuthService.login(email, password);
+
+  // Make the authenticated user available to the audit logger middleware,
+  // which fires after `res.end` and reads `req.user`. Without this, login
+  // audit rows would be saved with no user reference and the Login Log
+  // report's date/user filters would all match nothing.
+  if (result.user) {
+    (req as any).user = {
+      id: (result.user as any)._id || (result.user as any).id,
+      email: result.user.email,
+      role: result.user.role,
+      company: result.user.company,
+    };
+  }
 
   res.status(200).json(
     buildResponse(true, {

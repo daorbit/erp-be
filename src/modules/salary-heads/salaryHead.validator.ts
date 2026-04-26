@@ -17,11 +17,10 @@ export const createSalaryHeadSchema = z.object({
     invalid_type_error: 'Head Type must be Addition or Deduction',
   }),
   displayOrder: z.number().int().optional(),
-});
-
-export const updateSalaryHeadSchema = createSalaryHeadSchema.partial().extend({
   isActive: z.boolean().optional(),
 });
+
+export const updateSalaryHeadSchema = createSalaryHeadSchema.partial();
 
 export type CreateSalaryHeadInput = z.infer<typeof createSalaryHeadSchema>;
 export type UpdateSalaryHeadInput = z.infer<typeof updateSalaryHeadSchema>;

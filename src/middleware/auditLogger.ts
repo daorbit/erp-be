@@ -65,7 +65,17 @@ export function auditLogger(req: Request, res: Response, next: NextFunction): vo
 
     // Log asynchronously — don't block the response
     const module = extractModule(req.originalUrl);
-    const action = methodActionMap[req.method] || req.method.toLowerCase();
+    // Map well-known auth paths to dedicated action verbs so filters like
+    // ?action=login work; otherwise fall back to the HTTP method mapping.
+    const path = req.originalUrl;
+    let action: string;
+    if (path.includes('/auth/login')) action = 'login';
+    else if (path.includes('/auth/logout')) action = 'logout';
+    else if (path.includes('/auth/register')) action = 'register';
+    else if (path.includes('/auth/refresh-token')) action = 'refresh';
+    else if (path.includes('/invitations/accept')) action = 'invite_accept';
+    else if (path.includes('/invitations')) action = 'invite';
+    else action = methodActionMap[req.method] || req.method.toLowerCase();
 
     // Strip sensitive data from body
     const sanitizedBody = req.body ? { ...req.body } : undefined;

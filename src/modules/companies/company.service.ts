@@ -10,7 +10,14 @@ interface PaginatedResult<T> {
 }
 
 export class CompanyService {
-  static async getAll(query: IQueryParams): Promise<PaginatedResult<ICompany>> {
+  // When the caller is a company admin (anyone other than super_admin), every
+  // operation must be scoped to their own company so they can't enumerate or
+  // mutate other tenants. The controller passes the caller's company id +
+  // role; super_admin omits the scope.
+  static async getAll(
+    query: IQueryParams,
+    callerCompanyId?: string,
+  ): Promise<PaginatedResult<ICompany>> {
     const {
       page = 1,
       limit = 10,
@@ -20,6 +27,12 @@ export class CompanyService {
     } = query;
 
     const filter: Record<string, unknown> = {};
+    if (callerCompanyId) {
+      if (!mongoose.Types.ObjectId.isValid(callerCompanyId)) {
+        throw new AppError('Invalid company scope.', 400);
+      }
+      filter._id = callerCompanyId;
+    }
 
     if (search) {
       filter.$or = [
@@ -50,9 +63,12 @@ export class CompanyService {
     };
   }
 
-  static async getById(id: string): Promise<ICompany> {
+  static async getById(id: string, callerCompanyId?: string): Promise<ICompany> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new AppError('Invalid company ID format.', 400);
+    }
+    if (callerCompanyId && callerCompanyId !== id) {
+      throw new AppError('Company not found.', 404);
     }
 
     const company = await Company.findById(id);
@@ -68,9 +84,16 @@ export class CompanyService {
     return company;
   }
 
-  static async update(id: string, data: Partial<ICompany>): Promise<ICompany> {
+  static async update(
+    id: string,
+    data: Partial<ICompany>,
+    callerCompanyId?: string,
+  ): Promise<ICompany> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new AppError('Invalid company ID format.', 400);
+    }
+    if (callerCompanyId && callerCompanyId !== id) {
+      throw new AppError('Company not found.', 404);
     }
 
     const company = await Company.findByIdAndUpdate(
@@ -86,9 +109,13 @@ export class CompanyService {
     return company;
   }
 
-  static async delete(id: string): Promise<ICompany> {
+  static async delete(id: string, callerCompanyId?: string): Promise<ICompany> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new AppError('Invalid company ID format.', 400);
+    }
+    if (callerCompanyId) {
+      // Tenant admins are not allowed to soft-delete their own (or any) company.
+      throw new AppError('Only platform administrators can deactivate a company.', 403);
     }
 
     const company = await Company.findByIdAndUpdate(

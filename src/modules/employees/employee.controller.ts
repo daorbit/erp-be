@@ -11,6 +11,14 @@ export class EmployeeController {
    * GET / - Get all employees with search, filter, pagination.
    */
   static getAll = asyncHandler(async (req: IAuthRequest, res: Response) => {
+    // The list page sends ?isActive=true|false directly; older callers pass
+    // ?status=active|inactive. Normalise either form into the service's
+    // `filters.status` field.
+    let status = req.query.status as string | undefined;
+    if (!status && typeof req.query.isActive === 'string') {
+      status = req.query.isActive === 'true' ? 'active' : 'inactive';
+    }
+
     const query: IQueryParams = {
       page: parseInt(req.query.page as string) || 1,
       limit: parseInt(req.query.limit as string) || 10,
@@ -20,7 +28,12 @@ export class EmployeeController {
       filters: {
         department: req.query.department as string,
         designation: req.query.designation as string,
-        status: req.query.status as string,
+        employeeGroup: req.query.employeeGroup as string,
+        branch: req.query.branch as string,
+        level: req.query.level as string,
+        grade: req.query.grade as string,
+        tagName: req.query.tagName as string,
+        status: status as string,
         employmentType: req.query.employmentType as string,
         employeeId: req.query.employeeId as string,
       },

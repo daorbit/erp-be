@@ -3,6 +3,7 @@ import mongoose, { Schema, type Document, type Model } from 'mongoose';
 export interface IParentDepartment extends Document {
   name: string;
   shortName: string;
+  description?: string;
   displayOrder: number;
   company: mongoose.Types.ObjectId;
   isActive: boolean;
@@ -23,6 +24,11 @@ const parentDepartmentSchema = new Schema<IParentDepartment>(
       required: [true, 'Short name is required'],
       trim: true,
       maxlength: [20, 'Short name cannot exceed 20 characters'],
+    },
+    description: {
+      type: String,
+      trim: true,
+      maxlength: [500, 'Description cannot exceed 500 characters'],
     },
     displayOrder: {
       type: Number,

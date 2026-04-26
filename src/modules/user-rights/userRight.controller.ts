@@ -6,7 +6,10 @@ import { UserRightService } from './userRight.service.js';
 
 export class UserRightController {
   static get = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const { user, branch } = req.query as Record<string, string>;
+    const q = req.query as Record<string, string>;
+    // Accept either `user` or `userId` (the report page uses `userId`).
+    const user = q.user || q.userId;
+    const branch = q.branch;
     const doc = await UserRightService.getFor(user, req.user.company as string, branch);
     res.status(200).json(buildResponse(true, doc, 'Retrieved'));
   });

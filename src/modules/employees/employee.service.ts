@@ -117,6 +117,14 @@ export class EmployeeService {
       filter.employmentType = filters.employmentType;
     }
 
+    // Direct EmployeeProfile field filters — these all live on the profile
+    // so we don't need a User lookup like department/designation above.
+    if ((filters as any).employeeGroup) filter.employeeGroup = (filters as any).employeeGroup;
+    if ((filters as any).branch) filter.branch = (filters as any).branch;
+    if ((filters as any).level) filter.level = (filters as any).level;
+    if ((filters as any).grade) filter.grade = (filters as any).grade;
+    if ((filters as any).tagName) filter.tagName = (filters as any).tagName;
+
     // Exact match on employeeId (e.g. from search dialog "Employee Code" field)
     if (filters.employeeId) {
       filter.employeeId = { $regex: `^${filters.employeeId}$`, $options: 'i' };
@@ -205,7 +213,7 @@ export class EmployeeService {
   /**
    * Create a new user and employee profile together.
    */
-  static async create(data: EmployeeCreateData): Promise<IEmployeeProfile> {
+  static async create(data: EmployeeCreateData & Record<string, any>): Promise<IEmployeeProfile> {
     const existingUser = await User.findOne({ email: data.email });
     if (existingUser) {
       throw new AppError('A user with this email already exists.', 409);
@@ -227,27 +235,25 @@ export class EmployeeService {
       designation: data.designation,
     });
 
-    // Create the EmployeeProfile
+    // The User-only fields above are stripped before spreading the rest of
+    // the validated body onto EmployeeProfile. This way the NwayERP form's
+    // extended fields (fileNo, branch, level, grade, fatherName, etc.) all
+    // land on the profile without having to enumerate each one.
+    const {
+      firstName, lastName, email, phone, password, role, company,
+      department, designation,
+      ...profileExtras
+    } = data;
+    void firstName; void lastName; void email; void phone; void password; void role;
+    void department; void designation;
+
     const profile = await EmployeeProfile.create({
       userId: user._id,
       employeeId,
-      company: data.company,
-      dateOfBirth: data.dateOfBirth,
-      gender: data.gender,
-      maritalStatus: data.maritalStatus,
-      bloodGroup: data.bloodGroup,
-      nationality: data.nationality,
-      religion: data.religion,
+      company,
       employmentType: data.employmentType ?? 'full_time',
       joinDate: data.joinDate ?? new Date(),
-      workShift: data.workShift,
-      workLocation: data.workLocation,
-      reportingManager: data.reportingManager,
-      currentAddress: data.currentAddress,
-      permanentAddress: data.permanentAddress,
-      emergencyContact: data.emergencyContact,
-      bankDetails: data.bankDetails,
-      identityDocs: data.identityDocs,
+      ...profileExtras,
     });
 
     const populated = await EmployeeProfile.findById(profile._id)
