@@ -55,6 +55,7 @@ import misProjectSettingRoutes from './modules/mis-project-settings/misProjectSe
 import mobileAppCountRoutes from './modules/mobile-app-counts/mobileAppCount.routes.js';
 import stateRoutes from './modules/states/state.routes.js';
 import accountGroupRoutes from './modules/account-groups/accountGroup.routes.js';
+import shiftSessionRoutes from './modules/employee-shift-sessions/shiftSession.routes.js';
 import uploadRoutes from './modules/upload/upload.routes.js';
 import { requireOnboardingComplete } from './middleware/onboardingGate.js';
 
@@ -193,6 +194,7 @@ app.use(`${API_PREFIX}/mis-project-settings`, misProjectSettingRoutes);
 app.use(`${API_PREFIX}/mobile-app-counts`, mobileAppCountRoutes);
 app.use(`${API_PREFIX}/states`, stateRoutes);
 app.use(`${API_PREFIX}/account-groups`, accountGroupRoutes);
+app.use(`${API_PREFIX}/shift-sessions`, shiftSessionRoutes);
 
 import auditRoutes from './modules/audit/audit.routes.js';
 app.use(`${API_PREFIX}/audit-logs`, auditRoutes);
