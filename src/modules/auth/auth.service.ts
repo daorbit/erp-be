@@ -72,8 +72,15 @@ export class AuthService {
   /**
    * Authenticate a user by email/password, issue new tokens.
    */
-  static async login(email: string, password: string): Promise<LoginResult> {
-    const user = await User.findOne({ email })
+  static async login(identifier: string, password: string): Promise<LoginResult> {
+    const normalizedIdentifier = identifier.trim();
+    const user = await User.findOne({
+      $or: [
+        { email: normalizedIdentifier.toLowerCase() },
+        { employeeId: normalizedIdentifier },
+        { username: normalizedIdentifier },
+      ],
+    })
       .select('+password')
       .populate('company', 'name code logo')
       .populate('allowedBranches', SITE_POPULATE_SELECT);
@@ -156,7 +163,7 @@ export class AuthService {
     userId: string,
     oldPassword: string,
     newPassword: string,
-  ): Promise<void> {
+  ): Promise<IUser> {
     const user = await User.findById(userId).select('+password');
     if (!user) {
       throw new AppError('User not found.', 404);
@@ -168,9 +175,13 @@ export class AuthService {
     }
 
     user.password = newPassword;
+    user.passwordChangeRequired = false;
     // Invalidate existing refresh token to force re-login on other devices
     user.refreshToken = undefined;
     await user.save();
+    await user.populate('company', 'name code logo');
+    await user.populate('allowedBranches', SITE_POPULATE_SELECT);
+    return user;
   }
 
   /**
@@ -301,12 +312,14 @@ export class AuthService {
       'userCategory', 'userType', 'isActive', 'remark',
       'allowedDepartments', 'allowedBranches', 'allowedModules',
       'department', 'designation', 'role', 'isErpDevCoUser',
+      'passwordChangeRequired',
     ];
     for (const k of allowed) {
       if (data[k] !== undefined) (user as any)[k] = data[k];
     }
     if (data.password) {
       user.password = data.password; // pre-save hook re-hashes
+      user.passwordChangeRequired = true;
       user.refreshToken = undefined;
     }
     await user.save();

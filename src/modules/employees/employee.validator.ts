@@ -51,11 +51,14 @@ export const createEmployeeSchema = z.object({
     .min(1, 'Last name is required')
     .max(50, 'Last name cannot exceed 50 characters'),
   email: z
-    .string({ required_error: 'Email is required' })
+    .string()
     .trim()
     .email('Please provide a valid email address')
-    .toLowerCase(),
+    .toLowerCase()
+    .optional()
+    .or(z.literal('')),
   phone: z.string().trim().optional(),
+  temporaryPassword: z.string().trim().min(8, 'Temporary password must be at least 8 characters').optional(),
   role: z.enum(['super_admin', 'admin', 'hr_manager', 'manager', 'employee']).optional(),
   department: z.string().optional(),
   designation: z.string().optional(),
@@ -72,6 +75,7 @@ export const createEmployeeSchema = z.object({
   workShift: z.string().trim().max(50).optional(),
   workLocation: z.string().trim().max(100).optional(),
   reportingManager: z.string().optional(),
+  allowedBranches: z.array(z.string()).optional(),
   currentAddress: addressSchema,
   permanentAddress: addressSchema,
   emergencyContact: emergencyContactSchema,
@@ -97,6 +101,7 @@ export const updateEmployeeSchema = z.object({
   workShift: z.string().trim().max(50).optional(),
   workLocation: z.string().trim().max(100).optional(),
   reportingManager: z.string().optional(),
+  allowedBranches: z.array(z.string()).optional(),
   currentAddress: addressSchema,
   permanentAddress: addressSchema,
   emergencyContact: emergencyContactSchema,

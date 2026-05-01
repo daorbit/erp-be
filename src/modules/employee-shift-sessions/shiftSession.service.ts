@@ -203,6 +203,82 @@ function getEmployeeName(employee: any): string {
   return [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim() || user?.email || 'Unknown';
 }
 
+async function getSiteCandidatesForUser(
+  userId: string,
+  companyId?: string,
+  fallbackSite?: any,
+): Promise<CandidateSiteGeo[]> {
+  const user = await User.findById(userId).select('allowedBranches').lean();
+  const siteIds = new Set<string>((user?.allowedBranches ?? []).map((id) => String(id)));
+  if (fallbackSite?._id) siteIds.add(String(fallbackSite._id));
+  if (siteIds.size === 0) return [];
+
+  const [sites, locations] = await Promise.all([
+    Branch.find({
+      _id: { $in: Array.from(siteIds) },
+      ...(companyId ? { company: companyId } : {}),
+    })
+      .select(SITE_POPULATE_SELECT)
+      .lean(),
+    Location.find({
+      site: { $in: Array.from(siteIds) },
+      ...(companyId ? { company: companyId } : {}),
+      isActive: true,
+    })
+      .select(LOCATION_POPULATE_SELECT)
+      .lean(),
+  ]);
+
+  const locationsBySiteId = new Map<string, any[]>();
+  for (const location of locations as any[]) {
+    const siteId = String(location.site);
+    locationsBySiteId.set(siteId, [...(locationsBySiteId.get(siteId) ?? []), location]);
+  }
+
+  const candidates: CandidateSiteGeo[] = [];
+  for (const site of sites as any[]) {
+    const siteLocations = locationsBySiteId.get(String(site._id)) ?? [];
+    for (const location of siteLocations) {
+      candidates.push({
+        site,
+        siteLocation: location,
+        latitude: location.latitude,
+        longitude: location.longitude,
+      });
+    }
+    candidates.push({
+      site,
+      latitude: site.latitude,
+      longitude: site.longitude,
+    });
+  }
+
+  return candidates;
+}
+
+async function withResolvedTrailSites(session: any, companyId?: string) {
+  const candidates = await getSiteCandidatesForUser(String(session.user), companyId, session.site);
+  const sortedTrail = [...(session.gpsTrail ?? [])].sort(
+    (a: any, b: any) => new Date(a.capturedAt).getTime() - new Date(b.capturedAt).getTime(),
+  );
+
+  session.gpsTrail = sortedTrail.map((point: any) => {
+    const nearest = getNearestCandidate(candidates, point.latitude, point.longitude);
+    const bufferKm = typeof nearest?.candidate.siteLocation?.approxLocationKm === 'number'
+      ? nearest.candidate.siteLocation.approxLocationKm
+      : undefined;
+    const withinBuffer = isWithinBuffer(nearest?.distanceMeters, bufferKm) === true;
+
+    return {
+      ...point,
+      matchedSite: withinBuffer ? nearest?.candidate.site : undefined,
+      matchedSiteLocation: withinBuffer ? nearest?.candidate.siteLocation : undefined,
+    };
+  });
+
+  return session;
+}
+
 export class ShiftSessionService {
   /**
    * Resolve the EmployeeProfile for the authenticated user.
@@ -466,7 +542,7 @@ export class ShiftSessionService {
       .lean();
 
     if (!session) throw new AppError('Shift session not found.', 404);
-    return session;
+    return withResolvedTrailSites(session, options.companyId);
   }
 
   /**

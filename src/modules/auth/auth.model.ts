@@ -20,6 +20,7 @@ export interface IUser extends Document {
   avatar?: string;
   onboardingRequired: boolean;
   onboardingCompleted: boolean;
+  passwordChangeRequired: boolean;
   isActive: boolean;
   lastLogin?: Date;
   refreshToken?: string;
@@ -105,6 +106,10 @@ const userSchema = new Schema<IUser>(
       default: false,
     },
     onboardingCompleted: {
+      type: Boolean,
+      default: false,
+    },
+    passwordChangeRequired: {
       type: Boolean,
       default: false,
     },

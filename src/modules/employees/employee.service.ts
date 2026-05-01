@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import crypto from 'crypto';
 import { AppError } from '../../middleware/errorHandler.js';
 import { buildPagination, generateEmployeeId } from '../../shared/helpers.js';
 import type { IQueryParams } from '../../shared/types.js';
@@ -8,7 +9,7 @@ import EmployeeProfile, { type IEmployeeProfile } from './employee.model.js';
 interface EmployeeCreateData {
   firstName: string;
   lastName: string;
-  email: string;
+  email?: string;
   phone?: string;
   role?: string;
   company?: string;
@@ -30,7 +31,14 @@ interface EmployeeCreateData {
   emergencyContact?: Record<string, unknown>;
   bankDetails?: Record<string, unknown>;
   identityDocs?: Record<string, unknown>;
+  allowedBranches?: string[];
+  temporaryPassword?: string;
 }
+
+type EmployeeCreateResult = IEmployeeProfile & {
+  temporaryPassword?: string;
+  loginEmployeeId?: string;
+};
 
 interface PaginatedResult<T> {
   data: T[];
@@ -38,6 +46,10 @@ interface PaginatedResult<T> {
 }
 
 export class EmployeeService {
+  private static generateTemporaryPassword(): string {
+    return `Emp@${crypto.randomBytes(4).toString('hex')}${Math.floor(10 + Math.random() * 90)}`;
+  }
+
   /**
    * Get all employees with search, filtering, pagination, and sorting.
    */
@@ -145,7 +157,7 @@ export class EmployeeService {
       EmployeeProfile.find(filter)
         .populate({
           path: 'userId',
-          select: 'firstName lastName email phone role department designation avatar',
+            select: 'firstName lastName email phone role department designation avatar allowedBranches passwordChangeRequired',
           populate: [
             { path: 'department', select: 'name code' },
             { path: 'designation', select: 'title code level' },
@@ -187,7 +199,7 @@ export class EmployeeService {
     const employee = await EmployeeProfile.findOne(findFilter)
       .populate({
         path: 'userId',
-        select: 'firstName lastName email phone role department designation avatar',
+        select: 'firstName lastName email phone role department designation avatar allowedBranches passwordChangeRequired',
         populate: [
           { path: 'department', select: 'name code description' },
           { path: 'designation', select: 'title code level band' },
@@ -213,26 +225,33 @@ export class EmployeeService {
   /**
    * Create a new user and employee profile together.
    */
-  static async create(data: EmployeeCreateData & Record<string, any>): Promise<IEmployeeProfile> {
-    const existingUser = await User.findOne({ email: data.email });
-    if (existingUser) {
-      throw new AppError('A user with this email already exists.', 409);
+  static async create(data: EmployeeCreateData & Record<string, any>): Promise<EmployeeCreateResult> {
+    if (data.email) {
+      const existingUser = await User.findOne({ email: data.email });
+      if (existingUser) {
+        throw new AppError('A user with this email already exists.', 409);
+      }
     }
 
     const employeeId = generateEmployeeId();
+    const temporaryPassword = data.temporaryPassword?.trim() || this.generateTemporaryPassword();
+    const loginEmail = data.email || `${employeeId.toLowerCase()}@employee.local`;
 
     // Create the User (with company for company-scoped roles)
     const user = await User.create({
       firstName: data.firstName,
       lastName: data.lastName,
-      email: data.email,
-      password: `Emp@${Date.now().toString(36)}`,
-      phone: data.phone,
+      email: loginEmail,
+      password: temporaryPassword,
+      phone: data.phone ?? data.mobileNo,
       role: data.role ?? 'employee',
       employeeId,
+      username: employeeId,
       company: data.company,
       department: data.department,
       designation: data.designation,
+      allowedBranches: data.allowedBranches ?? [],
+      passwordChangeRequired: true,
     });
 
     // The User-only fields above are stripped before spreading the rest of
@@ -241,11 +260,11 @@ export class EmployeeService {
     // land on the profile without having to enumerate each one.
     const {
       firstName, lastName, email, phone, password, role, company,
-      department, designation,
+      department, designation, allowedBranches, temporaryPassword: _temporaryPassword,
       ...profileExtras
     } = data;
     void firstName; void lastName; void email; void phone; void password; void role;
-    void department; void designation;
+    void department; void designation; void allowedBranches; void _temporaryPassword;
 
     const profile = await EmployeeProfile.create({
       userId: user._id,
@@ -259,7 +278,7 @@ export class EmployeeService {
     const populated = await EmployeeProfile.findById(profile._id)
       .populate({
         path: 'userId',
-        select: 'firstName lastName email phone role department designation avatar',
+          select: 'firstName lastName email phone role department designation avatar allowedBranches passwordChangeRequired',
         populate: [
           { path: 'department', select: 'name code' },
           { path: 'designation', select: 'title code level' },
@@ -267,7 +286,12 @@ export class EmployeeService {
       })
       .populate('reportingManager', 'firstName lastName email');
 
-    return populated!;
+    const result = populated!.toObject();
+    return {
+      ...(result as any),
+      temporaryPassword,
+      loginEmployeeId: employeeId,
+    } as EmployeeCreateResult;
   }
 
   /**
@@ -285,14 +309,16 @@ export class EmployeeService {
     const filter: Record<string, unknown> = { _id: id };
     if (companyId) filter.company = companyId;
 
+    const { allowedBranches, ...profileData } = data as any;
+
     const employee = await EmployeeProfile.findOneAndUpdate(
       filter,
-      { $set: data },
+      { $set: profileData },
       { new: true, runValidators: true },
     )
       .populate({
         path: 'userId',
-        select: 'firstName lastName email phone role department designation avatar',
+        select: 'firstName lastName email phone role department designation avatar allowedBranches passwordChangeRequired',
         populate: [
           { path: 'department', select: 'name code' },
           { path: 'designation', select: 'title code level' },
@@ -302,6 +328,10 @@ export class EmployeeService {
 
     if (!employee) {
       throw new AppError('Employee not found.', 404);
+    }
+
+    if (Array.isArray(allowedBranches)) {
+      await User.findByIdAndUpdate(employee.userId, { $set: { allowedBranches } });
     }
 
     return employee;

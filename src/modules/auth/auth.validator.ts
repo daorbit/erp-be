@@ -53,13 +53,19 @@ export const registerSchema = z.object({
 
 export const loginSchema = z.object({
   email: z
-    .string({ required_error: 'Email is required' })
+    .string()
     .trim()
-    .email('Please provide a valid email address')
-    .toLowerCase(),
+    .optional(),
+  identifier: z
+    .string()
+    .trim()
+    .optional(),
   password: z
     .string({ required_error: 'Password is required' })
     .min(1, 'Password is required'),
+}).refine((data) => !!data.email || !!data.identifier, {
+  message: 'Email or Employee ID is required',
+  path: ['email'],
 });
 
 export const changePasswordSchema = z

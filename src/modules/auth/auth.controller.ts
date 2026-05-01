@@ -76,8 +76,8 @@ export const adminDeleteUser = asyncHandler(async (req: Request, res: Response) 
 });
 
 export const login = asyncHandler(async (req: Request, res: Response) => {
-  const { email, password } = req.body;
-  const result = await AuthService.login(email, password);
+  const { email, identifier, password } = req.body;
+  const result = await AuthService.login(identifier || email, password);
 
   // Make the authenticated user available to the audit logger middleware,
   // which fires after `res.end` and reads `req.user`. Without this, login
@@ -115,10 +115,10 @@ export const changePassword = asyncHandler(async (req: Request, res: Response) =
   }
 
   const { oldPassword, newPassword } = req.body;
-  await AuthService.changePassword(req.user.id, oldPassword, newPassword);
+  const user = await AuthService.changePassword(req.user.id, oldPassword, newPassword);
 
   res.status(200).json(
-    buildResponse(true, null, 'Password changed successfully'),
+    buildResponse(true, user, 'Password changed successfully'),
   );
 });
 
