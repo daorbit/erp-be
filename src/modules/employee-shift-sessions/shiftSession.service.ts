@@ -45,8 +45,23 @@ interface ListQuery {
   site?: string;
 }
 
+interface SiteDurationReportQuery {
+  dateFrom?: string;
+  dateTo?: string;
+  employee?: string;
+  site?: string;
+  status?: string;
+}
+
 const SITE_POPULATE_SELECT = 'name code siteType division address01 address02 address03 city pincode stateName latitude longitude';
 const LOCATION_POPULATE_SELECT = 'name site address1 address2 address3 city pinCode locationType latitude longitude approxLocationKm';
+
+type CandidateSiteGeo = {
+  site: any;
+  siteLocation?: any;
+  latitude?: number;
+  longitude?: number;
+};
 
 /**
  * Haversine distance (meters) between two lat/lng points.
@@ -157,6 +172,35 @@ function distanceFromSiteMeters(
 function isWithinBuffer(distanceMeters: number | undefined, bufferKm?: number): boolean | undefined {
   if (distanceMeters == null || bufferKm == null || bufferKm <= 0) return undefined;
   return distanceMeters <= bufferKm * 1000;
+}
+
+function getNearestCandidate(
+  candidates: CandidateSiteGeo[],
+  latitude: number,
+  longitude: number,
+): { candidate: CandidateSiteGeo; distanceMeters?: number } | undefined {
+  let best: { candidate: CandidateSiteGeo; distanceMeters?: number } | undefined;
+
+  for (const candidate of candidates) {
+    if (typeof candidate.latitude !== 'number' || typeof candidate.longitude !== 'number') continue;
+    const distanceMeters = Math.round(
+      haversineMeters(candidate.latitude, candidate.longitude, latitude, longitude),
+    );
+    if (!best || distanceMeters < (best.distanceMeters ?? Number.POSITIVE_INFINITY)) {
+      best = { candidate, distanceMeters };
+    }
+  }
+
+  return best;
+}
+
+function formatReportDate(date: Date | string | undefined): string {
+  return dayjs(date).format('YYYY-MM-DD');
+}
+
+function getEmployeeName(employee: any): string {
+  const user = employee?.userId;
+  return [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim() || user?.email || 'Unknown';
 }
 
 export class ShiftSessionService {
@@ -489,6 +533,187 @@ export class ShiftSessionService {
     return {
       data,
       pagination: buildPagination(page, limit, total),
+    };
+  }
+
+  /**
+   * Admin report: split each shift's GPS timeline into employee x site/location
+   * duration buckets. Each segment is assigned to the nearest assigned site
+   * coordinate available for that user at that GPS point.
+   */
+  static async siteDurationReport(
+    query: SiteDurationReportQuery,
+    options: { companyId?: string } = {},
+  ) {
+    const { dateFrom, dateTo, employee, site, status } = query;
+    const filter: Record<string, unknown> = {};
+    if (options.companyId) filter.company = options.companyId;
+    if (status) filter.status = status;
+    if (employee && mongoose.Types.ObjectId.isValid(employee)) filter.employee = employee;
+    if (site && mongoose.Types.ObjectId.isValid(site)) filter.site = site;
+    if (dateFrom || dateTo) {
+      const range: Record<string, Date> = {};
+      if (dateFrom) range.$gte = dayjs(dateFrom).startOf('day').toDate();
+      if (dateTo) range.$lte = dayjs(dateTo).endOf('day').toDate();
+      filter.shiftDate = range;
+    }
+
+    const sessions = await ShiftSession.find(filter)
+      .sort({ shiftStartedAt: -1 })
+      .populate({
+        path: 'employee',
+        select: 'employeeId userId',
+        populate: { path: 'userId', select: 'firstName lastName email' },
+      })
+      .populate('site', SITE_POPULATE_SELECT)
+      .populate('siteLocation', LOCATION_POPULATE_SELECT)
+      .lean();
+
+    const userIds = Array.from(new Set(sessions.map((session: any) => String(session.user))));
+    const users = await User.find({ _id: { $in: userIds } }).select('allowedBranches').lean();
+    const allowedSiteIdsByUser = new Map<string, string[]>();
+    const allSiteIds = new Set<string>();
+
+    for (const user of users) {
+      const allowedSiteIds = (user.allowedBranches ?? []).map((id) => String(id));
+      allowedSiteIdsByUser.set(String(user._id), allowedSiteIds);
+      allowedSiteIds.forEach((id) => allSiteIds.add(id));
+    }
+    for (const session of sessions as any[]) {
+      if (session.site?._id) allSiteIds.add(String(session.site._id));
+    }
+
+    const [sites, locations] = await Promise.all([
+      Branch.find({ _id: { $in: Array.from(allSiteIds) }, ...(options.companyId ? { company: options.companyId } : {}) })
+        .select(SITE_POPULATE_SELECT)
+        .lean(),
+      Location.find({ site: { $in: Array.from(allSiteIds) }, ...(options.companyId ? { company: options.companyId } : {}), isActive: true })
+        .select(LOCATION_POPULATE_SELECT)
+        .lean(),
+    ]);
+
+    const siteById = new Map(sites.map((item: any) => [String(item._id), item]));
+    const locationsBySiteId = new Map<string, any[]>();
+    for (const location of locations as any[]) {
+      const siteId = String(location.site);
+      locationsBySiteId.set(siteId, [...(locationsBySiteId.get(siteId) ?? []), location]);
+    }
+
+    const rows = new Map<string, any>();
+
+    for (const session of sessions as any[]) {
+      const trail = [...(session.gpsTrail ?? [])]
+        .filter((point: any) => typeof point.latitude === 'number' && typeof point.longitude === 'number')
+        .sort((a: any, b: any) => new Date(a.capturedAt).getTime() - new Date(b.capturedAt).getTime());
+      if (trail.length === 0) continue;
+
+      const allowedSiteIds = allowedSiteIdsByUser.get(String(session.user)) ?? [];
+      const candidateSiteIds = allowedSiteIds.length > 0
+        ? allowedSiteIds
+        : session.site?._id
+          ? [String(session.site._id)]
+          : [];
+
+      const candidates: CandidateSiteGeo[] = [];
+      for (const siteId of candidateSiteIds) {
+        const siteDoc = siteById.get(siteId) ?? session.site;
+        if (!siteDoc) continue;
+        const siteLocations = locationsBySiteId.get(siteId) ?? [];
+        for (const location of siteLocations) {
+          candidates.push({
+            site: siteDoc,
+            siteLocation: location,
+            latitude: location.latitude,
+            longitude: location.longitude,
+          });
+        }
+        candidates.push({
+          site: siteDoc,
+          latitude: siteDoc.latitude,
+          longitude: siteDoc.longitude,
+        });
+      }
+
+      for (let index = 0; index < trail.length; index += 1) {
+        const point = trail[index];
+        const segmentStart = new Date(point.capturedAt).getTime();
+        const nextPoint = trail[index + 1];
+        const segmentEnd = nextPoint
+          ? new Date(nextPoint.capturedAt).getTime()
+          : session.shiftEndedAt
+            ? new Date(session.shiftEndedAt).getTime()
+            : Date.now();
+        const durationMinutes = Math.max(0, Math.round((segmentEnd - segmentStart) / 60000));
+        if (durationMinutes <= 0) continue;
+
+        const nearest = getNearestCandidate(candidates, point.latitude, point.longitude);
+        const candidate = nearest?.candidate ?? {
+          site: session.site,
+          siteLocation: session.siteLocation,
+        };
+        if (!candidate.site?._id) continue;
+        if (site && String(candidate.site._id) !== site) continue;
+
+        const date = formatReportDate(session.shiftDate ?? session.shiftStartedAt);
+        const siteLocationId = candidate.siteLocation?._id ? String(candidate.siteLocation._id) : 'site-coordinates';
+        const key = `${date}:${String(session.employee?._id ?? session.employee)}:${String(candidate.site._id)}:${siteLocationId}`;
+        const existing = rows.get(key) ?? {
+          key,
+          date,
+          employee: session.employee,
+          employeeName: getEmployeeName(session.employee),
+          employeeCode: session.employee?.employeeId,
+          site: candidate.site,
+          siteName: candidate.site?.name,
+          siteCode: candidate.site?.code,
+          siteLocation: candidate.siteLocation,
+          siteLocationName: candidate.siteLocation?.name,
+          durationMinutes: 0,
+          sessions: new Set<string>(),
+          firstSeenAt: point.capturedAt,
+          lastSeenAt: point.capturedAt,
+          minDistanceMeters: nearest?.distanceMeters,
+          maxDistanceMeters: nearest?.distanceMeters,
+        };
+
+        existing.durationMinutes += durationMinutes;
+        existing.sessions.add(String(session._id));
+        if (dayjs(point.capturedAt).isBefore(existing.firstSeenAt)) existing.firstSeenAt = point.capturedAt;
+        if (dayjs(point.capturedAt).isAfter(existing.lastSeenAt)) existing.lastSeenAt = point.capturedAt;
+        if (nearest?.distanceMeters != null) {
+          existing.minDistanceMeters = existing.minDistanceMeters == null
+            ? nearest.distanceMeters
+            : Math.min(existing.minDistanceMeters, nearest.distanceMeters);
+          existing.maxDistanceMeters = existing.maxDistanceMeters == null
+            ? nearest.distanceMeters
+            : Math.max(existing.maxDistanceMeters, nearest.distanceMeters);
+        }
+        rows.set(key, existing);
+      }
+    }
+
+    const data = Array.from(rows.values())
+      .map((row) => ({
+        ...row,
+        sessionCount: row.sessions.size,
+        sessions: undefined,
+      }))
+      .sort((a, b) => {
+        const dateSort = String(b.date).localeCompare(String(a.date));
+        if (dateSort !== 0) return dateSort;
+        const employeeSort = String(a.employeeName).localeCompare(String(b.employeeName));
+        if (employeeSort !== 0) return employeeSort;
+        return String(a.siteName).localeCompare(String(b.siteName));
+      });
+
+    return {
+      rows: data,
+      totals: {
+        durationMinutes: data.reduce((sum, row) => sum + row.durationMinutes, 0),
+        employeeCount: new Set(data.map((row) => String(row.employee?._id ?? row.employee))).size,
+        siteCount: new Set(data.map((row) => String(row.site?._id ?? row.site))).size,
+        rowCount: data.length,
+      },
     };
   }
 }

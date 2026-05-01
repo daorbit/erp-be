@@ -44,6 +44,12 @@ router.post(
 
 // ─── Admin / HR endpoints ──────────────────────────────────────────────────
 router.get(
+  '/reports/site-duration',
+  authorize(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.HR_MANAGER),
+  ShiftSessionController.siteDurationReport,
+);
+
+router.get(
   '/',
   authorize(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.HR_MANAGER),
   ShiftSessionController.getAll,
