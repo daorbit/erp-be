@@ -133,6 +133,18 @@ export class ShiftSessionController {
     res.status(200).json(buildResponse(true, result, 'Site duration report retrieved'));
   });
 
+  /** GET /shift-sessions/reports/employee-journey — day-wise site journey graph data. */
+  static employeeJourneyReport = asyncHandler(async (req: IAuthRequest, res: Response) => {
+    const result = await ShiftSessionService.employeeJourneyReport(
+      {
+        date: req.query.date as string,
+        employee: req.query.employee as string,
+      },
+      { companyId: req.user.company },
+    );
+    res.status(200).json(buildResponse(true, result, 'Employee journey report retrieved'));
+  });
+
   /** GET /shift-sessions/:id — detail (admin/HR sees any in company; employees only own). */
   static getOne = asyncHandler(async (req: IAuthRequest, res: Response) => {
     const allowAll = isAdminLike(req.user.role);

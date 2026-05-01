@@ -53,6 +53,11 @@ interface SiteDurationReportQuery {
   status?: string;
 }
 
+interface EmployeeJourneyQuery {
+  date: string;
+  employee: string;
+}
+
 const SITE_POPULATE_SELECT = 'name code siteType division address01 address02 address03 city pincode stateName latitude longitude';
 const LOCATION_POPULATE_SELECT = 'name site address1 address2 address3 city pinCode locationType latitude longitude approxLocationKm';
 
@@ -277,6 +282,10 @@ async function withResolvedTrailSites(session: any, companyId?: string) {
   });
 
   return session;
+}
+
+function makeJourneyKey(site: any, siteLocation: any): string {
+  return `${String(site?._id ?? '')}:${String(siteLocation?._id ?? 'site')}`;
 }
 
 export class ShiftSessionService {
@@ -789,6 +798,128 @@ export class ShiftSessionService {
         employeeCount: new Set(data.map((row) => String(row.employee?._id ?? row.employee))).size,
         siteCount: new Set(data.map((row) => String(row.site?._id ?? row.site))).size,
         rowCount: data.length,
+      },
+    };
+  }
+
+  /**
+   * Admin journey graph: for one employee and one day, turn GPS trail points
+   * into chronological site-presence blocks. A point counts only when it is
+   * inside an assigned site-location buffer.
+   */
+  static async employeeJourneyReport(
+    query: EmployeeJourneyQuery,
+    options: { companyId?: string } = {},
+  ) {
+    if (!mongoose.Types.ObjectId.isValid(query.employee)) {
+      throw new AppError('Valid employee is required.', 400);
+    }
+    if (!query.date) {
+      throw new AppError('Date is required.', 400);
+    }
+
+    const employee = await EmployeeProfile.findOne({
+      _id: query.employee,
+      ...(options.companyId ? { company: options.companyId } : {}),
+    })
+      .populate({ path: 'userId', select: 'firstName lastName email allowedBranches' })
+      .lean();
+
+    if (!employee) throw new AppError('Employee not found.', 404);
+
+    const dateStart = dayjs(query.date).startOf('day');
+    const dateEnd = dayjs(query.date).endOf('day');
+    const sessions = await ShiftSession.find({
+      employee: query.employee,
+      ...(options.companyId ? { company: options.companyId } : {}),
+      shiftDate: { $gte: dateStart.toDate(), $lte: dateEnd.toDate() },
+    })
+      .sort({ shiftStartedAt: 1 })
+      .lean();
+
+    const candidates = await getSiteCandidatesForUser(
+      String((employee as any).userId?._id ?? employee.userId),
+      options.companyId,
+      sessions[0]?.site,
+    );
+
+    const segments: any[] = [];
+    for (const session of sessions as any[]) {
+      const trail = [...(session.gpsTrail ?? [])]
+        .filter((point: any) => typeof point.latitude === 'number' && typeof point.longitude === 'number')
+        .sort((a: any, b: any) => new Date(a.capturedAt).getTime() - new Date(b.capturedAt).getTime());
+
+      for (let index = 0; index < trail.length; index += 1) {
+        const point = trail[index];
+        const nextPoint = trail[index + 1];
+        const start = dayjs(point.capturedAt);
+        const end = nextPoint
+          ? dayjs(nextPoint.capturedAt)
+          : session.shiftEndedAt
+            ? dayjs(session.shiftEndedAt)
+            : dayjs();
+        const clampedStart = start.isBefore(dateStart) ? dateStart : start;
+        const clampedEnd = end.isAfter(dateEnd) ? dateEnd : end;
+        const durationMinutes = Math.max(0, clampedEnd.diff(clampedStart, 'minute'));
+        if (durationMinutes <= 0) continue;
+
+        const nearest = getNearestCandidate(candidates, point.latitude, point.longitude);
+        const bufferKm = typeof nearest?.candidate.siteLocation?.approxLocationKm === 'number'
+          ? nearest.candidate.siteLocation.approxLocationKm
+          : undefined;
+        if (isWithinBuffer(nearest?.distanceMeters, bufferKm) !== true) continue;
+
+        const site = nearest?.candidate.site;
+        if (!site?._id) continue;
+        const siteLocation = nearest?.candidate.siteLocation;
+        const previous = segments[segments.length - 1];
+        const segmentKey = makeJourneyKey(site, siteLocation);
+
+        if (previous?.siteKey === segmentKey && dayjs(previous.endAt).isSame(clampedStart)) {
+          previous.endAt = clampedEnd.toISOString();
+          previous.durationMinutes += durationMinutes;
+          previous.points += 1;
+          continue;
+        }
+
+        segments.push({
+          siteKey: segmentKey,
+          site,
+          siteName: site.name,
+          siteCode: site.code,
+          siteLocation,
+          siteLocationName: siteLocation?.name,
+          startAt: clampedStart.toISOString(),
+          endAt: clampedEnd.toISOString(),
+          durationMinutes,
+          points: 1,
+        });
+      }
+    }
+
+    const siteTotals = new Map<string, any>();
+    for (const segment of segments) {
+      const existing = siteTotals.get(segment.siteKey) ?? {
+        site: segment.site,
+        siteName: segment.siteName,
+        siteCode: segment.siteCode,
+        siteLocation: segment.siteLocation,
+        siteLocationName: segment.siteLocationName,
+        durationMinutes: 0,
+      };
+      existing.durationMinutes += segment.durationMinutes;
+      siteTotals.set(segment.siteKey, existing);
+    }
+
+    return {
+      date: dateStart.format('YYYY-MM-DD'),
+      employee,
+      segments,
+      siteTotals: Array.from(siteTotals.values()).sort((a, b) => b.durationMinutes - a.durationMinutes),
+      totals: {
+        durationMinutes: segments.reduce((sum, segment) => sum + segment.durationMinutes, 0),
+        siteCount: siteTotals.size,
+        segmentCount: segments.length,
       },
     };
   }
