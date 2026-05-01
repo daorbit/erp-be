@@ -156,7 +156,6 @@ const salaryStructureSchema = new Schema<ISalaryStructure>(
 
 // ─── SalaryStructure Indexes ────────────────────────────────────────────────
 
-salaryStructureSchema.index({ employee: 1 });
 salaryStructureSchema.index({ isActive: 1 });
 salaryStructureSchema.index({ effectiveFrom: -1 });
 

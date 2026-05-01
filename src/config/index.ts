@@ -14,6 +14,12 @@ function optionalEnv(key: string, fallback: string): string {
   return process.env[key] ?? fallback;
 }
 
+function optionalBoolEnv(key: string, fallback: boolean): boolean {
+  const value = process.env[key];
+  if (value == null) return fallback;
+  return ['1', 'true', 'yes', 'on'].includes(value.trim().toLowerCase());
+}
+
 function normalizeOrigin(rawOrigin: string): string | null {
   const origin = rawOrigin.trim();
   if (!origin) {
@@ -39,6 +45,9 @@ function parseCorsOrigin(value: string): string | string[] {
 const config = {
   mongodb: {
     uri: requiredEnv("MONGODB_URI"),
+    autoIndex: optionalBoolEnv("MONGOOSE_AUTO_INDEX", false),
+    syncIndexes: optionalBoolEnv("SYNC_SCHEMA_INDEXES", false),
+    serverSelectionTimeoutMs: parseInt(optionalEnv("MONGODB_SERVER_SELECTION_TIMEOUT_MS", "10000"), 10),
   },
   jwt: {
     secret: requiredEnv("JWT_SECRET"),

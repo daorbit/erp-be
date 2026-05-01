@@ -684,8 +684,6 @@ const employeeProfileSchema = new Schema<IEmployeeProfile>(
 
 // ─── Indexes ─────────────────────────────────────────────────────────────────
 
-employeeProfileSchema.index({ employeeId: 1 });
-employeeProfileSchema.index({ userId: 1 });
 employeeProfileSchema.index({ reportingManager: 1 });
 employeeProfileSchema.index({ employmentType: 1, isActive: 1 });
 employeeProfileSchema.index({ joinDate: 1 });

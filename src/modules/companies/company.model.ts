@@ -245,8 +245,6 @@ const companySchema = new Schema<ICompany>(
 
 // ─── Indexes ─────────────────────────────────────────────────────────────────
 
-companySchema.index({ name: 1 });
-companySchema.index({ code: 1 });
 companySchema.index({ isActive: 1 });
 
 // ─── Model ───────────────────────────────────────────────────────────────────

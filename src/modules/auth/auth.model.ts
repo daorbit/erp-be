@@ -145,8 +145,6 @@ const userSchema = new Schema<IUser>(
 
 // ─── Indexes ─────────────────────────────────────────────────────────────────
 
-userSchema.index({ email: 1 });
-userSchema.index({ employeeId: 1 });
 userSchema.index({ department: 1 });
 userSchema.index({ role: 1, isActive: 1 });
 userSchema.index({ company: 1 });

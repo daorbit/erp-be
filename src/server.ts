@@ -42,9 +42,13 @@ let server: ReturnType<typeof app.listen> | undefined;
 async function bootstrap(): Promise<void> {
   try {
     await connectDB();
-    // Drop indexes no longer declared in any schema (e.g. the legacy `code_1`
-    // unique index on departments). Idempotent — cheap on subsequent boots.
-    await syncSchemaIndexes();
+    if (config.mongodb.syncIndexes) {
+      // Drop indexes no longer declared in any schema. This is intentionally
+      // opt-in because syncing every model can noticeably slow local boot.
+      await syncSchemaIndexes();
+    } else {
+      console.log('[INDEX SYNC] Skipped. Set SYNC_SCHEMA_INDEXES=true to run.');
+    }
     await seedAdminUser();
     await seedIndianStates();
 

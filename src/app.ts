@@ -62,6 +62,7 @@ import { requireOnboardingComplete } from './middleware/onboardingGate.js';
 // ─── Express app ─────────────────────────────────────────────────────────────
 const app = express();
 
+const shouldConnectFromApp = process.env.VERCEL === '1' || process.env.SERVERLESS === 'true';
 let mongoConnectionPromise: Promise<void> | null = null;
 const ensureMongoConnection = async (): Promise<void> => {
   if (!mongoConnectionPromise) {
@@ -73,17 +74,21 @@ const ensureMongoConnection = async (): Promise<void> => {
   await mongoConnectionPromise;
 };
 
-void ensureMongoConnection();
+if (shouldConnectFromApp) {
+  void ensureMongoConnection();
+}
 
-// Ensure serverless functions wait for DB before processing requests.
-app.use(async (_req, _res, next) => {
-  try {
-    await ensureMongoConnection();
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
+if (shouldConnectFromApp) {
+  // Ensure serverless functions wait for DB before processing requests.
+  app.use(async (_req, _res, next) => {
+    try {
+      await ensureMongoConnection();
+      next();
+    } catch (error) {
+      next(error);
+    }
+  });
+}
 
 // ─── Security headers ────────────────────────────────────────────────────────
 app.use(helmet());

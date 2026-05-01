@@ -80,7 +80,6 @@ const invitationSchema = new Schema<IInvitation>(
 
 // ─── Indexes ─────────────────────────────────────────────────────────────────
 
-invitationSchema.index({ token: 1 }, { unique: true });
 invitationSchema.index({ email: 1, status: 1 });
 invitationSchema.index({ company: 1 });
 invitationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
