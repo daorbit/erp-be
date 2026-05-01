@@ -13,7 +13,6 @@ import ShiftSession, {
 } from './shiftSession.model.js';
 
 interface StartShiftInput {
-  siteId?: string;
   latitude: number;
   longitude: number;
   accuracy?: number;
@@ -47,7 +46,7 @@ interface ListQuery {
 }
 
 const SITE_POPULATE_SELECT = 'name code siteType division address01 address02 address03 city pincode stateName latitude longitude';
-const LOCATION_POPULATE_SELECT = 'name site address1 address2 address3 city pinCode locationType latitude longitude';
+const LOCATION_POPULATE_SELECT = 'name site address1 address2 address3 city pinCode locationType latitude longitude approxLocationKm';
 
 /**
  * Haversine distance (meters) between two lat/lng points.
@@ -95,7 +94,8 @@ async function uploadSelfieBuffer(buffer: Buffer): Promise<{
 async function resolveAssignedSite(
   userId: string,
   companyId: string,
-  siteId?: string,
+  latitude: number,
+  longitude: number,
 ) {
   const user = await User.findById(userId).select('allowedBranches').lean();
   const allowedSiteIds = (user?.allowedBranches ?? []).map((id) => String(id));
@@ -104,29 +104,45 @@ async function resolveAssignedSite(
     throw new AppError('No site is assigned to this user. Please ask admin to assign a site first.', 400);
   }
 
-  const selectedSiteId = siteId || (allowedSiteIds.length === 1 ? allowedSiteIds[0] : undefined);
-  if (!selectedSiteId) {
-    throw new AppError('Please select the site you are working on before starting shift.', 400);
-  }
-  if (!mongoose.Types.ObjectId.isValid(selectedSiteId)) {
-    throw new AppError('Invalid site ID.', 400);
-  }
-  if (!allowedSiteIds.includes(selectedSiteId)) {
-    throw new AppError('Selected site is not assigned to this user.', 403);
-  }
+  const sites = await Branch.find({
+    _id: { $in: allowedSiteIds },
+    company: companyId,
+  }).lean();
 
-  const site = await Branch.findOne({ _id: selectedSiteId, company: companyId }).lean();
-  if (!site) {
+  if (sites.length === 0) {
     throw new AppError('Assigned site not found.', 404);
   }
 
-  const siteLocation = await Location.findOne({
-    site: selectedSiteId,
+  const siteLocations = await Location.find({
+    site: { $in: sites.map((site) => site._id) },
     company: companyId,
     isActive: true,
   }).sort({ latitude: -1, longitude: -1, createdAt: -1 }).lean();
 
-  return { site, siteLocation };
+  const locationBySiteId = new Map<string, (typeof siteLocations)[number]>();
+  for (const loc of siteLocations) {
+    const locSiteId = String(loc.site);
+    if (!locationBySiteId.has(locSiteId) || loc.latitude != null) {
+      locationBySiteId.set(locSiteId, loc);
+    }
+  }
+
+  let best: { site: (typeof sites)[number]; siteLocation?: (typeof siteLocations)[number]; distance?: number } | null = null;
+
+  for (const site of sites) {
+    const siteLocation = locationBySiteId.get(String(site._id));
+    const geo = siteLocation ?? site;
+    const distance = distanceFromSiteMeters(geo, latitude, longitude);
+    if (!best || (distance != null && (best.distance == null || distance < best.distance))) {
+      best = { site, siteLocation, distance };
+    }
+  }
+
+  if (!best) {
+    throw new AppError('Assigned site not found.', 404);
+  }
+
+  return best;
 }
 
 function distanceFromSiteMeters(
@@ -136,6 +152,11 @@ function distanceFromSiteMeters(
 ): number | undefined {
   if (typeof geo?.latitude !== 'number' || typeof geo?.longitude !== 'number') return undefined;
   return Math.round(haversineMeters(geo.latitude, geo.longitude, latitude, longitude));
+}
+
+function isWithinBuffer(distanceMeters: number | undefined, bufferKm?: number): boolean | undefined {
+  if (distanceMeters == null || bufferKm == null || bufferKm <= 0) return undefined;
+  return distanceMeters <= bufferKm * 1000;
 }
 
 export class ShiftSessionService {
@@ -167,7 +188,7 @@ export class ShiftSessionService {
     selfie?: Express.Multer.File,
   ): Promise<IShiftSession> {
     const profile = await this.resolveEmployee(userId, companyId);
-    const { site, siteLocation } = await resolveAssignedSite(userId, companyId, input.siteId);
+    const { site, siteLocation } = await resolveAssignedSite(userId, companyId, input.latitude, input.longitude);
 
     // Reject if an active shift already exists.
     const existing = await ShiftSession.findOne({
@@ -195,6 +216,7 @@ export class ShiftSessionService {
       longitude: input.longitude,
       accuracy: input.accuracy,
     };
+    const siteBufferKm = typeof siteLocation?.approxLocationKm === 'number' ? siteLocation.approxLocationKm : undefined;
     const startSiteDistanceMeters = distanceFromSiteMeters(siteLocation ?? site, input.latitude, input.longitude);
 
     const session = await ShiftSession.create({
@@ -222,6 +244,8 @@ export class ShiftSessionService {
       totalDistanceMeters: 0,
       startSiteDistanceMeters,
       latestSiteDistanceMeters: startSiteDistanceMeters,
+      siteBufferKm,
+      latestSiteWithinBuffer: isWithinBuffer(startSiteDistanceMeters, siteBufferKm),
       notes: input.notes,
     });
 
@@ -262,14 +286,12 @@ export class ShiftSessionService {
       );
     }
 
-    let latestSiteDistanceMeters: number | undefined;
-    if (session.site) {
-      const geo = session.siteLocation
-        ? await Location.findById(session.siteLocation).lean()
-        : await Branch.findById(session.site).lean();
-      latestSiteDistanceMeters = distanceFromSiteMeters(geo, input.latitude, input.longitude);
-      session.latestSiteDistanceMeters = latestSiteDistanceMeters;
-    }
+    const nearest = await resolveAssignedSite(userId, String(session.company), input.latitude, input.longitude);
+    session.site = nearest.site._id as any;
+    session.siteLocation = nearest.siteLocation?._id as any;
+    session.siteBufferKm = typeof nearest.siteLocation?.approxLocationKm === 'number' ? nearest.siteLocation.approxLocationKm : undefined;
+    session.latestSiteDistanceMeters = nearest.distance;
+    session.latestSiteWithinBuffer = isWithinBuffer(nearest.distance, session.siteBufferKm);
 
     session.gpsTrail.push({
       latitude: input.latitude,
@@ -339,14 +361,13 @@ export class ShiftSessionService {
         accuracy: input.accuracy,
         capturedAt: now,
       };
-      if (session.site) {
-        const geo = session.siteLocation
-          ? await Location.findById(session.siteLocation).lean()
-          : await Branch.findById(session.site).lean();
-        const endSiteDistanceMeters = distanceFromSiteMeters(geo, input.latitude, input.longitude);
-        session.endSiteDistanceMeters = endSiteDistanceMeters;
-        session.latestSiteDistanceMeters = endSiteDistanceMeters;
-      }
+      const nearest = await resolveAssignedSite(userId, String(session.company), input.latitude, input.longitude);
+      session.site = nearest.site._id as any;
+      session.siteLocation = nearest.siteLocation?._id as any;
+      session.siteBufferKm = typeof nearest.siteLocation?.approxLocationKm === 'number' ? nearest.siteLocation.approxLocationKm : undefined;
+      session.endSiteDistanceMeters = nearest.distance;
+      session.latestSiteDistanceMeters = nearest.distance;
+      session.latestSiteWithinBuffer = isWithinBuffer(nearest.distance, session.siteBufferKm);
     }
 
     session.shiftEndedAt = now;

@@ -39,6 +39,8 @@ export interface IShiftSession extends Document {
   startSiteDistanceMeters?: number;
   latestSiteDistanceMeters?: number;
   endSiteDistanceMeters?: number;
+  siteBufferKm?: number;
+  latestSiteWithinBuffer?: boolean;
   durationMinutes?: number; // Computed on end
   notes?: string;
 
@@ -117,6 +119,8 @@ const shiftSessionSchema = new Schema<IShiftSession>(
     startSiteDistanceMeters: { type: Number },
     latestSiteDistanceMeters: { type: Number },
     endSiteDistanceMeters: { type: Number },
+    siteBufferKm: { type: Number },
+    latestSiteWithinBuffer: { type: Boolean },
     durationMinutes: { type: Number },
     notes: { type: String, trim: true, maxlength: 500 },
   },

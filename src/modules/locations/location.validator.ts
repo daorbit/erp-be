@@ -15,6 +15,7 @@ export const createLocationSchema = z.object({
   pinCode: z.string().trim().max(10).optional(),
   latitude: z.number().min(-90).max(90).nullable().optional().transform(v => v ?? undefined),
   longitude: z.number().min(-180).max(180).nullable().optional().transform(v => v ?? undefined),
+  approxLocationKm: z.number().min(0).nullable().optional().transform(v => v ?? undefined),
   routeDetails: z.array(z.object({
     toLocation: z.string().optional(),
     km: z.number().optional(),

@@ -27,6 +27,7 @@ export interface ILocation extends Document {
   pinCode?: string;
   latitude?: number;
   longitude?: number;
+  approxLocationKm?: number;
   routeDetails?: ILocationRouteEntry[];
   isActive: boolean;
   createdAt: Date;
@@ -62,6 +63,7 @@ const schema = new Schema<ILocation>(
     pinCode: { type: String, trim: true, maxlength: 10 },
     latitude: { type: Number, min: -90, max: 90 },
     longitude: { type: Number, min: -180, max: 180 },
+    approxLocationKm: { type: Number, min: 0, default: 0 },
     routeDetails: { type: [routeEntrySchema], default: [] },
     isActive: { type: Boolean, default: true },
   },

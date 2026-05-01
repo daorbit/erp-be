@@ -46,6 +46,8 @@ export class ShiftSessionController {
           totalDistanceMeters: session.totalDistanceMeters,
           latestLocation: session.latestLocation,
           latestSiteDistanceMeters: session.latestSiteDistanceMeters,
+          siteBufferKm: session.siteBufferKm,
+          latestSiteWithinBuffer: session.latestSiteWithinBuffer,
           gpsTrailCount: session.gpsTrail.length,
         },
         'Location captured',
