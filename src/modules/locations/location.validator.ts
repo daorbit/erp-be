@@ -13,6 +13,8 @@ export const createLocationSchema = z.object({
   orderNo: z.number().int().nonnegative().default(0),
   city: z.string().trim().max(100).optional(),
   pinCode: z.string().trim().max(10).optional(),
+  latitude: z.number().min(-90).max(90).nullable().optional().transform(v => v ?? undefined),
+  longitude: z.number().min(-180).max(180).nullable().optional().transform(v => v ?? undefined),
   routeDetails: z.array(z.object({
     toLocation: z.string().optional(),
     km: z.number().optional(),

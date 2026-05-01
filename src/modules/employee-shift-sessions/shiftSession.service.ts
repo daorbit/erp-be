@@ -3,13 +3,17 @@ import dayjs from 'dayjs';
 import cloudinary from '../../config/cloudinary.js';
 import { AppError } from '../../middleware/errorHandler.js';
 import { buildPagination } from '../../shared/helpers.js';
+import User from '../auth/auth.model.js';
+import Branch from '../branches/branch.model.js';
 import EmployeeProfile from '../employees/employee.model.js';
+import Location from '../locations/location.model.js';
 import ShiftSession, {
   ShiftSessionStatus,
   type IShiftSession,
 } from './shiftSession.model.js';
 
 interface StartShiftInput {
+  siteId?: string;
   latitude: number;
   longitude: number;
   accuracy?: number;
@@ -39,7 +43,11 @@ interface ListQuery {
   employee?: string;
   dateFrom?: string;
   dateTo?: string;
+  site?: string;
 }
+
+const SITE_POPULATE_SELECT = 'name code siteType division address01 address02 address03 city pincode stateName latitude longitude';
+const LOCATION_POPULATE_SELECT = 'name site address1 address2 address3 city pinCode locationType latitude longitude';
 
 /**
  * Haversine distance (meters) between two lat/lng points.
@@ -84,6 +92,52 @@ async function uploadSelfieBuffer(buffer: Buffer): Promise<{
   });
 }
 
+async function resolveAssignedSite(
+  userId: string,
+  companyId: string,
+  siteId?: string,
+) {
+  const user = await User.findById(userId).select('allowedBranches').lean();
+  const allowedSiteIds = (user?.allowedBranches ?? []).map((id) => String(id));
+
+  if (allowedSiteIds.length === 0) {
+    throw new AppError('No site is assigned to this user. Please ask admin to assign a site first.', 400);
+  }
+
+  const selectedSiteId = siteId || (allowedSiteIds.length === 1 ? allowedSiteIds[0] : undefined);
+  if (!selectedSiteId) {
+    throw new AppError('Please select the site you are working on before starting shift.', 400);
+  }
+  if (!mongoose.Types.ObjectId.isValid(selectedSiteId)) {
+    throw new AppError('Invalid site ID.', 400);
+  }
+  if (!allowedSiteIds.includes(selectedSiteId)) {
+    throw new AppError('Selected site is not assigned to this user.', 403);
+  }
+
+  const site = await Branch.findOne({ _id: selectedSiteId, company: companyId }).lean();
+  if (!site) {
+    throw new AppError('Assigned site not found.', 404);
+  }
+
+  const siteLocation = await Location.findOne({
+    site: selectedSiteId,
+    company: companyId,
+    isActive: true,
+  }).sort({ latitude: -1, longitude: -1, createdAt: -1 }).lean();
+
+  return { site, siteLocation };
+}
+
+function distanceFromSiteMeters(
+  geo: { latitude?: number; longitude?: number } | null | undefined,
+  latitude: number,
+  longitude: number,
+): number | undefined {
+  if (typeof geo?.latitude !== 'number' || typeof geo?.longitude !== 'number') return undefined;
+  return Math.round(haversineMeters(geo.latitude, geo.longitude, latitude, longitude));
+}
+
 export class ShiftSessionService {
   /**
    * Resolve the EmployeeProfile for the authenticated user.
@@ -113,6 +167,7 @@ export class ShiftSessionService {
     selfie?: Express.Multer.File,
   ): Promise<IShiftSession> {
     const profile = await this.resolveEmployee(userId, companyId);
+    const { site, siteLocation } = await resolveAssignedSite(userId, companyId, input.siteId);
 
     // Reject if an active shift already exists.
     const existing = await ShiftSession.findOne({
@@ -140,11 +195,14 @@ export class ShiftSessionService {
       longitude: input.longitude,
       accuracy: input.accuracy,
     };
+    const startSiteDistanceMeters = distanceFromSiteMeters(siteLocation ?? site, input.latitude, input.longitude);
 
     const session = await ShiftSession.create({
       employee: profile._id,
       user: new mongoose.Types.ObjectId(userId),
       company: new mongoose.Types.ObjectId(companyId),
+      site: site._id,
+      siteLocation: siteLocation?._id,
       shift: profile.shift,
       shiftDate: dayjs(now).startOf('day').toDate(),
       shiftStartedAt: now,
@@ -152,6 +210,7 @@ export class ShiftSessionService {
       selfieUrl,
       selfiePublicId,
       startLocation,
+      latestLocation: { ...startLocation, capturedAt: now },
       gpsTrail: [
         {
           latitude: input.latitude,
@@ -161,10 +220,14 @@ export class ShiftSessionService {
         },
       ],
       totalDistanceMeters: 0,
+      startSiteDistanceMeters,
+      latestSiteDistanceMeters: startSiteDistanceMeters,
       notes: input.notes,
     });
 
-    return session;
+    await session.populate('site', SITE_POPULATE_SELECT);
+    await session.populate('siteLocation', LOCATION_POPULATE_SELECT);
+    return session as IShiftSession;
   }
 
   /**
@@ -199,12 +262,27 @@ export class ShiftSessionService {
       );
     }
 
+    let latestSiteDistanceMeters: number | undefined;
+    if (session.site) {
+      const geo = session.siteLocation
+        ? await Location.findById(session.siteLocation).lean()
+        : await Branch.findById(session.site).lean();
+      latestSiteDistanceMeters = distanceFromSiteMeters(geo, input.latitude, input.longitude);
+      session.latestSiteDistanceMeters = latestSiteDistanceMeters;
+    }
+
     session.gpsTrail.push({
       latitude: input.latitude,
       longitude: input.longitude,
       accuracy: input.accuracy,
       capturedAt: input.capturedAt ? new Date(input.capturedAt) : new Date(),
     });
+    session.latestLocation = {
+      latitude: input.latitude,
+      longitude: input.longitude,
+      accuracy: input.accuracy,
+      capturedAt: input.capturedAt ? new Date(input.capturedAt) : new Date(),
+    };
 
     await session.save();
     return session;
@@ -255,6 +333,20 @@ export class ShiftSessionService {
         accuracy: input.accuracy,
         capturedAt: now,
       });
+      session.latestLocation = {
+        latitude: input.latitude,
+        longitude: input.longitude,
+        accuracy: input.accuracy,
+        capturedAt: now,
+      };
+      if (session.site) {
+        const geo = session.siteLocation
+          ? await Location.findById(session.siteLocation).lean()
+          : await Branch.findById(session.site).lean();
+        const endSiteDistanceMeters = distanceFromSiteMeters(geo, input.latitude, input.longitude);
+        session.endSiteDistanceMeters = endSiteDistanceMeters;
+        session.latestSiteDistanceMeters = endSiteDistanceMeters;
+      }
     }
 
     session.shiftEndedAt = now;
@@ -277,6 +369,8 @@ export class ShiftSessionService {
       status: ShiftSessionStatus.ACTIVE,
     })
       .populate('employee', 'employeeId firstName lastName')
+      .populate('site', SITE_POPULATE_SELECT)
+      .populate('siteLocation', LOCATION_POPULATE_SELECT)
       .populate('shift', 'name startTime endTime')
       .lean();
   }
@@ -301,6 +395,8 @@ export class ShiftSessionService {
         select: 'employeeId userId',
         populate: { path: 'userId', select: 'firstName lastName email phone' },
       })
+      .populate('site', SITE_POPULATE_SELECT)
+      .populate('siteLocation', LOCATION_POPULATE_SELECT)
       .populate('shift', 'name startTime endTime')
       .lean();
 
@@ -325,6 +421,7 @@ export class ShiftSessionService {
       employee,
       dateFrom,
       dateTo,
+      site,
     } = query;
 
     const filter: Record<string, unknown> = {};
@@ -333,6 +430,9 @@ export class ShiftSessionService {
     if (status) filter.status = status;
     if (employee && mongoose.Types.ObjectId.isValid(employee)) {
       filter.employee = employee;
+    }
+    if (site && mongoose.Types.ObjectId.isValid(site)) {
+      filter.site = site;
     }
     if (dateFrom || dateTo) {
       const range: Record<string, Date> = {};
@@ -358,6 +458,8 @@ export class ShiftSessionService {
           select: 'employeeId userId',
           populate: { path: 'userId', select: 'firstName lastName email' },
         })
+        .populate('site', SITE_POPULATE_SELECT)
+        .populate('siteLocation', LOCATION_POPULATE_SELECT)
         .populate('shift', 'name startTime endTime')
         .lean(),
       ShiftSession.countDocuments(filter),

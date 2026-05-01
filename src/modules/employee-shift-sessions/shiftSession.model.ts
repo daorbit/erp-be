@@ -16,6 +16,8 @@ export interface IShiftSession extends Document {
   employee: mongoose.Types.ObjectId; // EmployeeProfile._id
   user: mongoose.Types.ObjectId; // User._id (the one who punched)
   company: mongoose.Types.ObjectId;
+  site?: mongoose.Types.ObjectId; // Assigned Branch/Site user selected while starting shift
+  siteLocation?: mongoose.Types.ObjectId; // Location._id linked to the selected site
   shift?: mongoose.Types.ObjectId; // Optional ref to assigned Shift master
   shiftDate: Date; // start-of-day for shiftStartedAt (for grouping per day)
 
@@ -29,10 +31,14 @@ export interface IShiftSession extends Document {
 
   startLocation?: { latitude: number; longitude: number; accuracy?: number };
   endLocation?: { latitude: number; longitude: number; accuracy?: number };
+  latestLocation?: { latitude: number; longitude: number; accuracy?: number; capturedAt?: Date };
 
   gpsTrail: IGpsPoint[];
 
   totalDistanceMeters: number; // Computed lazily on each track / on end
+  startSiteDistanceMeters?: number;
+  latestSiteDistanceMeters?: number;
+  endSiteDistanceMeters?: number;
   durationMinutes?: number; // Computed on end
   notes?: string;
 
@@ -70,6 +76,8 @@ const shiftSessionSchema = new Schema<IShiftSession>(
       required: true,
       index: true,
     },
+    site: { type: Schema.Types.ObjectId, ref: 'Branch', index: true },
+    siteLocation: { type: Schema.Types.ObjectId, ref: 'Location', index: true },
     shift: { type: Schema.Types.ObjectId, ref: 'Shift' },
 
     shiftDate: { type: Date, required: true, index: true },
@@ -96,10 +104,19 @@ const shiftSessionSchema = new Schema<IShiftSession>(
       longitude: { type: Number },
       accuracy: { type: Number },
     },
+    latestLocation: {
+      latitude: { type: Number },
+      longitude: { type: Number },
+      accuracy: { type: Number },
+      capturedAt: { type: Date },
+    },
 
     gpsTrail: { type: [gpsPointSchema], default: [] },
 
     totalDistanceMeters: { type: Number, default: 0 },
+    startSiteDistanceMeters: { type: Number },
+    latestSiteDistanceMeters: { type: Number },
+    endSiteDistanceMeters: { type: Number },
     durationMinutes: { type: Number },
     notes: { type: String, trim: true, maxlength: 500 },
   },
@@ -118,6 +135,7 @@ const shiftSessionSchema = new Schema<IShiftSession>(
 shiftSessionSchema.index({ company: 1, status: 1, shiftDate: -1 });
 shiftSessionSchema.index({ employee: 1, shiftDate: -1 });
 shiftSessionSchema.index({ user: 1, status: 1 });
+shiftSessionSchema.index({ site: 1, status: 1 });
 
 const ShiftSession = mongoose.model<IShiftSession>(
   'ShiftSession',

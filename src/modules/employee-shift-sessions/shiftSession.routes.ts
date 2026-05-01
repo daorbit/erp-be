@@ -22,6 +22,7 @@ router.get('/my', ShiftSessionController.getMy);
 
 router.post(
   '/start',
+  authorize(UserRole.EMPLOYEE),
   upload.single('selfie'),
   validate(startShiftSessionSchema),
   ShiftSessionController.start,
@@ -29,12 +30,14 @@ router.post(
 
 router.post(
   '/:id/track',
+  authorize(UserRole.EMPLOYEE),
   validate(trackGpsSchema),
   ShiftSessionController.track,
 );
 
 router.post(
   '/:id/end',
+  authorize(UserRole.EMPLOYEE),
   validate(endShiftSessionSchema),
   ShiftSessionController.end,
 );

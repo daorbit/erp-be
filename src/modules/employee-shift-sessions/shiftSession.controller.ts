@@ -44,6 +44,8 @@ export class ShiftSessionController {
         {
           _id: session._id,
           totalDistanceMeters: session.totalDistanceMeters,
+          latestLocation: session.latestLocation,
+          latestSiteDistanceMeters: session.latestSiteDistanceMeters,
           gpsTrailCount: session.gpsTrail.length,
         },
         'Location captured',
@@ -100,6 +102,7 @@ export class ShiftSessionController {
         sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'desc',
         status: req.query.status as string | undefined,
         employee: req.query.employee as string | undefined,
+        site: req.query.site as string | undefined,
         dateFrom: req.query.dateFrom as string | undefined,
         dateTo: req.query.dateTo as string | undefined,
       },

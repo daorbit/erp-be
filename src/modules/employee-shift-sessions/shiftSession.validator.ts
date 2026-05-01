@@ -16,6 +16,7 @@ const coercedNumber = z.preprocess(
 );
 
 export const startShiftSessionSchema = z.object({
+  siteId: z.string().trim().optional(),
   latitude: z.preprocess(
     (v) => (typeof v === 'string' && v.trim() !== '' ? Number(v) : v),
     latitudeSchema,

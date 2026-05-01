@@ -23,6 +23,8 @@ interface JwtPayload {
   role: UserRole;
 }
 
+const SITE_POPULATE_SELECT = 'name code siteType division address01 address02 address03 city pincode stateName latitude longitude';
+
 export class AuthService {
   /**
    * Register a new user, generate tokens, and persist the refresh token.
@@ -71,7 +73,10 @@ export class AuthService {
    * Authenticate a user by email/password, issue new tokens.
    */
   static async login(email: string, password: string): Promise<LoginResult> {
-    const user = await User.findOne({ email }).select('+password').populate('company', 'name code logo');
+    const user = await User.findOne({ email })
+      .select('+password')
+      .populate('company', 'name code logo')
+      .populate('allowedBranches', SITE_POPULATE_SELECT);
     if (!user) {
       throw new AppError('Invalid email or password.', 401);
     }
@@ -180,7 +185,7 @@ export class AuthService {
       .populate('department', 'name')
       .populate('designation', 'title')
       .populate('allowedDepartments', 'name')
-      .populate('allowedBranches', 'name');
+      .populate('allowedBranches', SITE_POPULATE_SELECT);
 
     if (!user) throw new AppError('User not found.', 404);
     return user;
@@ -213,6 +218,7 @@ export class AuthService {
       .populate('company', 'name code')
       .populate('department', 'name')
       .populate('designation', 'title')
+      .populate('allowedBranches', SITE_POPULATE_SELECT)
       .sort({ createdAt: -1 });
 
     return users;
@@ -255,6 +261,7 @@ export class AuthService {
       user.onboardingCompleted = false;
     }
     await user.save();
+    await user.populate('allowedBranches', SITE_POPULATE_SELECT);
     return user;
   }
 
@@ -324,7 +331,8 @@ export class AuthService {
     const user = await User.findById(userId)
       .populate('company', 'name code logo')
       .populate('department', 'name')
-      .populate('designation', 'title');
+      .populate('designation', 'title')
+      .populate('allowedBranches', SITE_POPULATE_SELECT);
 
     if (!user) {
       throw new AppError('User not found.', 404);

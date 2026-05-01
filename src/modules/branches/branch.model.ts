@@ -77,6 +77,10 @@ export interface IBranch extends Document {
   workCapital?: number;
   mandiLicenceNo?: string;
 
+  // Geo coordinates (for site location pin / map)
+  latitude?: number;
+  longitude?: number;
+
   // GST entries & Documents (dynamic arrays)
   gstEntries?: IBranchGstEntry[];
   documents?: IBranchDocument[];
@@ -158,6 +162,10 @@ const branchSchema = new Schema<IBranch>(
     agreementDate: { type: Date },
     workCapital: { type: Number, default: 0 },
     mandiLicenceNo: { type: String, trim: true },
+
+    // Geo coordinates
+    latitude: { type: Number, min: -90, max: 90 },
+    longitude: { type: Number, min: -180, max: 180 },
 
     // NwayERP — GST entries & Documents
     gstEntries: [{

@@ -76,6 +76,10 @@ export const createBranchSchema = z.object({
   mandiLicenceNo: z.string().trim().optional(),
   contactPerson: z.string().trim().optional(),
 
+  // Geo coordinates
+  latitude: z.number().min(-90).max(90).nullable().optional().transform(v => v ?? undefined),
+  longitude: z.number().min(-180).max(180).nullable().optional().transform(v => v ?? undefined),
+
   // Dynamic arrays
   gstEntries: z.array(gstEntrySchema).optional(),
   documents: z.array(documentSchema).optional(),
