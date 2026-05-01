@@ -17,8 +17,8 @@ router.use(authenticate);
 router.use(requireCompany);
 
 // ─── Employee self-service endpoints (any authenticated user with employee profile) ──
-router.get('/active', ShiftSessionController.getActive);
-router.get('/my', ShiftSessionController.getMy);
+router.get('/active', authorize(UserRole.EMPLOYEE), ShiftSessionController.getActive);
+router.get('/my', authorize(UserRole.EMPLOYEE), ShiftSessionController.getMy);
 
 router.post(
   '/start',
