@@ -203,6 +203,29 @@ function formatReportDate(date: Date | string | undefined): string {
   return dayjs(date).format('YYYY-MM-DD');
 }
 
+/**
+ * Parse a `dateFrom`/`dateTo` filter value into a Date.
+ *
+ * The frontend can send either a full ISO timestamp (with timezone offset)
+ * or a plain "YYYY-MM-DD" string. ISO is preferred because it is timezone
+ * unambiguous; date-only is supported as a fallback (interpreted as the
+ * server's local day) for ad-hoc API consumers.
+ */
+function parseRangeBoundary(
+  value: string | undefined,
+  edge: 'start' | 'end',
+): Date | undefined {
+  if (!value) return undefined;
+  const looksLikeIso = /[Tt]/.test(value) || /[zZ]|[+-]\d{2}:?\d{2}$/.test(value);
+  if (looksLikeIso) {
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? undefined : d;
+  }
+  const day = dayjs(value);
+  if (!day.isValid()) return undefined;
+  return edge === 'start' ? day.startOf('day').toDate() : day.endOf('day').toDate();
+}
+
 function getEmployeeName(employee: any): string {
   const user = employee?.userId;
   return [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim() || user?.email || 'Unknown';
@@ -586,9 +609,15 @@ export class ShiftSessionService {
     }
     if (dateFrom || dateTo) {
       const range: Record<string, Date> = {};
-      if (dateFrom) range.$gte = dayjs(dateFrom).startOf('day').toDate();
-      if (dateTo) range.$lte = dayjs(dateTo).endOf('day').toDate();
-      filter.shiftDate = range;
+      const gte = parseRangeBoundary(dateFrom, 'start');
+      const lte = parseRangeBoundary(dateTo, 'end');
+      if (gte) range.$gte = gte;
+      if (lte) range.$lte = lte;
+      // Filter on the real shift-start moment so ranges align with what the
+      // user sees in the UI regardless of server vs. client timezone. The
+      // grouping field `shiftDate` is server-local-day-truncated which can
+      // shift records into the wrong calendar day across timezones.
+      if (Object.keys(range).length > 0) filter.shiftStartedAt = range;
     }
 
     const skip = (page - 1) * limit;
@@ -638,9 +667,11 @@ export class ShiftSessionService {
     if (site && mongoose.Types.ObjectId.isValid(site)) filter.site = site;
     if (dateFrom || dateTo) {
       const range: Record<string, Date> = {};
-      if (dateFrom) range.$gte = dayjs(dateFrom).startOf('day').toDate();
-      if (dateTo) range.$lte = dayjs(dateTo).endOf('day').toDate();
-      filter.shiftDate = range;
+      const gte = parseRangeBoundary(dateFrom, 'start');
+      const lte = parseRangeBoundary(dateTo, 'end');
+      if (gte) range.$gte = gte;
+      if (lte) range.$lte = lte;
+      if (Object.keys(range).length > 0) filter.shiftStartedAt = range;
     }
 
     const sessions = await ShiftSession.find(filter)
