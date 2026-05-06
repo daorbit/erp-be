@@ -52,6 +52,9 @@ export class CompanyService {
         { _id: mainId },
         { parentCompany: mainId },
       ];
+    } else {
+      // Super admin: only show main companies (exclude sibling companies).
+      filter.$or = [{ parentCompany: { $exists: false } }, { parentCompany: null }];
     }
 
     if (search) {
