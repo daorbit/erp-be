@@ -6,6 +6,7 @@ import { connectDB } from './config/database.js';
 import app from './app.js';
 import { seedAdminUser } from './database/autoSeed.js';
 import { seedIndianStates } from './database/seedStates.js';
+import { seedIndianCities } from './database/seedCities.js';
 import { syncSchemaIndexes } from './database/syncSchemaIndexes.js';
 import { startShiftScheduler, stopShiftScheduler } from './modules/shifts/shiftScheduler.js';
 
@@ -51,6 +52,7 @@ async function bootstrap(): Promise<void> {
     }
     await seedAdminUser();
     await seedIndianStates();
+    await seedIndianCities();
 
     server = app.listen(config.server.port, () => {
       console.log(

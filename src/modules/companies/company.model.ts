@@ -39,6 +39,10 @@ export interface ICompany extends Document {
   maxEmployees?: number;
   subscription?: string;
   isActive: boolean;
+  /** Set on sibling companies created by a Firm User (admin). Points to the
+   *  main company in the group. Main companies (created by super_admin) leave
+   *  this unset. */
+  parentCompany?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 
@@ -172,6 +176,11 @@ const companySchema = new Schema<ICompany>(
       type: Boolean,
       default: true,
     },
+    parentCompany: {
+      type: Schema.Types.ObjectId,
+      ref: 'Company',
+      default: null,
+    },
 
     // NwayERP — Address Details
     signFor: { type: String, trim: true },
@@ -246,6 +255,7 @@ const companySchema = new Schema<ICompany>(
 // ─── Indexes ─────────────────────────────────────────────────────────────────
 
 companySchema.index({ isActive: 1 });
+companySchema.index({ parentCompany: 1 });
 
 // ─── Model ───────────────────────────────────────────────────────────────────
 

@@ -4,6 +4,7 @@ import { buildPagination } from '../../shared/helpers.js';
 import type { IQueryParams } from '../../shared/types.js';
 import Department, { type IDepartment } from './department.model.js';
 import User from '../auth/auth.model.js';
+import Company from '../companies/company.model.js';
 
 interface PaginatedResult<T> {
   data: T[];
@@ -21,11 +22,25 @@ interface DepartmentTreeNode {
   children: DepartmentTreeNode[];
 }
 
+/**
+ * If the company is a sibling (has parentCompany), returns the parentCompany's
+ * ID so that sibling users see the main company's department structure.
+ * Otherwise returns the original companyId unchanged.
+ */
+async function resolveEffectiveDeptCompanyId(companyId: string | undefined): Promise<string | undefined> {
+  if (!companyId) return companyId;
+  if (!mongoose.Types.ObjectId.isValid(companyId)) return companyId;
+  const company = await Company.findById(companyId).select('parentCompany').lean();
+  return company?.parentCompany?.toString() ?? companyId;
+}
+
 export class DepartmentService {
   /**
    * Get all departments with search, pagination, and population.
+   * For sibling company users, shows the parent company's departments.
    */
   static async getAll(query: IQueryParams, companyId?: string): Promise<PaginatedResult<IDepartment>> {
+    const effectiveCompanyId = await resolveEffectiveDeptCompanyId(companyId);
     const {
       page = 1,
       limit = 10,
@@ -35,7 +50,7 @@ export class DepartmentService {
     } = query;
 
     const filter: Record<string, unknown> = { isActive: true };
-    if (companyId) filter.company = companyId;
+    if (effectiveCompanyId) filter.company = effectiveCompanyId;
 
     if (search) {
       filter.$or = [
@@ -71,14 +86,16 @@ export class DepartmentService {
 
   /**
    * Get a department by ID with employee count.
+   * For sibling company users, resolves to the parent company's scope.
    */
   static async getById(id: string, companyId?: string): Promise<IDepartment> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new AppError('Invalid department ID format.', 400);
     }
 
+    const effectiveCompanyId = await resolveEffectiveDeptCompanyId(companyId);
     const filter: Record<string, unknown> = { _id: id };
-    if (companyId) filter.company = companyId;
+    if (effectiveCompanyId) filter.company = effectiveCompanyId;
 
     const department = await Department.findOne(filter)
       // .populate('headOfDepartment', 'firstName lastName email')
@@ -204,10 +221,12 @@ export class DepartmentService {
 
   /**
    * Get the full department tree (hierarchical structure).
+   * For sibling company users, resolves to the parent company's scope.
    */
   static async getDepartmentTree(companyId?: string): Promise<DepartmentTreeNode[]> {
+    const effectiveCompanyId = await resolveEffectiveDeptCompanyId(companyId);
     const treeFilter: Record<string, unknown> = { isActive: true };
-    if (companyId) treeFilter.company = companyId;
+    if (effectiveCompanyId) treeFilter.company = effectiveCompanyId;
 
     const departments = await Department.find(treeFilter)
       // .populate('headOfDepartment', 'firstName lastName email')

@@ -6,8 +6,7 @@ import { UserRole } from '../../shared/types.js';
 import { CompanyService } from './company.service.js';
 
 // Returns the caller's own company id when they aren't a platform admin —
-// the service uses this to scope reads + mutations to a single tenant so
-// company admins can't enumerate or modify other companies.
+// the service uses this to scope reads + mutations to a single tenant group.
 const tenantScope = (req: IAuthRequest): string | undefined =>
   req.user.role === UserRole.SUPER_ADMIN ? undefined : (req.user.company as any);
 
@@ -45,12 +44,22 @@ export class CompanyController {
   });
 
   static create = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    if (req.user.role !== UserRole.SUPER_ADMIN) {
-      throw new AppError('Only platform administrators can create a company.', 403);
+    if (req.user.role === UserRole.SUPER_ADMIN) {
+      // Super Admin creates a main company (no parentCompany).
+      const company = await CompanyService.create(req.body);
+      return res.status(201).json(
+        buildResponse(true, company, 'Company created successfully'),
+      );
     }
-    const company = await CompanyService.create(req.body);
+
+    // Admin (Firm User) creates a sibling company within their group.
+    if (!req.user.company) {
+      throw new AppError('No company associated with this account.', 400);
+    }
+    const mainId = await CompanyService.resolveMainCompanyId(req.user.company as string);
+    const company = await CompanyService.createSibling(req.body, mainId);
     res.status(201).json(
-      buildResponse(true, company, 'Company created successfully'),
+      buildResponse(true, company, 'Sibling company created successfully'),
     );
   });
 
@@ -68,7 +77,7 @@ export class CompanyController {
   static delete = asyncHandler(async (req: IAuthRequest, res: Response) => {
     const company = await CompanyService.delete(req.params.id as string, tenantScope(req));
     res.status(200).json(
-      buildResponse(true, company, 'Company deactivated successfully'),
+      buildResponse(true, company, 'Company deleted successfully'),
     );
   });
 }

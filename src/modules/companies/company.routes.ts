@@ -12,24 +12,39 @@ router.use(authenticate);
 // Any authenticated user can view their own company
 router.get('/me', CompanyController.getMyCompany);
 
-// All other company routes require super_admin or admin
-router.use(authorize(UserRole.SUPER_ADMIN, UserRole.ADMIN));
+// List all companies in the caller's group (or all, for super_admin)
+router.get(
+  '/',
+  authorize(UserRole.SUPER_ADMIN, UserRole.ADMIN),
+  CompanyController.getAll,
+);
 
-router.get('/', CompanyController.getAll);
-router.get('/:id', CompanyController.getById);
+router.get(
+  '/:id',
+  authorize(UserRole.SUPER_ADMIN, UserRole.ADMIN),
+  CompanyController.getById,
+);
 
+// Super Admin creates main companies; Admin creates sibling companies
 router.post(
   '/',
+  authorize(UserRole.SUPER_ADMIN, UserRole.ADMIN),
   validate(createCompanySchema),
   CompanyController.create,
 );
 
 router.put(
   '/:id',
+  authorize(UserRole.SUPER_ADMIN, UserRole.ADMIN),
   validate(updateCompanySchema),
   CompanyController.update,
 );
 
-router.delete('/:id', CompanyController.delete);
+// Super Admin can delete any company; Admin can delete only sibling companies
+router.delete(
+  '/:id',
+  authorize(UserRole.SUPER_ADMIN, UserRole.ADMIN),
+  CompanyController.delete,
+);
 
 export default router;
