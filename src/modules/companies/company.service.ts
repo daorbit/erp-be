@@ -210,4 +210,29 @@ export class CompanyService {
 
     return company;
   }
+
+  /**
+   * Returns the parent company + all sibling companies for the group the
+   * given company belongs to.  Used by the company context switcher UI.
+   * Returns lightweight objects (id, name, code, logo, isActive).
+   */
+  static async getGroupCompanies(callerCompanyId?: string): Promise<any[]> {
+    const selectFields = '_id name code logo isActive parentCompany';
+
+    if (!callerCompanyId) {
+      // super_admin with no company: return all parent companies
+      return Company.find({ $or: [{ parentCompany: { $exists: false } }, { parentCompany: null }] })
+        .select(selectFields)
+        .lean();
+    }
+
+    const mainId = await CompanyService.resolveMainCompanyId(callerCompanyId);
+
+    return Company.find({
+      $or: [{ _id: mainId }, { parentCompany: mainId }],
+    })
+      .select(selectFields)
+      .sort({ parentCompany: 1, name: 1 }) // parent first, then siblings alphabetically
+      .lean();
+  }
 }

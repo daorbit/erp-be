@@ -12,6 +12,9 @@ router.use(authenticate);
 // Any authenticated user can view their own company
 router.get('/me', CompanyController.getMyCompany);
 
+// Returns the parent + all sibling companies for the context switcher
+router.get('/group', CompanyController.getGroup);
+
 // List all companies in the caller's group (or all, for super_admin)
 router.get(
   '/',

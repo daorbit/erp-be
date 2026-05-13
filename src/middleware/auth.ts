@@ -1,9 +1,11 @@
 import type { Request, Response, NextFunction, RequestHandler } from 'express';
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 import config from '../config/index.js';
 import { UserRole } from '../shared/types.js';
 import { AppError } from './errorHandler.js';
 import User from '../modules/auth/auth.model.js';
+import Company from '../modules/companies/company.model.js';
 
 interface JwtPayload {
   id: string;
@@ -41,7 +43,7 @@ export const authenticate: RequestHandler = async (
 
     // Verify user still exists, is active, and check onboarding status
     const user = await User.findById(decoded.id)
-      .select('isActive onboardingRequired onboardingCompleted')
+      .select('isActive onboardingRequired onboardingCompleted allowedCompanies')
       .lean();
     if (!user) {
       throw new AppError('User no longer exists. Please log in again.', 401);
@@ -50,11 +52,38 @@ export const authenticate: RequestHandler = async (
       throw new AppError('Your account has been deactivated. Please contact an administrator.', 403);
     }
 
+    // Resolve the active company from the X-Active-Company header.
+    // The requested company must be the user's own company, or explicitly listed
+    // in allowedCompanies (grant-based cross-company access).
+    const requestedCompanyId = req.headers['x-active-company'] as string | undefined;
+    let activeCompany: string | undefined = decoded.company || undefined;
+
+    if (requestedCompanyId && requestedCompanyId !== decoded.company) {
+      if (!mongoose.Types.ObjectId.isValid(requestedCompanyId)) {
+        throw new AppError('Invalid X-Active-Company header.', 400);
+      }
+      const isAllowed =
+        decoded.role === UserRole.SUPER_ADMIN ||
+        (user.allowedCompanies ?? []).some(
+          (id: mongoose.Types.ObjectId) => id.toString() === requestedCompanyId,
+        );
+      if (!isAllowed) {
+        throw new AppError('You do not have access to the requested company.', 403);
+      }
+      // Verify the target company exists and is active
+      const targetCompany = await Company.findById(requestedCompanyId).select('isActive').lean();
+      if (!targetCompany || !targetCompany.isActive) {
+        throw new AppError('The requested company is not available.', 403);
+      }
+      activeCompany = requestedCompanyId;
+    }
+
     req.user = {
       id: decoded.id,
       email: decoded.email,
       role: decoded.role,
       company: decoded.company || undefined,
+      activeCompany,
       onboardingRequired: user.onboardingRequired,
       onboardingCompleted: user.onboardingCompleted,
     };

@@ -34,6 +34,8 @@ export interface IUser extends Document {
   allowedDepartments?: mongoose.Types.ObjectId[];
   allowedBranches?: mongoose.Types.ObjectId[];
   allowedModules?: string[];
+  /** Sibling companies this user is permitted to switch context into. */
+  allowedCompanies?: mongoose.Types.ObjectId[];
   remark?: string;
   isErpDevCoUser?: boolean;        // Admin → User Profile flag
 
@@ -132,6 +134,7 @@ const userSchema = new Schema<IUser>(
     allowedDepartments: [{ type: Schema.Types.ObjectId, ref: 'Department' }],
     allowedBranches: [{ type: Schema.Types.ObjectId, ref: 'Branch' }],
     allowedModules: [{ type: String, enum: Object.values(ErpModule) }],
+    allowedCompanies: [{ type: Schema.Types.ObjectId, ref: 'Company' }],
     remark: { type: String, trim: true, maxlength: 500 },
     isErpDevCoUser: { type: Boolean, default: false },
   },

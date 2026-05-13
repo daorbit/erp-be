@@ -35,6 +35,9 @@ export interface IAuthUser {
   email: string;
   role: UserRole;
   company?: string;
+  /** The company the user has switched context to (from X-Active-Company header).
+   *  Falls back to `company` when not set. */
+  activeCompany?: string;
   onboardingRequired?: boolean;
   onboardingCompleted?: boolean;
 }
