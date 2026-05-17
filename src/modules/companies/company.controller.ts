@@ -49,18 +49,20 @@ export class CompanyController {
   });
 
   static create = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    if (req.user.role === UserRole.SUPER_ADMIN) {
-      // Super Admin creates a main company (no parentCompany).
+    // Route-level authorize() already restricted this to super_admin
+    // (either platform `role=super_admin` or company-level
+    // `userType=super_admin`). The branch here decides whether to make a
+    // MAIN company or a SIBLING, keyed off whether the caller has a
+    // company association:
+    //   • Platform admin (no company)         → main company
+    //   • Company-level super_admin (company) → sibling in their group
+    if (!req.user.company) {
       const company = await CompanyService.create(req.body);
       return res.status(201).json(
         buildResponse(true, company, 'Company created successfully'),
       );
     }
 
-    // Admin (Firm User) creates a sibling company within their group.
-    if (!req.user.company) {
-      throw new AppError('No company associated with this account.', 400);
-    }
     const mainId = await CompanyService.resolveMainCompanyId(req.user.company as string);
     const company = await CompanyService.createSibling(req.body, mainId);
     return res.status(201).json(

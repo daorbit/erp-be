@@ -6,6 +6,7 @@ import { UserRole, UserType } from '../shared/types.js';
 import { AppError } from './errorHandler.js';
 import User from '../modules/auth/auth.model.js';
 import Company from '../modules/companies/company.model.js';
+import { CompanyService } from '../modules/companies/company.service.js';
 
 interface JwtPayload {
   id: string;
@@ -59,6 +60,27 @@ export const authenticate: RequestHandler = async (
       throw new AppError('Your account has been deactivated. Please contact an administrator.', 403);
     }
 
+    // Resolve effective scope arrays BEFORE the X-Active-Company check so
+    // the switcher validation uses the same allowedCompanies list as data
+    // queries downstream.
+    const userType = (user.userType as UserType | undefined) ?? decoded.userType;
+    let allowedCompanies = (user.allowedCompanies ?? []).map((id: any) => id.toString());
+
+    // For company-level super_admin (userType=super_admin with a company),
+    // resolve allowedCompanies live to the entire parent group on every
+    // request. This way newly-created sibling companies become visible
+    // immediately without needing to re-issue the JWT or manually update
+    // the user's record.
+    if (userType === UserType.SUPER_ADMIN && decoded.company) {
+      try {
+        const group = await CompanyService.getGroupCompanies(decoded.company);
+        allowedCompanies = group.map((c: any) => c._id?.toString() ?? String(c._id));
+      } catch {
+        // Fall back to the stored snapshot if group resolution fails —
+        // a stale list is better than 403'ing the whole request.
+      }
+    }
+
     // Resolve the active company from the X-Active-Company header.
     // The requested company must be the user's own company, or explicitly listed
     // in allowedCompanies (grant-based cross-company access).
@@ -75,11 +97,12 @@ export const authenticate: RequestHandler = async (
 
     if (requestedCompanyId && requestedCompanyId !== decoded.company) {
       const isValidId = mongoose.Types.ObjectId.isValid(requestedCompanyId);
+      // Platform super_admin (no company) bypasses; otherwise check against
+      // the live-resolved allowedCompanies (which for company-level super_admin
+      // already includes every sibling in the group).
       const isAllowed = isValidId && (
-        decoded.role === UserRole.SUPER_ADMIN
-        || (user.allowedCompanies ?? []).some(
-          (id: mongoose.Types.ObjectId) => id.toString() === requestedCompanyId,
-        )
+        (decoded.role === UserRole.SUPER_ADMIN && !decoded.company)
+        || allowedCompanies.includes(requestedCompanyId)
       );
 
       if (!isAllowed) {
@@ -107,10 +130,10 @@ export const authenticate: RequestHandler = async (
       id: decoded.id,
       email: decoded.email,
       role: decoded.role,
-      userType: (user.userType as UserType | undefined) ?? decoded.userType,
+      userType,
       company: decoded.company || undefined,
       activeCompany,
-      allowedCompanies: (user.allowedCompanies ?? []).map((id: any) => id.toString()),
+      allowedCompanies,
       allowedModules: (user.allowedModules ?? []) as string[],
       allowedSites: (user.allowedBranches ?? []).map((id: any) => id.toString()),
       onboardingRequired: user.onboardingRequired,

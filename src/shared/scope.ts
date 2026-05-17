@@ -42,10 +42,18 @@ export interface ScopeOptions {
   branchField?: string | null;
 }
 
-/** Returns true when the user has platform-wide access. */
+/**
+ * Returns true ONLY for the true platform administrator — `role=super_admin`
+ * with no company association. These are users created via the auto-seed
+ * who manage the entire platform and bypass tenant scoping.
+ *
+ * Note: A user with `userType=super_admin` who has a company is a
+ * "company-level super_admin" — they get full access within their parent's
+ * group (handled by tenant scope expanding `allowedCompanies` to the whole
+ * group) but are NOT platform admin and must not see other tenants' data.
+ */
 export function isPlatformAdmin(user: IAuthUser): boolean {
-  return user.role === UserRole.SUPER_ADMIN
-    || user.userType === UserType.SUPER_ADMIN;
+  return user.role === UserRole.SUPER_ADMIN && !user.company;
 }
 
 /**
