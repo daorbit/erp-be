@@ -2,10 +2,14 @@ import type { Response } from 'express';
 import { asyncHandler } from '../../middleware/errorHandler.js';
 import { buildResponse } from '../../shared/helpers.js';
 import type { IAuthRequest, IQueryParams } from '../../shared/types.js';
-import { scopeFilter, effectiveCompany } from '../../shared/scope.js';
+import { effectiveCompany } from '../../shared/scope.js';
 import { ParentDepartmentService } from './parentDepartment.service.js';
 
-const pdeptScope = (req: IAuthRequest) => scopeFilter(req.user, { branchField: null });
+// Parent Department is group-level master data: the service resolves the
+// caller's company to the group's main company and queries every sibling.
+// We pass `effectiveCompany(req.user)` here and let the service expand it —
+// no per-request scopeFilter, since that would re-pin the query to a single
+// company and undo the master-data semantics.
 
 export class ParentDepartmentController {
   static getAll = asyncHandler(async (req: IAuthRequest, res: Response) => {
@@ -17,7 +21,7 @@ export class ParentDepartmentController {
       sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'asc',
     };
 
-    const result = await ParentDepartmentService.getAll(query, undefined, pdeptScope(req));
+    const result = await ParentDepartmentService.getAll(query, effectiveCompany(req.user));
     res.status(200).json(
       buildResponse(true, result.data, 'Parent departments retrieved successfully', result.pagination),
     );
