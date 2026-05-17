@@ -102,9 +102,14 @@ export function resolveCompanyScope(user: IAuthUser): string[] | null {
 export function resolveSiteScope(user: IAuthUser): string[] | null {
   if (isPlatformAdmin(user)) return null;
 
-  // Only site_admin / user are scoped to specific sites. admin / ho_user see
-  // every site under their allowed companies.
-  if (user.userType === UserType.SITE_ADMIN || user.userType === UserType.USER) {
+  // Only site_admin / user / employee are scoped to specific sites. admin /
+  // ho_user see every site under their allowed companies. employee is the
+  // most restricted tier — self-service login bound to assigned sites.
+  if (
+    user.userType === UserType.SITE_ADMIN
+    || user.userType === UserType.USER
+    || user.userType === UserType.EMPLOYEE
+  ) {
     return user.allowedSites ?? [];
   }
   return null;

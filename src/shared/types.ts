@@ -234,6 +234,7 @@ export enum UserType {
   HO_USER = 'ho_user',
   SITE_ADMIN = 'site_admin',
   USER = 'user',
+  EMPLOYEE = 'employee',
 }
 
 // ─── ERP Modules ──────────────────────────────────────────────────────────

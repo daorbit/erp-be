@@ -60,6 +60,35 @@ async function expandScopeByUserType(
     return data;
   }
 
+  // ── employee: self-service login bound to a specific employee profile ──
+  // The form sends only the `employee` FK — we hydrate company/branches/
+  // department/designation from the linked EmployeeProfile. Mirrors the
+  // quick-create-user flow opened from Employee → Add so both paths produce
+  // an identically-scoped record.
+  if (data.userType === UserType.EMPLOYEE) {
+    if (!data.employee) {
+      throw new AppError('EMPLOYEE user type requires a linked employee.', 400);
+    }
+    const profile = await EmployeeProfile.findById(data.employee)
+      .select('company department designation allowedBranches')
+      .lean();
+    if (!profile) {
+      throw new AppError('Linked employee profile not found.', 404);
+    }
+    const profileAny = profile as any;
+    data.company = profileAny.company ? String(profileAny.company) : data.company;
+    data.department = profileAny.department ? String(profileAny.department) : undefined;
+    data.designation = profileAny.designation ? String(profileAny.designation) : undefined;
+    data.allowedBranches = Array.isArray(profileAny.allowedBranches)
+      ? profileAny.allowedBranches.map((b: any) => String(b))
+      : [];
+    data.allowedCompanies = profileAny.company ? [String(profileAny.company)] : [];
+    // No admin modules — employee uses self-service screens which are not
+    // gated by `allowedModules`.
+    data.allowedModules = [];
+    return data;
+  }
+
   // admin / ho_user / unknown: pass through; the form already collected
   // allowedCompanies and allowedModules explicitly.
   return data;
