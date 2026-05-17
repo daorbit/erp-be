@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { asyncHandler, AppError } from '../../middleware/errorHandler.js';
 import { buildResponse } from '../../shared/helpers.js';
+import { isPlatformAdmin } from '../../shared/scope.js';
 import { AuthService } from './auth.service.js';
 
 export const register = asyncHandler(async (req: Request, res: Response) => {
@@ -40,10 +41,12 @@ export const completeOnboarding = asyncHandler(async (req: Request, res: Respons
 });
 
 export const getUser = asyncHandler(async (req: Request, res: Response) => {
-  const user = await AuthService.getUserById(
-    req.params.id as string,
-    req.user?.role === 'super_admin' ? undefined : req.user?.company?.toString(),
-  );
+  // Platform admins bypass tenant scoping; everyone else (including
+  // company-level super_admin) is scoped to their own company.
+  const scopeCompanyId = req.user && isPlatformAdmin(req.user)
+    ? undefined
+    : req.user?.company?.toString();
+  const user = await AuthService.getUserById(req.params.id as string, scopeCompanyId);
   res.status(200).json(buildResponse(true, user, 'User retrieved successfully'));
 });
 

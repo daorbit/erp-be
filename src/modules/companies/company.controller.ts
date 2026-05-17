@@ -2,14 +2,14 @@ import type { Response } from 'express';
 import { asyncHandler, AppError } from '../../middleware/errorHandler.js';
 import { buildResponse } from '../../shared/helpers.js';
 import type { IAuthRequest, IQueryParams } from '../../shared/types.js';
-import { UserRole } from '../../shared/types.js';
-import { getAccessibleCompanyIds } from '../../shared/scope.js';
+import { getAccessibleCompanyIds, isPlatformAdmin } from '../../shared/scope.js';
 import { CompanyService } from './company.service.js';
 
-// Returns the "active" company ID used for tenant scoping.
-// When the user has switched company context, activeCompany differs from company.
+// Returns the "active" company ID used for tenant scoping. Platform admins
+// (the only role with no company) get undefined → no scope. Everyone else,
+// including company-level super_admin, is scoped to their active company.
 const tenantScope = (req: IAuthRequest): string | undefined =>
-  req.user.role === UserRole.SUPER_ADMIN ? undefined : (req.user.activeCompany ?? req.user.company as any);
+  isPlatformAdmin(req.user) ? undefined : (req.user.activeCompany ?? (req.user.company as any));
 
 export class CompanyController {
   static getMyCompany = asyncHandler(async (req: IAuthRequest, res: Response) => {
@@ -94,7 +94,10 @@ export class CompanyController {
    * Used by the frontend company context switcher.
    */
   static getGroup = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    if (req.user.role !== UserRole.SUPER_ADMIN && !req.user.company) {
+    // Platform admin is the only role that legitimately has no company
+    // (they manage the whole platform); any other user without a company
+    // is in a broken state.
+    if (!isPlatformAdmin(req.user) && !req.user.company) {
       throw new AppError('No company associated with this account.', 404);
     }
 

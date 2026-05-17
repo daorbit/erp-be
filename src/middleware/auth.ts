@@ -247,6 +247,31 @@ export function authorize(...allowed: (UserRole | UserType)[]): RequestHandler {
 }
 
 /**
+ * Restrict a route to platform admins only — true platform users who manage
+ * the whole installation (role=platform_admin, or legacy role=super_admin
+ * with no company association). Company-level super_admin users do NOT
+ * pass this gate even though `authorize()` would otherwise let them in.
+ *
+ * Use this for `/platform/*` endpoints that read across every tenant —
+ * `authorize()` alone is unsafe there because it bypasses for any
+ * super_admin role regardless of whether they're a tenant or platform user.
+ */
+export const requirePlatformAdmin: RequestHandler = (req, _res, next) => {
+  if (!req.user) {
+    next(new AppError('Authentication required.', 401));
+    return;
+  }
+  const isPlatform =
+    req.user.role === UserRole.PLATFORM_ADMIN
+    || (req.user.role === UserRole.SUPER_ADMIN && !req.user.company);
+  if (!isPlatform) {
+    next(new AppError('Platform admin access required.', 403));
+    return;
+  }
+  next();
+};
+
+/**
  * Require the authenticated user to have access to a specific ErpModule.
  * super_admin and admin-role users bypass this check; otherwise the module
  * must appear in `allowedModules`. Empty `allowedModules` is treated as
@@ -259,7 +284,14 @@ export function requireModule(moduleName: string): RequestHandler {
       next(new AppError('Authentication required.', 401));
       return;
     }
-    if (req.user.role === UserRole.SUPER_ADMIN || req.user.userType === UserType.SUPER_ADMIN) {
+    // platform_admin (true platform user) and super_admin (in either role
+    // or userType form) bypass module gates — they have full access by
+    // design. Use the same check as authorize() above for consistency.
+    if (
+      req.user.role === UserRole.PLATFORM_ADMIN
+      || req.user.role === UserRole.SUPER_ADMIN
+      || req.user.userType === UserType.SUPER_ADMIN
+    ) {
       next();
       return;
     }
