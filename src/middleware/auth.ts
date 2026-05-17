@@ -66,12 +66,15 @@ export const authenticate: RequestHandler = async (
     const userType = (user.userType as UserType | undefined) ?? decoded.userType;
     let allowedCompanies = (user.allowedCompanies ?? []).map((id: any) => id.toString());
 
-    // For company-level super_admin (userType=super_admin with a company),
-    // resolve allowedCompanies live to the entire parent group on every
-    // request. This way newly-created sibling companies become visible
-    // immediately without needing to re-issue the JWT or manually update
-    // the user's record.
-    if (userType === UserType.SUPER_ADMIN && decoded.company) {
+    // For company-level super_admin (userType=super_admin with a company,
+    // or the legacy role=super_admin with a company for users that pre-date
+    // the userType field), resolve allowedCompanies live to the entire
+    // parent group on every request. This way newly-created sibling
+    // companies become visible immediately without needing to re-issue the
+    // JWT or manually update the user's record.
+    const isCompanyLevelSuperAdmin = !!decoded.company
+      && (userType === UserType.SUPER_ADMIN || decoded.role === UserRole.SUPER_ADMIN);
+    if (isCompanyLevelSuperAdmin) {
       try {
         const group = await CompanyService.getGroupCompanies(decoded.company);
         allowedCompanies = group.map((c: any) => c._id?.toString() ?? String(c._id));

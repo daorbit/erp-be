@@ -36,6 +36,12 @@ router.post(
 
 router.get('/:id/full-and-final', EmployeeController.fullAndFinal);
 
+router.post(
+  '/:id/quick-create-user',
+  authorize(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.HR_MANAGER),
+  EmployeeController.quickCreateUser,
+);
+
 // Standard CRUD
 router.get(
   '/',

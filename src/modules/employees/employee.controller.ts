@@ -108,6 +108,17 @@ export class EmployeeController {
   });
 
   /**
+   * POST /:id/quick-create-user — generate username + random password,
+   * create a login User linked to this employee profile, and return the
+   * credentials so the admin can hand them off. One-shot: subsequent calls
+   * for the same employee 409.
+   */
+  static quickCreateUser = asyncHandler(async (req: IAuthRequest, res: Response) => {
+    const creds = await EmployeeService.createUserForEmployee(req.params.id as string);
+    res.status(201).json(buildResponse(true, creds, 'User created for employee'));
+  });
+
+  /**
    * GET /reportees/:managerId - Get reportees of a manager.
    */
   static getReportees = asyncHandler(async (req: IAuthRequest, res: Response) => {

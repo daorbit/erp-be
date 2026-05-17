@@ -58,7 +58,6 @@ export const createEmployeeSchema = z.object({
     .optional()
     .or(z.literal('')),
   phone: z.string().trim().optional(),
-  temporaryPassword: z.string().trim().min(8, 'Temporary password must be at least 8 characters').optional(),
   role: z.enum(['super_admin', 'admin', 'hr_manager', 'manager', 'employee']).optional(),
   department: z.string().optional(),
   designation: z.string().optional(),

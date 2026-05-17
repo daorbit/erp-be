@@ -86,9 +86,18 @@ export interface IEmployeeDocument {
 // ─── Interface ───────────────────────────────────────────────────────────────
 
 export interface IEmployeeProfile extends Document {
-  userId: mongoose.Types.ObjectId;
+  // Optional: an EmployeeProfile may exist without a corresponding login
+  // User. The User is created on demand from Master → User → Add (or via
+  // the quick-create endpoint) when the employee actually needs to log in.
+  userId?: mongoose.Types.ObjectId;
   company: mongoose.Types.ObjectId;
   employeeId: string;
+  // Identity fields. Mirrored on User when a login exists, but the
+  // profile is the source of truth so an employee without a user still
+  // has a name, email, and phone.
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
   dateOfBirth?: Date;
   gender?: Gender;
   maritalStatus?: MaritalStatus;
@@ -465,9 +474,14 @@ const employeeProfileSchema = new Schema<IEmployeeProfile>(
     userId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      required: [true, 'User ID is required'],
+      // Optional + sparse-unique: an EmployeeProfile may exist without a
+      // login User, but when one is linked it must be 1:1.
       unique: true,
+      sparse: true,
     },
+    firstName: { type: String, trim: true, maxlength: 50 },
+    lastName: { type: String, trim: true, maxlength: 50 },
+    phone: { type: String, trim: true, maxlength: 20 },
     company: {
       type: Schema.Types.ObjectId,
       ref: 'Company',

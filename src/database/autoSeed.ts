@@ -18,7 +18,7 @@ export async function seedAdminUser(): Promise<void> {
       email: 'admin@sheeraj.com',
       password: 'Admin@123',
       phone: '+91 9999999999',
-      role: UserRole.SUPER_ADMIN,
+      role: UserRole.PLATFORM_ADMIN,
       employeeId: 'PLATFORM-001',
       isActive: true,
     });
@@ -26,7 +26,7 @@ export async function seedAdminUser(): Promise<void> {
     console.log('[SEED] Default platform admin created:');
     console.log('[SEED]   Email:    admin@sheeraj.com');
     console.log('[SEED]   Password: Admin@123');
-    console.log('[SEED]   Role:     Platform Admin (super_admin)');
+    console.log('[SEED]   Role:     Platform Admin (platform_admin)');
     console.log('[SEED]   Company:  None (platform-level)');
     console.log(`[SEED]   ID:       ${admin._id}`);
   } catch (error: any) {
