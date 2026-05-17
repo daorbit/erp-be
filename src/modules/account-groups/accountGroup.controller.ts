@@ -2,10 +2,13 @@ import type { Response } from 'express';
 import { asyncHandler } from '../../middleware/errorHandler.js';
 import { buildResponse } from '../../shared/helpers.js';
 import type { IAuthRequest, IQueryParams } from '../../shared/types.js';
+import { effectiveCompany } from '../../shared/scope.js';
 import { AccountGroupService } from './accountGroup.service.js';
 
+// Honors the top-bar active-company switcher so this master scopes to the
+// company the admin is currently looking at, not their fixed primary.
 const getCompany = (req: IAuthRequest): string =>
-  String(req.user.company ?? '');
+  String(effectiveCompany(req.user) ?? '');
 
 export class AccountGroupController {
   static getAll = asyncHandler(async (req: IAuthRequest, res: Response) => {

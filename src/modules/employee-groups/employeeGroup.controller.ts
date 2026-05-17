@@ -2,6 +2,7 @@ import type { Response } from 'express';
 import { asyncHandler } from '../../middleware/errorHandler.js';
 import { buildResponse } from '../../shared/helpers.js';
 import type { IAuthRequest, IQueryParams } from '../../shared/types.js';
+import { effectiveCompany } from '../../shared/scope.js';
 import { EmployeeGroupService } from './employeeGroup.service.js';
 
 export class EmployeeGroupController {
@@ -13,29 +14,29 @@ export class EmployeeGroupController {
       sortBy: (req.query.sortBy as string) || 'name',
       sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'asc',
     };
-    const result = await EmployeeGroupService.getAll(query, req.user.company);
+    const result = await EmployeeGroupService.getAll(query, effectiveCompany(req.user));
     res.status(200).json(
       buildResponse(true, result.data, 'Employee Groups retrieved successfully', result.pagination),
     );
   });
 
   static getById = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const group = await EmployeeGroupService.getById(req.params.id as string, req.user.company);
+    const group = await EmployeeGroupService.getById(req.params.id as string, effectiveCompany(req.user));
     res.status(200).json(buildResponse(true, group, 'Employee Group retrieved successfully'));
   });
 
   static create = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const group = await EmployeeGroupService.create({ ...req.body, company: req.user.company });
+    const group = await EmployeeGroupService.create({ ...req.body, company: effectiveCompany(req.user) });
     res.status(201).json(buildResponse(true, group, 'Employee Group created successfully'));
   });
 
   static update = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const group = await EmployeeGroupService.update(req.params.id as string, req.body, req.user.company);
+    const group = await EmployeeGroupService.update(req.params.id as string, req.body, effectiveCompany(req.user));
     res.status(200).json(buildResponse(true, group, 'Employee Group updated successfully'));
   });
 
   static delete = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const group = await EmployeeGroupService.delete(req.params.id as string, req.user.company);
+    const group = await EmployeeGroupService.delete(req.params.id as string, effectiveCompany(req.user));
     res.status(200).json(buildResponse(true, group, 'Employee Group deactivated successfully'));
   });
 }
