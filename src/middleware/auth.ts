@@ -101,7 +101,8 @@ export const authenticate: RequestHandler = async (
       // the live-resolved allowedCompanies (which for company-level super_admin
       // already includes every sibling in the group).
       const isAllowed = isValidId && (
-        (decoded.role === UserRole.SUPER_ADMIN && !decoded.company)
+        (decoded.role === UserRole.PLATFORM_ADMIN)
+        || (decoded.role === UserRole.SUPER_ADMIN && !decoded.company)
         || allowedCompanies.includes(requestedCompanyId)
       );
 
@@ -211,8 +212,12 @@ export function authorize(...allowed: (UserRole | UserType)[]): RequestHandler {
       return;
     }
 
-    // super_admin userType = always allow.
-    if (req.user.userType === UserType.SUPER_ADMIN) {
+    // platform_admin role, super_admin role, and super_admin userType = always allow.
+    if (
+      req.user.role === UserRole.PLATFORM_ADMIN
+      || req.user.role === UserRole.SUPER_ADMIN
+      || req.user.userType === UserType.SUPER_ADMIN
+    ) {
       next();
       return;
     }

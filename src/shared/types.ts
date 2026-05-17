@@ -59,6 +59,7 @@ export interface IAuthRequest extends Request {
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
 export enum UserRole {
+  PLATFORM_ADMIN = 'platform_admin',
   SUPER_ADMIN = 'super_admin',
   ADMIN = 'admin',
   HR_MANAGER = 'hr_manager',

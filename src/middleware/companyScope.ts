@@ -16,7 +16,10 @@ export const requireCompany: RequestHandler = (
     return;
   }
 
-  if (req.user.role !== UserRole.SUPER_ADMIN && !req.user.company) {
+  // platform_admin and super_admin (no company) are exempt from requiring a company.
+  const isPlatformLevel = req.user.role === UserRole.PLATFORM_ADMIN
+    || (req.user.role === UserRole.SUPER_ADMIN && !req.user.company);
+  if (!isPlatformLevel && !req.user.company) {
     next(new AppError('Company association required. Please contact an administrator.', 403));
     return;
   }

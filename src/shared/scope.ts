@@ -53,7 +53,9 @@ export interface ScopeOptions {
  * group) but are NOT platform admin and must not see other tenants' data.
  */
 export function isPlatformAdmin(user: IAuthUser): boolean {
-  return user.role === UserRole.SUPER_ADMIN && !user.company;
+  // Dedicated platform_admin role is the preferred check.
+  // Legacy: super_admin with no company is also treated as platform admin.
+  return user.role === UserRole.PLATFORM_ADMIN || (user.role === UserRole.SUPER_ADMIN && !user.company);
 }
 
 /**

@@ -42,21 +42,21 @@ router.get(
 // modify companies even though they may view the list.
 router.post(
   '/',
-  authorize(UserRole.SUPER_ADMIN),
+  authorize(UserRole.PLATFORM_ADMIN, UserRole.SUPER_ADMIN),
   validate(createCompanySchema),
   CompanyController.create,
 );
 
 router.put(
   '/:id',
-  authorize(UserRole.SUPER_ADMIN),
+  authorize(UserRole.PLATFORM_ADMIN, UserRole.SUPER_ADMIN),
   validate(updateCompanySchema),
   CompanyController.update,
 );
 
 router.delete(
   '/:id',
-  authorize(UserRole.SUPER_ADMIN),
+  authorize(UserRole.PLATFORM_ADMIN, UserRole.SUPER_ADMIN),
   CompanyController.delete,
 );
 

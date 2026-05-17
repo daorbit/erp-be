@@ -10,7 +10,7 @@ const ADMIN_USER = {
   email: 'admin@sheeraj.com',
   password: 'Admin@123',
   phone: '+91 9999999999',
-  role: UserRole.SUPER_ADMIN,
+  role: UserRole.PLATFORM_ADMIN,
   employeeId: 'EMP-2024-001',
   isActive: true,
 };
@@ -36,7 +36,7 @@ async function seed() {
       console.log('  ├─────────────────────────────────────┤');
       console.log(`  │  Email:    ${ADMIN_USER.email}     │`);
       console.log(`  │  Password: ${ADMIN_USER.password}            │`);
-      console.log('  │  Role:     Super Admin              │');
+      console.log('  │  Role:     Platform Admin           │');
       console.log('  └─────────────────────────────────────┘');
       console.log(`\n  User ID: ${admin._id}`);
     }
