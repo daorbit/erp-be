@@ -39,7 +39,11 @@ export class DepartmentService {
    * Get all departments with search, pagination, and population.
    * For sibling company users, shows the parent company's departments.
    */
-  static async getAll(query: IQueryParams, companyId?: string): Promise<PaginatedResult<IDepartment>> {
+  static async getAll(
+    query: IQueryParams,
+    companyId?: string,
+    scope?: Record<string, unknown>,
+  ): Promise<PaginatedResult<IDepartment>> {
     const effectiveCompanyId = await resolveEffectiveDeptCompanyId(companyId);
     const {
       page = 1,
@@ -51,6 +55,7 @@ export class DepartmentService {
 
     const filter: Record<string, unknown> = { isActive: true };
     if (effectiveCompanyId) filter.company = effectiveCompanyId;
+    if (scope) Object.assign(filter, scope);
 
     if (search) {
       filter.$or = [

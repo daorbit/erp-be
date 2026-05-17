@@ -4,7 +4,7 @@ import { buildResponse } from '../../shared/helpers.js';
 import { AuthService } from './auth.service.js';
 
 export const register = asyncHandler(async (req: Request, res: Response) => {
-  const result = await AuthService.register(req.body);
+  const result = await AuthService.register(req.body, req.user);
 
   res.status(201).json(
     buildResponse(true, {
@@ -66,6 +66,7 @@ export const adminUpdateUser = asyncHandler(async (req: Request, res: Response) 
     req.params.id as string,
     req.body || {},
     req.user?.company,
+    req.user,
   );
   res.status(200).json(buildResponse(true, user, 'User updated successfully'));
 });

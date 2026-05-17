@@ -7,11 +7,16 @@ import State, { type IState } from './state.model.js';
 interface PaginatedResult<T> { data: T[]; pagination: ReturnType<typeof buildPagination>; }
 
 export class StateService {
-  static async getAll(query: IQueryParams, companyId?: string): Promise<PaginatedResult<IState>> {
+  static async getAll(
+    query: IQueryParams,
+    companyId?: string,
+    scope?: Record<string, unknown>,
+  ): Promise<PaginatedResult<IState>> {
     const { page = 1, limit = 200, search, sortBy = 'name', sortOrder = 'asc' } = query;
 
     // Combine company-scope and search clauses with $and so neither overwrites the other.
     const andClauses: Record<string, unknown>[] = [{ isActive: true }];
+    if (scope) andClauses.push(scope);
     if (companyId) {
       // Include global (no-company) seeded states alongside company-specific entries.
       andClauses.push({ $or: [{ company: companyId }, { company: { $exists: false } }] });

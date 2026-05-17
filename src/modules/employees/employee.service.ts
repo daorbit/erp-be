@@ -52,8 +52,18 @@ export class EmployeeService {
 
   /**
    * Get all employees with search, filtering, pagination, and sorting.
+   *
+   * `scope` is an optional Mongo filter fragment (from buildResourceScope)
+   * that adds tenant + site enforcement. It's spread into the query filter,
+   * so passing `{ company, branch: { $in: [...] } }` will scope the list
+   * to a specific company AND a subset of sites (for site_admin / user
+   * types). Passing nothing falls back to the legacy `companyId` arg.
    */
-  static async getAll(query: IQueryParams, companyId?: string): Promise<PaginatedResult<IEmployeeProfile>> {
+  static async getAll(
+    query: IQueryParams,
+    companyId?: string,
+    scope?: Record<string, unknown>,
+  ): Promise<PaginatedResult<IEmployeeProfile>> {
     const {
       page = 1,
       limit = 10,
@@ -65,6 +75,10 @@ export class EmployeeService {
 
     const filter: Record<string, unknown> = { isActive: true };
     if (companyId) filter.company = companyId;
+    // Scope wins over the legacy companyId arg — when both are supplied,
+    // the scope's company field overrides (handles the case where a
+    // super_admin passed companyId=undefined but scope explicitly sets one).
+    if (scope) Object.assign(filter, scope);
 
     // Search by name in populated user or employeeId
     if (search) {

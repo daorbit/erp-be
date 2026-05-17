@@ -2,7 +2,7 @@ import type { Request, Response, NextFunction, RequestHandler } from 'express';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import config from '../config/index.js';
-import { UserRole } from '../shared/types.js';
+import { UserRole, UserType } from '../shared/types.js';
 import { AppError } from './errorHandler.js';
 import User from '../modules/auth/auth.model.js';
 import Company from '../modules/companies/company.model.js';
@@ -11,6 +11,7 @@ interface JwtPayload {
   id: string;
   email: string;
   role: UserRole;
+  userType?: UserType;
   company?: string;
   iat?: number;
   exp?: number;
@@ -41,9 +42,15 @@ export const authenticate: RequestHandler = async (
 
     const decoded = jwt.verify(token, config.jwt.secret) as JwtPayload;
 
-    // Verify user still exists, is active, and check onboarding status
+    // Verify user still exists, is active, and pull scope arrays.
+    // userType / allowedModules / allowedSites are fetched fresh from the DB
+    // rather than baked into the JWT so admin scope changes take effect on the
+    // next request without forcing re-login.
     const user = await User.findById(decoded.id)
-      .select('isActive onboardingRequired onboardingCompleted allowedCompanies')
+      .select(
+        'isActive onboardingRequired onboardingCompleted allowedCompanies '
+        + 'userType allowedModules allowedBranches',
+      )
       .lean();
     if (!user) {
       throw new AppError('User no longer exists. Please log in again.', 401);
@@ -55,35 +62,57 @@ export const authenticate: RequestHandler = async (
     // Resolve the active company from the X-Active-Company header.
     // The requested company must be the user's own company, or explicitly listed
     // in allowedCompanies (grant-based cross-company access).
+    //
+    // If the header is present but invalid for this user (stale value left
+    // over from a previous session, a company they no longer have access to,
+    // a deactivated company), we silently fall back to the user's primary
+    // company rather than throwing — the user's session is still valid, and
+    // failing every request with a hard 403 leaves the UI stuck in a broken
+    // state with no way to recover. The frontend's CompanySwitcher will
+    // reconcile its local state on next group fetch.
     const requestedCompanyId = req.headers['x-active-company'] as string | undefined;
     let activeCompany: string | undefined = decoded.company || undefined;
 
     if (requestedCompanyId && requestedCompanyId !== decoded.company) {
-      if (!mongoose.Types.ObjectId.isValid(requestedCompanyId)) {
-        throw new AppError('Invalid X-Active-Company header.', 400);
-      }
-      const isAllowed =
-        decoded.role === UserRole.SUPER_ADMIN ||
-        (user.allowedCompanies ?? []).some(
+      const isValidId = mongoose.Types.ObjectId.isValid(requestedCompanyId);
+      const isAllowed = isValidId && (
+        decoded.role === UserRole.SUPER_ADMIN
+        || (user.allowedCompanies ?? []).some(
           (id: mongoose.Types.ObjectId) => id.toString() === requestedCompanyId,
-        );
+        )
+      );
+
       if (!isAllowed) {
-        throw new AppError('You do not have access to the requested company.', 403);
+        // Stale / invalid switcher state — log and fall back, don't fail.
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[auth] Ignoring X-Active-Company=${requestedCompanyId} for user ${decoded.id}: `
+          + `not in allowedCompanies. Falling back to primary company ${decoded.company}.`,
+        );
+      } else {
+        const targetCompany = await Company.findById(requestedCompanyId).select('isActive').lean();
+        if (!targetCompany || !targetCompany.isActive) {
+          // Target company gone or disabled — same fallback strategy.
+          // eslint-disable-next-line no-console
+          console.warn(
+            `[auth] X-Active-Company=${requestedCompanyId} not available; falling back to primary.`,
+          );
+        } else {
+          activeCompany = requestedCompanyId;
+        }
       }
-      // Verify the target company exists and is active
-      const targetCompany = await Company.findById(requestedCompanyId).select('isActive').lean();
-      if (!targetCompany || !targetCompany.isActive) {
-        throw new AppError('The requested company is not available.', 403);
-      }
-      activeCompany = requestedCompanyId;
     }
 
     req.user = {
       id: decoded.id,
       email: decoded.email,
       role: decoded.role,
+      userType: (user.userType as UserType | undefined) ?? decoded.userType,
       company: decoded.company || undefined,
       activeCompany,
+      allowedCompanies: (user.allowedCompanies ?? []).map((id: any) => id.toString()),
+      allowedModules: (user.allowedModules ?? []) as string[],
+      allowedSites: (user.allowedBranches ?? []).map((id: any) => id.toString()),
       onboardingRequired: user.onboardingRequired,
       onboardingCompleted: user.onboardingCompleted,
     };
@@ -107,17 +136,72 @@ export const authenticate: RequestHandler = async (
 };
 
 /**
- * Authorize access based on user roles.
+ * Maps an NwayERP `userType` to the legacy `role` values it should
+ * "inherit" for authorization purposes. The data-level scope (which records
+ * the user can actually see) is enforced separately by buildResourceScope
+ * (see shared/scope.ts) — this mapping only governs whether a request is
+ * allowed past the role gate at all.
+ *
+ *   super_admin → bypass (handled by caller; always allowed)
+ *   admin       → admin            (full access on assigned modules)
+ *   ho_user     → admin, hr_manager (read across all sites in scope)
+ *   site_admin  → admin            (all forms, site-scoped data)
+ *   user        → employee         (limited self-service)
+ *
+ * Must stay in lockstep with the same-named function on the frontend
+ * (erp-fe/src/routes/guards.tsx) so the two never disagree on visibility.
+ */
+function effectiveRolesFor(role?: string, userType?: string): Set<string> {
+  const set = new Set<string>();
+  if (role) set.add(role);
+  if (userType) set.add(userType);
+  switch (userType) {
+    case UserType.ADMIN:
+    case UserType.SITE_ADMIN:
+      set.add(UserRole.ADMIN);
+      break;
+    case UserType.HO_USER:
+      set.add(UserRole.ADMIN);
+      set.add(UserRole.HR_MANAGER);
+      break;
+    case UserType.USER:
+      set.add(UserRole.EMPLOYEE);
+      break;
+    default: break;
+  }
+  return set;
+}
+
+/**
+ * Authorize access based on user roles or NwayERP user types.
+ *
+ * A request passes if any of the user's effective roles (legacy `role` +
+ * userType-derived equivalents) is in the allowlist. userType=super_admin
+ * is the always-allow tier — it bypasses any role check.
+ *
  * Must be used after `authenticate`.
  */
-export function authorize(...allowedRoles: UserRole[]): RequestHandler {
+export function authorize(...allowed: (UserRole | UserType)[]): RequestHandler {
   return (req: Request, _res: Response, next: NextFunction): void => {
     if (!req.user) {
       next(new AppError('Authentication required before authorization.', 401));
       return;
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
+    // super_admin userType = always allow.
+    if (req.user.userType === UserType.SUPER_ADMIN) {
+      next();
+      return;
+    }
+
+    const allowedSet = new Set<string>(allowed as string[]);
+    const effective = effectiveRolesFor(req.user.role, req.user.userType);
+    let permitted = false;
+    for (const r of effective) {
+      if (allowedSet.has(r)) { permitted = true; break; }
+    }
+
+    if (!permitted) {
       next(
         new AppError(
           'You do not have permission to perform this action.',
@@ -128,5 +212,31 @@ export function authorize(...allowedRoles: UserRole[]): RequestHandler {
     }
 
     next();
+  };
+}
+
+/**
+ * Require the authenticated user to have access to a specific ErpModule.
+ * super_admin and admin-role users bypass this check; otherwise the module
+ * must appear in `allowedModules`. Empty `allowedModules` is treated as
+ * "all modules" for backward compatibility with users created before the
+ * userType migration.
+ */
+export function requireModule(moduleName: string): RequestHandler {
+  return (req: Request, _res: Response, next: NextFunction): void => {
+    if (!req.user) {
+      next(new AppError('Authentication required.', 401));
+      return;
+    }
+    if (req.user.role === UserRole.SUPER_ADMIN || req.user.userType === UserType.SUPER_ADMIN) {
+      next();
+      return;
+    }
+    const allowedModules = req.user.allowedModules ?? [];
+    if (allowedModules.length === 0 || allowedModules.includes(moduleName)) {
+      next();
+      return;
+    }
+    next(new AppError(`You do not have access to the ${moduleName} module.`, 403));
   };
 }

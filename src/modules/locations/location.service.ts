@@ -7,11 +7,16 @@ import Location, { type ILocation } from './location.model.js';
 interface PaginatedResult<T> { data: T[]; pagination: ReturnType<typeof buildPagination>; }
 
 export class LocationService {
-  static async getAll(query: IQueryParams, companyId?: string): Promise<PaginatedResult<ILocation>> {
+  static async getAll(
+    query: IQueryParams,
+    companyId?: string,
+    scope?: Record<string, unknown>,
+  ): Promise<PaginatedResult<ILocation>> {
     const { page = 1, limit = 10, search, sortBy = 'name', sortOrder = 'asc' } = query;
 
     const filter: Record<string, unknown> = { isActive: true };
     if (companyId) filter.company = companyId;
+    if (scope) Object.assign(filter, scope);
 
     if (search) {
       filter.$or = [

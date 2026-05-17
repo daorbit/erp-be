@@ -2,10 +2,68 @@ import jwt from 'jsonwebtoken';
 import config from '../../config/index.js';
 import { AppError } from '../../middleware/errorHandler.js';
 import { generateEmployeeId } from '../../shared/helpers.js';
-import { UserRole } from '../../shared/types.js';
+import { UserRole, UserType, ErpModule, type IAuthUser } from '../../shared/types.js';
 import User, { type IUser } from './auth.model.js';
 import EmployeeProfile from '../employees/employee.model.js';
+import { CompanyService } from '../companies/company.service.js';
+import Branch from '../branches/branch.model.js';
 import type { RegisterInput, UpdateProfileInput } from './auth.validator.js';
+
+/**
+ * For NwayERP-style super_admin user creation: a super_admin inherits the
+ * creator's entire grantable scope — every company in the creator's group,
+ * every enabled module, no site restriction. The frontend hides scope
+ * pickers when userType=super_admin is selected; this resolver fills them
+ * in server-side so the persisted record reflects what the role actually
+ * implies, and so the resolution can't be bypassed by a hand-crafted POST.
+ *
+ * For other user types this is a no-op — the form values pass through.
+ */
+async function expandScopeByUserType(
+  data: Record<string, any>,
+  creator: IAuthUser | undefined,
+): Promise<Record<string, any>> {
+  // ── super_admin: inherit the creator's entire grantable scope ───────────
+  if (data.userType === UserType.SUPER_ADMIN) {
+    const callerScopeId = creator?.activeCompany ?? creator?.company;
+    const group = await CompanyService.getGroupCompanies(callerScopeId);
+
+    data.allowedCompanies = group.map((c: any) => c._id?.toString() ?? String(c._id));
+    // Grant every ErpModule — current + roadmap — so the user's scope
+    // expands automatically when new modules come online.
+    data.allowedModules = Object.values(ErpModule);
+    // super_admin is not site-scoped; clear any stale site assignments.
+    data.allowedBranches = [];
+    return data;
+  }
+
+  // ── site_admin / user: derive allowedCompanies from chosen branches ─────
+  // The form collects sites only — we look up each branch's parent company
+  // and union them into allowedCompanies. This keeps tenant scoping correct
+  // when an admin assigns sites that span multiple sibling companies.
+  if (data.userType === UserType.SITE_ADMIN || data.userType === UserType.USER) {
+    const branchIds: string[] = Array.isArray(data.allowedBranches) ? data.allowedBranches : [];
+    if (branchIds.length > 0) {
+      const branches = await Branch.find({ _id: { $in: branchIds } })
+        .select('company')
+        .lean();
+      const companyIds = new Set<string>();
+      for (const b of branches) {
+        if (b.company) companyIds.add(b.company.toString());
+      }
+      data.allowedCompanies = Array.from(companyIds);
+    } else {
+      // No sites picked yet — leave allowedCompanies empty so the validator
+      // surfaces the missing-site error rather than implicit-everywhere.
+      data.allowedCompanies = [];
+    }
+    return data;
+  }
+
+  // admin / ho_user / unknown: pass through; the form already collected
+  // allowedCompanies and allowedModules explicitly.
+  return data;
+}
 
 interface AuthTokens {
   accessToken: string;
@@ -28,30 +86,44 @@ const SITE_POPULATE_SELECT = 'name code siteType division address01 address02 ad
 export class AuthService {
   /**
    * Register a new user, generate tokens, and persist the refresh token.
+   *
+   * `creator` is the authenticated user issuing the request; it's used to
+   * resolve userType-driven scope (e.g. a super_admin inherits the creator's
+   * full company group). Pass undefined for unauthenticated self-registration.
    */
-  static async register(data: RegisterInput): Promise<LoginResult> {
+  static async register(data: RegisterInput, creator?: IAuthUser): Promise<LoginResult> {
     const existingUser = await User.findOne({ email: data.email });
     if (existingUser) {
       throw new AppError('A user with this email already exists.', 409);
     }
 
-    const employeeId = generateEmployeeId();
+    const employeeId = (data as any).employeeId || generateEmployeeId();
+
+    // Resolve userType-driven scope (super_admin → inherit creator's group).
+    const expanded = await expandScopeByUserType({ ...data }, creator);
 
     const user = await User.create({
-      ...data,
+      ...expanded,
       employeeId,
     });
 
-    // Auto-create EmployeeProfile for non-super_admin users
-    if (user.role !== UserRole.SUPER_ADMIN && user.company) {
+    // Auto-create EmployeeProfile for non-super_admin users only when the
+    // caller did NOT already link an existing employee via `employee` FK.
+    // With NwayERP-style user creation, internal users pick an existing
+    // employee from a search — creating a duplicate profile would be wrong.
+    const hasLinkedEmployee = !!(data as any).employee;
+    if (!hasLinkedEmployee && user.role !== UserRole.SUPER_ADMIN && user.company) {
       try {
-        await EmployeeProfile.create({
+        const profile = await EmployeeProfile.create({
           userId: user._id,
           company: user.company,
           employeeId: user.employeeId,
         });
+        // Back-link the created profile so the User<->Employee relationship is
+        // walkable from both sides.
+        user.employee = profile._id as any;
+        await user.save();
       } catch (err) {
-        // Rollback: delete the user if profile creation fails
         await User.findByIdAndDelete(user._id);
         throw new AppError('Failed to create employee profile. Please try again.', 500);
       }
@@ -300,6 +372,7 @@ export class AuthService {
     userId: string,
     data: Record<string, any>,
     companyId?: string,
+    creator?: IAuthUser,
   ): Promise<IUser> {
     const filter: Record<string, unknown> = { _id: userId };
     if (companyId) filter.company = companyId;
@@ -307,10 +380,22 @@ export class AuthService {
     const user = await User.findOne(filter).select('+password');
     if (!user) throw new AppError('User not found.', 404);
 
+    // Always re-run the userType resolver on update so that:
+    //   • super_admin gets the creator's full group expanded into
+    //     allowedCompanies / allowedModules
+    //   • site_admin / user gets allowedCompanies derived from the
+    //     branches assigned in this payload
+    //   • admin / ho_user pass through unchanged
+    const effectiveType = data.userType ?? user.userType;
+    if (effectiveType) {
+      data = await expandScopeByUserType({ ...data, userType: effectiveType }, creator);
+    }
+
     const allowed = [
       'firstName', 'lastName', 'email', 'phone', 'username',
       'userCategory', 'userType', 'isActive', 'remark',
       'allowedDepartments', 'allowedBranches', 'allowedModules',
+      'allowedCompanies', 'employee',
       'department', 'designation', 'role', 'isErpDevCoUser',
       'passwordChangeRequired',
     ];

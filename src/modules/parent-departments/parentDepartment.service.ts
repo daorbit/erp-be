@@ -10,11 +10,16 @@ interface PaginatedResult<T> {
 }
 
 export class ParentDepartmentService {
-  static async getAll(query: IQueryParams, companyId?: string): Promise<PaginatedResult<IParentDepartment>> {
+  static async getAll(
+    query: IQueryParams,
+    companyId?: string,
+    scope?: Record<string, unknown>,
+  ): Promise<PaginatedResult<IParentDepartment>> {
     const { page = 1, limit = 10, search, sortBy = 'displayOrder', sortOrder = 'asc' } = query;
 
     const filter: Record<string, unknown> = { isActive: true };
     if (companyId) filter.company = companyId;
+    if (scope) Object.assign(filter, scope);
 
     if (search) {
       filter.$or = [

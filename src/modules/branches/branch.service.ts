@@ -22,6 +22,7 @@ export class BranchService {
     query: IQueryParams,
     companyId?: string,
     filters: IBranchFilters = {},
+    scope?: Record<string, unknown>,
   ): Promise<PaginatedResult<IBranch>> {
     const {
       page = 1,
@@ -33,6 +34,11 @@ export class BranchService {
 
     const filter: Record<string, unknown> = {};
     if (companyId) filter.company = companyId;
+    // Apply userType-driven scope. For site_admin / user this restricts
+    // the result set to the branches they were explicitly assigned (via
+    // `_id: { $in: [...] }`) and also constrains by allowedCompanies for
+    // admin / ho_user. super_admin gets {} (no restriction).
+    if (scope) Object.assign(filter, scope);
 
     // siteStatus → isActive  (default: include all when 'all' or unset)
     if (filters.siteStatus === 'active') filter.isActive = true;

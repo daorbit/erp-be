@@ -5,9 +5,11 @@ import type { IQueryParams } from '../../shared/types.js';
 import City, { type ICity } from './city.model.js';
 
 export class CityService {
-  static async getAll(query: IQueryParams, companyId?: string) {
+  static async getAll(query: IQueryParams, companyId?: string, scope?: Record<string, unknown>) {
     const { page = 1, limit = 500, search, filters = {} } = query;
     const filter: Record<string, unknown> = { isActive: true };
+    // Apply userType-driven scope (sets company: { $in: [...] } typically).
+    if (scope) Object.assign(filter, scope);
     const companyCondition = companyId
       ? [{ company: new mongoose.Types.ObjectId(companyId) }, { company: { $exists: false } }]
       : null;

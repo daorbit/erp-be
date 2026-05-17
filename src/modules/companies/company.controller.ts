@@ -3,6 +3,7 @@ import { asyncHandler, AppError } from '../../middleware/errorHandler.js';
 import { buildResponse } from '../../shared/helpers.js';
 import type { IAuthRequest, IQueryParams } from '../../shared/types.js';
 import { UserRole } from '../../shared/types.js';
+import { getAccessibleCompanyIds } from '../../shared/scope.js';
 import { CompanyService } from './company.service.js';
 
 // Returns the "active" company ID used for tenant scoping.
@@ -30,7 +31,11 @@ export class CompanyController {
       sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'asc',
     };
 
-    const result = await CompanyService.getAll(query, tenantScope(req));
+    // Scope to companies the caller can actually access (their own + every
+    // company explicitly granted via allowedCompanies). super_admin (platform)
+    // gets null → unrestricted.
+    const accessibleIds = getAccessibleCompanyIds(req.user);
+    const result = await CompanyService.getAll(query, accessibleIds);
     res.status(200).json(
       buildResponse(true, result.data, 'Companies retrieved successfully', result.pagination),
     );
@@ -87,13 +92,17 @@ export class CompanyController {
    * Used by the frontend company context switcher.
    */
   static getGroup = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const callerCompanyId = req.user.company as string | undefined;
-    if (req.user.role !== UserRole.SUPER_ADMIN && !callerCompanyId) {
+    if (req.user.role !== UserRole.SUPER_ADMIN && !req.user.company) {
       throw new AppError('No company associated with this account.', 404);
     }
 
-    const companies = await CompanyService.getGroupCompanies(callerCompanyId);
-    const activeId = req.user.activeCompany ?? callerCompanyId;
+    // Switcher shows only the companies the user is permitted to switch
+    // into — their accessibleCompanies set, not the entire parent-sibling
+    // group. A site_admin with allowedCompanies=[DPK] sees DPK only,
+    // never the siblings of DPK.
+    const accessibleIds = getAccessibleCompanyIds(req.user);
+    const companies = await CompanyService.getAccessibleCompanies(accessibleIds);
+    const activeId = req.user.activeCompany ?? (req.user.company as string | undefined);
 
     const result = companies.map((c: any) => ({
       ...c,

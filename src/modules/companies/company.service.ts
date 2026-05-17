@@ -21,15 +21,17 @@ export class CompanyService {
     return company?.parentCompany?.toString() ?? companyId;
   }
 
-  // When the caller is a company admin (anyone other than super_admin), every
-  // operation must be scoped to their own company group so they can't enumerate
-  // or mutate other tenants.
+  // Every list operation must be scoped to the caller's accessible
+  // companies so users can't enumerate other tenants.
   //
-  // For admin role: returns own company + all sibling companies in the group.
-  // For super_admin: returns all companies.
+  //   accessibleIds === null     → super_admin: all *main* companies only
+  //                                (excludes sibling companies so the platform
+  //                                 view stays clean)
+  //   accessibleIds === []       → user has no companies → return nothing
+  //   accessibleIds === [...]    → return exactly those companies
   static async getAll(
     query: IQueryParams,
-    callerCompanyId?: string,
+    accessibleIds: string[] | null,
   ): Promise<PaginatedResult<ICompany>> {
     const {
       page = 1,
@@ -41,20 +43,18 @@ export class CompanyService {
 
     const filter: Record<string, unknown> = {};
 
-    if (callerCompanyId) {
-      if (!mongoose.Types.ObjectId.isValid(callerCompanyId)) {
-        throw new AppError('Invalid company scope.', 400);
-      }
-      // Resolve the main company so we can list the full group.
-      const mainId = await CompanyService.resolveMainCompanyId(callerCompanyId);
-      // Show main company + all siblings (companies whose parentCompany = mainId).
-      filter.$or = [
-        { _id: mainId },
-        { parentCompany: mainId },
-      ];
-    } else {
+    if (accessibleIds === null) {
       // Super admin: only show main companies (exclude sibling companies).
       filter.$or = [{ parentCompany: { $exists: false } }, { parentCompany: null }];
+    } else if (accessibleIds.length === 0) {
+      // User has no accessible companies — short-circuit to empty result.
+      return {
+        data: [],
+        pagination: buildPagination(page, limit, 0),
+      };
+    } else {
+      const validIds = accessibleIds.filter((id) => mongoose.Types.ObjectId.isValid(id));
+      filter._id = { $in: validIds };
     }
 
     if (search) {
@@ -215,6 +215,12 @@ export class CompanyService {
    * Returns the parent company + all sibling companies for the group the
    * given company belongs to.  Used by the company context switcher UI.
    * Returns lightweight objects (id, name, code, logo, isActive).
+   *
+   * NOTE: this is the legacy "full group" view used internally for resolving
+   * scope (e.g. when expanding a super_admin user's allowedCompanies). For
+   * user-facing listings, prefer `getAccessibleCompanies` below — it
+   * respects the caller's allowedCompanies grant rather than always
+   * returning the whole group.
    */
   static async getGroupCompanies(callerCompanyId?: string): Promise<any[]> {
     const selectFields = '_id name code logo isActive parentCompany';
@@ -233,6 +239,31 @@ export class CompanyService {
     })
       .select(selectFields)
       .sort({ parentCompany: 1, name: 1 }) // parent first, then siblings alphabetically
+      .lean();
+  }
+
+  /**
+   * Returns exactly the companies the caller is allowed to see — the
+   * intersection of their `allowedCompanies` + own company, or all main
+   * companies for platform super_admin. Used by the company context
+   * switcher and the Company List page so a site_admin / restricted user
+   * sees only their grant, not the whole group.
+   */
+  static async getAccessibleCompanies(accessibleIds: string[] | null): Promise<any[]> {
+    const selectFields = '_id name code logo isActive parentCompany';
+
+    if (accessibleIds === null) {
+      return Company.find({ $or: [{ parentCompany: { $exists: false } }, { parentCompany: null }] })
+        .select(selectFields)
+        .sort({ name: 1 })
+        .lean();
+    }
+    if (accessibleIds.length === 0) return [];
+
+    const validIds = accessibleIds.filter((id) => mongoose.Types.ObjectId.isValid(id));
+    return Company.find({ _id: { $in: validIds } })
+      .select(selectFields)
+      .sort({ parentCompany: 1, name: 1 }) // parent first, then siblings
       .lean();
   }
 }
