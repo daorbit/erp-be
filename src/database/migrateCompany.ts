@@ -4,7 +4,7 @@ import { UserRole } from '../shared/types.js';
 
 config(); // Load .env
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/erp_hr';
+const ERP_DB_MONGODB_URI = process.env.ERP_DB_MONGODB_URI || 'mongodb://localhost:27017/erp_hr';
 
 /**
  * Migration script: Creates a default company and associates all existing
@@ -14,7 +14,7 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/erp_hr
  */
 async function migrateCompany(): Promise<void> {
   console.log('[MIGRATE] Connecting to MongoDB...');
-  await mongoose.connect(MONGODB_URI);
+  await mongoose.connect(ERP_DB_MONGODB_URI);
   console.log('[MIGRATE] Connected.');
 
   const db = mongoose.connection.db!;

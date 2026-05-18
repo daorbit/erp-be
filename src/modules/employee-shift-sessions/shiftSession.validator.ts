@@ -26,6 +26,7 @@ export const startShiftSessionSchema = z.object({
   ),
   accuracy: coercedNumber.optional(),
   notes: z.string().trim().max(500).optional(),
+  selfieUrl: z.string().url().optional(),
 });
 
 export const endShiftSessionSchema = z.object({

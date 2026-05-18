@@ -44,7 +44,7 @@ function parseCorsOrigin(value: string): string | string[] {
 
 const config = {
   mongodb: {
-    uri: requiredEnv("MONGODB_URI"),
+    uri: requiredEnv("ERP_DB_MONGODB_URI"),
     autoIndex: optionalBoolEnv("MONGOOSE_AUTO_INDEX", false),
     syncIndexes: optionalBoolEnv("SYNC_SCHEMA_INDEXES", false),
     serverSelectionTimeoutMs: parseInt(optionalEnv("MONGODB_SERVER_SELECTION_TIMEOUT_MS", "10000"), 10),

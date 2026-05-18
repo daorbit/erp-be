@@ -24,6 +24,7 @@ export const checkInSchema = z.object({
 export const checkOutSchema = z.object({
   location: locationSchema,
   notes: z.string().trim().max(500, 'Notes cannot exceed 500 characters').optional(),
+  selfieUrl: z.string().optional(),
 });
 
 export const markAttendanceSchema = z.object({
