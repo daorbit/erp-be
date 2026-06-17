@@ -34,7 +34,20 @@ export interface IAuthUser {
   id: string;
   email: string;
   role: UserRole;
+  /** NwayERP-style user type — composes with `allowedModules`/`allowedSites`
+   *  to express granular access. May be undefined on legacy records that
+   *  pre-date the userType migration. */
+  userType?: UserType;
   company?: string;
+  /** The company the user has switched context to (from X-Active-Company header).
+   *  Falls back to `company` when not set. */
+  activeCompany?: string;
+  /** Companies the user may switch into (own group siblings, granted access). */
+  allowedCompanies?: string[];
+  /** ErpModule values the user has access to. Empty / undefined means no restriction. */
+  allowedModules?: string[];
+  /** Branch / Site IDs the user is scoped to (site_admin, user types). */
+  allowedSites?: string[];
   onboardingRequired?: boolean;
   onboardingCompleted?: boolean;
 }
@@ -46,6 +59,7 @@ export interface IAuthRequest extends Request {
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
 export enum UserRole {
+  PLATFORM_ADMIN = 'platform_admin',
   SUPER_ADMIN = 'super_admin',
   ADMIN = 'admin',
   HR_MANAGER = 'hr_manager',
@@ -220,6 +234,7 @@ export enum UserType {
   HO_USER = 'ho_user',
   SITE_ADMIN = 'site_admin',
   USER = 'user',
+  EMPLOYEE = 'employee',
 }
 
 // ─── ERP Modules ──────────────────────────────────────────────────────────

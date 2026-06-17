@@ -17,6 +17,7 @@ interface StartShiftInput {
   longitude: number;
   accuracy?: number;
   notes?: string;
+  selfieUrl?: string;
 }
 
 interface EndShiftInput {
@@ -354,9 +355,9 @@ export class ShiftSessionService {
       );
     }
 
-    let selfieUrl: string | undefined;
+    let selfieUrl: string | undefined = input.selfieUrl;
     let selfiePublicId: string | undefined;
-    if (selfie?.buffer) {
+    if (!selfieUrl && selfie?.buffer) {
       const uploaded = await uploadSelfieBuffer(selfie.buffer);
       selfieUrl = uploaded.url;
       selfiePublicId = uploaded.publicId;

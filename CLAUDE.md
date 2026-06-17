@@ -144,7 +144,7 @@ Auto-created on first startup when database is empty:
 
 ## Environment Variables (.env)
 ```
-MONGODB_URI=mongodb://localhost:27017/erp_hr
+ERP_DB_MONGODB_URI=mongodb://localhost:27017/erp_hr
 JWT_SECRET=your-secret-key
 JWT_EXPIRES_IN=7d
 JWT_REFRESH_EXPIRES_IN=30d

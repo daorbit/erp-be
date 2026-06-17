@@ -15,7 +15,11 @@ export class DesignationService {
   /**
    * Get all designations with search, filtering, and pagination.
    */
-  static async getAll(query: IQueryParams, companyId?: string): Promise<PaginatedResult<IDesignation>> {
+  static async getAll(
+    query: IQueryParams,
+    companyId?: string,
+    scope?: Record<string, unknown>,
+  ): Promise<PaginatedResult<IDesignation>> {
     const {
       page = 1,
       limit = 10,
@@ -27,6 +31,7 @@ export class DesignationService {
 
     const filter: Record<string, unknown> = { isActive: true };
     if (companyId) filter.company = companyId;
+    if (scope) Object.assign(filter, scope);
 
     if (search) {
       filter.$or = [

@@ -2,7 +2,10 @@ import type { Response } from 'express';
 import { asyncHandler } from '../../middleware/errorHandler.js';
 import { buildResponse } from '../../shared/helpers.js';
 import type { IAuthRequest, IQueryParams } from '../../shared/types.js';
+import { scopeFilter, effectiveCompany } from '../../shared/scope.js';
 import { DesignationService } from './designation.service.js';
+
+const desigScope = (req: IAuthRequest) => scopeFilter(req.user, { branchField: null });
 
 export class DesignationController {
   /**
@@ -20,7 +23,7 @@ export class DesignationController {
       },
     };
 
-    const result = await DesignationService.getAll(query, req.user.company);
+    const result = await DesignationService.getAll(query, undefined, desigScope(req));
     res.status(200).json(
       buildResponse(true, result.data, 'Designations retrieved successfully', result.pagination),
     );
@@ -30,7 +33,7 @@ export class DesignationController {
    * GET /:id - Get designation by ID.
    */
   static getById = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const designation = await DesignationService.getById(req.params.id as string, req.user.company);
+    const designation = await DesignationService.getById(req.params.id as string, effectiveCompany(req.user));
     res.status(200).json(
       buildResponse(true, designation, 'Designation retrieved successfully'),
     );
@@ -40,7 +43,7 @@ export class DesignationController {
    * POST / - Create a new designation.
    */
   static create = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const designation = await DesignationService.create({ ...req.body, company: req.user.company });
+    const designation = await DesignationService.create({ ...req.body, company: effectiveCompany(req.user) });
     res.status(201).json(
       buildResponse(true, designation, 'Designation created successfully'),
     );
@@ -50,7 +53,7 @@ export class DesignationController {
    * PUT /:id - Update a designation.
    */
   static update = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const designation = await DesignationService.update(req.params.id as string, req.body, req.user.company);
+    const designation = await DesignationService.update(req.params.id as string, req.body, effectiveCompany(req.user));
     res.status(200).json(
       buildResponse(true, designation, 'Designation updated successfully'),
     );
@@ -60,7 +63,7 @@ export class DesignationController {
    * DELETE /:id - Soft delete a designation.
    */
   static delete = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    const designation = await DesignationService.delete(req.params.id as string, req.user.company);
+    const designation = await DesignationService.delete(req.params.id as string, effectiveCompany(req.user));
     res.status(200).json(
       buildResponse(true, designation, 'Designation deactivated successfully'),
     );
@@ -71,7 +74,7 @@ export class DesignationController {
    */
   static merge = asyncHandler(async (req: IAuthRequest, res: Response) => {
     const { fromDesignation, toDesignation } = req.body as { fromDesignation: string; toDesignation: string };
-    const result = await DesignationService.merge(fromDesignation, toDesignation, req.user.company);
+    const result = await DesignationService.merge(fromDesignation, toDesignation, effectiveCompany(req.user));
     res.status(200).json(
       buildResponse(true, result, `Designation merged successfully. ${result.movedUsers} user(s) reassigned.`),
     );
@@ -83,7 +86,7 @@ export class DesignationController {
    */
   static employeeCount = asyncHandler(async (req: IAuthRequest, res: Response) => {
     const branch = (req.query.branch as string) || undefined;
-    const rows = await DesignationService.countByBranch(req.user.company, branch);
+    const rows = await DesignationService.countByBranch(effectiveCompany(req.user), branch);
     res.status(200).json(
       buildResponse(true, rows, 'Employee counts retrieved successfully'),
     );

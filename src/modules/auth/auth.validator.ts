@@ -43,8 +43,11 @@ export const registerSchema = z.object({
   allowedBranches: z.array(z.string()).optional(),
   allowedSites: z.array(z.string()).optional(),
   allowedModules: z.array(z.string()).optional(),
+  allowedCompanies: z.array(z.string()).optional(),
   modules: z.array(z.string()).optional(),
   branch: z.string().optional(),
+  /** Optional FK linking this user to an EmployeeProfile (internal users). */
+  employee: z.string().optional(),
   isErpDevCoUser: z.boolean().optional(),
 }).refine(
   (data) => data.role === UserRole.SUPER_ADMIN || !!data.company,

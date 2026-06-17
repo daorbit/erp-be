@@ -81,28 +81,42 @@ export class PlatformDashboardService {
   }
 
   /**
-   * Overview of each company with user and department counts.
+   * Overview of each *tenant group* with rolled-up user and department
+   * counts. One row per main (parent) company — sibling companies are not
+   * listed separately; their users/departments are aggregated into the
+   * main company's row. This matches platform-admin mental model: each
+   * row is one tenant, not one legal entity.
    */
   static async getCompanyOverviews(): Promise<CompanyOverview[]> {
-    const companies = await Company.find().sort({ createdAt: -1 }).lean();
+    // Main companies only: no parentCompany set.
+    const mains = await Company.find({
+      $or: [{ parentCompany: { $exists: false } }, { parentCompany: null }],
+    }).sort({ createdAt: -1 }).lean();
 
     const overviews: CompanyOverview[] = [];
 
-    for (const company of companies) {
+    for (const main of mains) {
+      // Resolve every company that belongs to this group (the main itself
+      // plus any companies whose parentCompany points at it).
+      const siblings = await Company.find({ parentCompany: main._id })
+        .select('_id')
+        .lean();
+      const groupIds = [main._id, ...siblings.map((s) => s._id)];
+
       const [userCount, departmentCount] = await Promise.all([
-        User.countDocuments({ company: company._id, isActive: true }),
-        Department.countDocuments({ company: company._id, isActive: true }),
+        User.countDocuments({ company: { $in: groupIds }, isActive: true }),
+        Department.countDocuments({ company: { $in: groupIds }, isActive: true }),
       ]);
 
       overviews.push({
-        _id: company._id.toString(),
-        name: company.name,
-        code: company.code,
-        email: company.email,
-        industry: company.industry,
-        logo: company.logo,
-        isActive: company.isActive,
-        createdAt: company.createdAt,
+        _id: main._id.toString(),
+        name: main.name,
+        code: main.code,
+        email: main.email,
+        industry: main.industry,
+        logo: main.logo,
+        isActive: main.isActive,
+        createdAt: main.createdAt,
         userCount,
         departmentCount,
       });

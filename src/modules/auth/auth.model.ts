@@ -14,6 +14,9 @@ export interface IUser extends Document {
   phone?: string;
   role: UserRole;
   employeeId: string;
+  /** FK to EmployeeProfile — set when the User is linked to an Employee record
+   *  (internal users created via the "Employee" search on the User form). */
+  employee?: mongoose.Types.ObjectId;
   company?: mongoose.Types.ObjectId;
   department?: mongoose.Types.ObjectId;
   designation?: mongoose.Types.ObjectId;
@@ -34,6 +37,8 @@ export interface IUser extends Document {
   allowedDepartments?: mongoose.Types.ObjectId[];
   allowedBranches?: mongoose.Types.ObjectId[];
   allowedModules?: string[];
+  /** Sibling companies this user is permitted to switch context into. */
+  allowedCompanies?: mongoose.Types.ObjectId[];
   remark?: string;
   isErpDevCoUser?: boolean;        // Admin → User Profile flag
 
@@ -90,6 +95,10 @@ const userSchema = new Schema<IUser>(
       unique: true,
       required: [true, 'Employee ID is required'],
     },
+    employee: {
+      type: Schema.Types.ObjectId,
+      ref: 'EmployeeProfile',
+    },
     department: {
       type: Schema.Types.ObjectId,
       ref: 'Department',
@@ -132,6 +141,7 @@ const userSchema = new Schema<IUser>(
     allowedDepartments: [{ type: Schema.Types.ObjectId, ref: 'Department' }],
     allowedBranches: [{ type: Schema.Types.ObjectId, ref: 'Branch' }],
     allowedModules: [{ type: String, enum: Object.values(ErpModule) }],
+    allowedCompanies: [{ type: Schema.Types.ObjectId, ref: 'Company' }],
     remark: { type: String, trim: true, maxlength: 500 },
     isErpDevCoUser: { type: Boolean, default: false },
   },
@@ -179,30 +189,28 @@ userSchema.methods.comparePassword = async function (
   return bcrypt.compare(candidatePassword, this.password);
 };
 
+function buildJwtPayload(user: any): Record<string, unknown> {
+  const companyId = user.company?._id?.toString() || user.company?.toString() || null;
+  return {
+    id: user._id.toString(),
+    email: user.email,
+    role: user.role,
+    userType: user.userType ?? null,
+    company: companyId,
+  };
+}
+
 userSchema.methods.generateAuthToken = function (): string {
-  // company may be a populated object or a raw ObjectId — always extract the ID
-  const companyId = this.company?._id?.toString() || this.company?.toString() || null;
   return jwt.sign(
-    {
-      id: this._id.toString(),
-      email: this.email,
-      role: this.role,
-      company: companyId,
-    },
+    buildJwtPayload(this),
     config.jwt.secret,
     { expiresIn: config.jwt.expiresIn } as jwt.SignOptions,
   );
 };
 
 userSchema.methods.generateRefreshToken = function (): string {
-  const companyId = this.company?._id?.toString() || this.company?.toString() || null;
   return jwt.sign(
-    {
-      id: this._id.toString(),
-      email: this.email,
-      role: this.role,
-      company: companyId,
-    },
+    buildJwtPayload(this),
     config.jwt.secret,
     { expiresIn: config.jwt.refreshExpiresIn } as jwt.SignOptions,
   );

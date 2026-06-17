@@ -99,7 +99,7 @@ app.use(
     origin: config.cors.origin,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Active-Company'],
   }),
 );
 
@@ -115,7 +115,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // ─── Rate limiting ───────────────────────────────────────────────────────────
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
+  max: 400,
   standardHeaders: true,
   legacyHeaders: false,
   message: buildErrorResponse('Too many requests. Please try again later.'),

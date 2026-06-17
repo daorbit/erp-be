@@ -32,13 +32,17 @@ interface EmployeeCreateData {
   bankDetails?: Record<string, unknown>;
   identityDocs?: Record<string, unknown>;
   allowedBranches?: string[];
-  temporaryPassword?: string;
 }
 
 type EmployeeCreateResult = IEmployeeProfile & {
-  temporaryPassword?: string;
   loginEmployeeId?: string;
 };
+
+export interface QuickCreateUserResult {
+  username: string;
+  password: string;
+  userId: string;
+}
 
 interface PaginatedResult<T> {
   data: T[];
@@ -52,8 +56,18 @@ export class EmployeeService {
 
   /**
    * Get all employees with search, filtering, pagination, and sorting.
+   *
+   * `scope` is an optional Mongo filter fragment (from buildResourceScope)
+   * that adds tenant + site enforcement. It's spread into the query filter,
+   * so passing `{ company, branch: { $in: [...] } }` will scope the list
+   * to a specific company AND a subset of sites (for site_admin / user
+   * types). Passing nothing falls back to the legacy `companyId` arg.
    */
-  static async getAll(query: IQueryParams, companyId?: string): Promise<PaginatedResult<IEmployeeProfile>> {
+  static async getAll(
+    query: IQueryParams,
+    companyId?: string,
+    scope?: Record<string, unknown>,
+  ): Promise<PaginatedResult<IEmployeeProfile>> {
     const {
       page = 1,
       limit = 10,
@@ -65,20 +79,31 @@ export class EmployeeService {
 
     const filter: Record<string, unknown> = { isActive: true };
     if (companyId) filter.company = companyId;
+    // Scope wins over the legacy companyId arg — when both are supplied,
+    // the scope's company field overrides (handles the case where a
+    // super_admin passed companyId=undefined but scope explicitly sets one).
+    if (scope) Object.assign(filter, scope);
 
-    // Search by name in populated user or employeeId
+    // Search by name in either the linked User (legacy employees that
+    // were auto-provisioned a login at create time) or directly on the
+    // EmployeeProfile (new flow — User is created on demand, so name/
+    // email live on the profile). Also matches employeeId substrings.
     if (search) {
+      const rx = { $regex: search, $options: 'i' as const };
       const users = await User.find({
         $or: [
-          { firstName: { $regex: search, $options: 'i' } },
-          { lastName: { $regex: search, $options: 'i' } },
-          { email: { $regex: search, $options: 'i' } },
+          { firstName: rx },
+          { lastName: rx },
+          { email: rx },
         ],
       }).select('_id');
       const userIds = users.map((u) => u._id);
       filter.$or = [
         { userId: { $in: userIds } },
-        { employeeId: { $regex: search, $options: 'i' } },
+        { firstName: rx },
+        { lastName: rx },
+        { email: rx },
+        { employeeId: rx },
       ];
     }
 
@@ -223,75 +248,105 @@ export class EmployeeService {
   }
 
   /**
-   * Create a new user and employee profile together.
+   * Create an EmployeeProfile WITHOUT a corresponding login User.
+   *
+   * Historically this created a User + Profile pair so the employee could
+   * log in immediately, but the form was conflating two distinct actions.
+   * Now Employee → Add only creates the HR record; login credentials are
+   * provisioned separately from Master → User → Add (full permissions
+   * picker) or via `createUserForEmployee` below (quick auto-generated
+   * username + password). The profile carries firstName/lastName/email/
+   * phone directly so a user-less employee still has identity fields.
    */
   static async create(data: EmployeeCreateData & Record<string, any>): Promise<EmployeeCreateResult> {
-    if (data.email) {
-      const existingUser = await User.findOne({ email: data.email });
-      if (existingUser) {
-        throw new AppError('A user with this email already exists.', 409);
-      }
-    }
-
     const employeeId = generateEmployeeId();
-    const temporaryPassword = data.temporaryPassword?.trim() || this.generateTemporaryPassword();
-    const loginEmail = data.email || `${employeeId.toLowerCase()}@employee.local`;
 
-    // Create the User (with company for company-scoped roles)
-    const user = await User.create({
-      firstName: data.firstName,
-      lastName: data.lastName,
-      email: loginEmail,
-      password: temporaryPassword,
-      phone: data.phone ?? data.mobileNo,
-      role: data.role ?? 'employee',
-      employeeId,
-      username: employeeId,
-      company: data.company,
-      department: data.department,
-      designation: data.designation,
-      allowedBranches: data.allowedBranches ?? [],
-      passwordChangeRequired: true,
-    });
-
-    // The User-only fields above are stripped before spreading the rest of
-    // the validated body onto EmployeeProfile. This way the NwayERP form's
-    // extended fields (fileNo, branch, level, grade, fatherName, etc.) all
-    // land on the profile without having to enumerate each one.
+    // department / designation are passed by the form as User-shaped fields
+    // historically; keep accepting them but persist them on the profile so
+    // the data isn't lost when no user is created.
     const {
-      firstName, lastName, email, phone, password, role, company,
-      department, designation, allowedBranches, temporaryPassword: _temporaryPassword,
-      ...profileExtras
-    } = data;
-    void firstName; void lastName; void email; void phone; void password; void role;
-    void department; void designation; void allowedBranches; void _temporaryPassword;
+      password, role, temporaryPassword: _legacyTemp, ...rest
+    } = data as any;
+    void password; void role; void _legacyTemp;
 
     const profile = await EmployeeProfile.create({
-      userId: user._id,
+      ...rest,
       employeeId,
-      company,
       employmentType: data.employmentType ?? 'full_time',
       joinDate: data.joinDate ?? new Date(),
-      ...profileExtras,
     });
 
     const populated = await EmployeeProfile.findById(profile._id)
-      .populate({
-        path: 'userId',
-          select: 'firstName lastName email phone role department designation avatar allowedBranches passwordChangeRequired',
-        populate: [
-          { path: 'department', select: 'name code' },
-          { path: 'designation', select: 'title code level' },
-        ],
-      })
-      .populate('reportingManager', 'firstName lastName email');
+      .populate('reportingManager', 'firstName lastName email')
+      .populate('department', 'name')
+      .populate('designation', 'name');
 
     const result = populated!.toObject();
     return {
       ...(result as any),
-      temporaryPassword,
       loginEmployeeId: employeeId,
     } as EmployeeCreateResult;
+  }
+
+  /**
+   * Provision a login User for an existing EmployeeProfile.
+   *
+   * Username = employeeId, password = auto-generated. The new user inherits
+   * the profile's company / department / designation / allowedBranches. If
+   * a user is already linked, throws — callers must either delete the old
+   * one or use the full Master → User → Add form instead.
+   *
+   * Returns the plaintext credentials ONCE so the caller can surface them
+   * to the admin in a dialog. They are never persisted in plaintext.
+   */
+  static async createUserForEmployee(profileId: string): Promise<QuickCreateUserResult> {
+    if (!mongoose.Types.ObjectId.isValid(profileId)) {
+      throw new AppError('Invalid employee ID format.', 400);
+    }
+
+    const profile = await EmployeeProfile.findById(profileId);
+    if (!profile) throw new AppError('Employee not found.', 404);
+    if (profile.userId) {
+      throw new AppError('This employee already has a user account.', 409);
+    }
+
+    const employeeId = profile.employeeId;
+    const password = this.generateTemporaryPassword();
+    // Synthetic email when the profile has none — the local part uses the
+    // employeeId so it stays unique even for users without a real email.
+    const profileEmail = (profile as any).email as string | undefined;
+    const loginEmail = profileEmail || `${employeeId.toLowerCase()}@employee.local`;
+
+    const existing = await User.findOne({ email: loginEmail });
+    if (existing) {
+      throw new AppError('A user with this email already exists.', 409);
+    }
+
+    const user = await User.create({
+      firstName: (profile as any).firstName ?? 'Employee',
+      lastName: (profile as any).lastName ?? '-',
+      email: loginEmail,
+      password,
+      phone: (profile as any).phone ?? (profile as any).mobileNo,
+      role: 'employee',
+      employeeId,
+      username: employeeId,
+      company: profile.company,
+      department: (profile as any).department,
+      designation: (profile as any).designation,
+      allowedBranches: (profile as any).allowedBranches ?? [],
+      passwordChangeRequired: true,
+      employee: profile._id,
+    });
+
+    profile.userId = user._id as any;
+    await profile.save();
+
+    return {
+      username: employeeId,
+      password,
+      userId: user._id?.toString() ?? String(user._id),
+    };
   }
 
   /**

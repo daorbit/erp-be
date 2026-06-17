@@ -31,6 +31,7 @@ export interface IAttendance extends Document {
   overtime?: number;
   notes?: string;
   location?: ILocation;
+  selfieUrl?: string;
   approvedBy?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -91,6 +92,10 @@ const attendanceSchema = new Schema<IAttendance>(
       maxlength: [500, 'Notes cannot exceed 500 characters'],
     },
     location: locationSchema,
+    selfieUrl: {
+      type: String,
+      trim: true,
+    },
     approvedBy: {
       type: Schema.Types.ObjectId,
       ref: 'User',

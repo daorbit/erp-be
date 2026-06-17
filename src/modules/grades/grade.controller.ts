@@ -2,6 +2,7 @@ import type { Response } from 'express';
 import { asyncHandler } from '../../middleware/errorHandler.js';
 import { buildResponse } from '../../shared/helpers.js';
 import type { IAuthRequest, IQueryParams } from '../../shared/types.js';
+import { effectiveCompany } from '../../shared/scope.js';
 import { GradeService } from './grade.service.js';
 
 export class GradeController {
@@ -12,19 +13,19 @@ export class GradeController {
       search: req.query.search as string,
       filters: { level: req.query.level as string },
     };
-    const r = await GradeService.getAll(q, req.user.company);
+    const r = await GradeService.getAll(q, effectiveCompany(req.user));
     res.status(200).json(buildResponse(true, r.data, 'Grades retrieved', r.pagination));
   });
   static getById = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    res.status(200).json(buildResponse(true, await GradeService.getById(req.params.id as string, req.user.company), 'Retrieved'));
+    res.status(200).json(buildResponse(true, await GradeService.getById(req.params.id as string, effectiveCompany(req.user)), 'Retrieved'));
   });
   static create = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    res.status(201).json(buildResponse(true, await GradeService.create({ ...req.body, company: req.user.company }), 'Created'));
+    res.status(201).json(buildResponse(true, await GradeService.create({ ...req.body, company: effectiveCompany(req.user) }), 'Created'));
   });
   static update = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    res.status(200).json(buildResponse(true, await GradeService.update(req.params.id as string, req.body, req.user.company), 'Updated'));
+    res.status(200).json(buildResponse(true, await GradeService.update(req.params.id as string, req.body, effectiveCompany(req.user)), 'Updated'));
   });
   static delete = asyncHandler(async (req: IAuthRequest, res: Response) => {
-    res.status(200).json(buildResponse(true, await GradeService.delete(req.params.id as string, req.user.company), 'Deleted'));
+    res.status(200).json(buildResponse(true, await GradeService.delete(req.params.id as string, effectiveCompany(req.user)), 'Deleted'));
   });
 }

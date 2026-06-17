@@ -20,6 +20,7 @@ interface CheckInData {
 interface CheckOutData {
   location?: { latitude?: number; longitude?: number };
   notes?: string;
+  selfieUrl?: string;
 }
 
 interface MarkAttendanceData {
@@ -164,6 +165,7 @@ export class AttendanceService {
       if (data.notes) {
         existing.notes = data.notes;
       }
+      existing.selfieUrl = data.selfieUrl;
       await existing.save();
       return existing;
     }
